@@ -1,33 +1,19 @@
-﻿// 
-
-import {
-  type CalcdexPlayer,
-  type CalcdexPlayerKey,
-  type CalcdexPokemon,
-  CalcdexPlayerKeys as AllPlayerKeys,
-} from '@showdex/interfaces/calc';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { syncBattle } from '@showdex/redux/actions';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { type RootDispatch, calcdexSlice } from '@showdex/redux/store';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import {
-  clonePlayerSideConditions,
-  sanitizePlayerSide,
-  similarPokemon,
-} from '@showdex/utils/battle';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { calcBattleCalcdexNonce } from '@showdex/utils/calc';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { formatId } from '@showdex/utils/core';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { detectGenFromFormat } from '@showdex/utils/dex';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-import { detectClassicHost } from '@showdex/utils/host';~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+﻿// EDITINGNOTE: pick a convention for thing}; and make it consistent across files, same with thing.thing()
+// fix error messages
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
 
-  // 
+  // Creates the battle observer
   constructor(battleId) {
     super();
 
-    this.battleId = (battleId || null);
+    this.battleId = battleId || null;
 
+    // Stores the previous battle subscription
     this.prevBattleSubscription = null;
+
+    // Creates the new battle subscription
     this.battleSubscription = (state) => {
       console.debug(
         '[Gen 3 OU Tools] battle.subscribe()', state, 'for', this.battle?.id || this.battleId,
@@ -35,29 +21,29 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         '\nrequest:', this.battleRequest,
       );
 
-      // call the original subscription() first, if any, so we don't break anything we don't mean to!
+      // Passes the client data to the previous battle subscription
       this.prevBattleSubscription?.(state);
+
       this.syncTools();
     };
   }
 
-  // 
+  // Creates an error if the getter is executed without being implemented
   get battle() {
     throw new Error('ToolsBootstrappable Error: get battle() is not implemented.');
   }
 
-  //
   get battleRequest() {
     throw new Error('ToolsBootstrappable Error: get battleRequest() is not implemented.');
   }
 
-  // check for '|noinit|nonexistent|' in the `data` & if present, ignore initializing this battle
+  // Checks if initialization is disabled for the battle
   get initDisabled() {
-    const queue = this.battle?.stepQueue || [];
-    return queue.some(step => typeof step === 'string' && step.startsWith('|noinit|nonexistent|'));
+    const stepQueue = this.battle?.stepQueue || [];
+    return stepQueue.some((step) => typeof step === 'string' && step.startsWith('|noinit|nonexistent|'));
   }
 
-  // EDITINGNOTE: where does this actually need to go?
+  // Creates an clone of the side conditions that is separate from client data EDITINGNOTE: where does this actually need to go? should these be static?
   clonePlayerSideConditions(conditions) {
     return Object.entries(conditions || {}).reduce((prev, [key, value]) => {
       prev[key] = Array.isArray(value) ? [...value] : value;
@@ -65,7 +51,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }, {});
   }
 
-  //EDITINGNOTE: where does this actually need to go? should this be static?
+  // Creates an clean ID EDITINGNOTE: where does this actually need to go?
   formatId(value) {
     return value
       ?.toString?.()
@@ -74,24 +60,29 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       .toLowerCase();
   }
 
-  //EDITINGNOTE: where does this actually need to go? Also check if the (a) => convention is right and that the same convention is followed everywhere
+  // Creates a standardized object for the current battle state EDITINGNOTE: where does this actually need to go?
   sanitizePlayerSide(player, battleSide) {
-    const selectionIndex = player?.selectionIndex;
-    const playerPokemon = player?.pokemon;
-    const side = player?.side;
+    const {
+      selectionIndex,
+      pokemon: playerPokemon,
+      side,
+    } = player || {};
 
     const currentPokemon = playerPokemon?.length && selectionIndex > -1 ? playerPokemon[selectionIndex] : null;
 
     const sideConditions = battleSide?.sideConditions || side?.conditions || {};
 
+    // Creates an array of sanitized side conditions
     const sideConditionNames = Object.keys(sideConditions)
-      .map((c) => formatId(c))
+      .map((condition) => formatId(condition))
       .filter(Boolean);
 
+    // Creates an array of sanitized volatiles
     const volatileNames = Object.keys(currentPokemon?.volatiles || {})
-      .map((v) => formatId(v))
+      .map((volatile) => formatId(volatile))
       .filter(Boolean);
 
+    // Creates a state object
     return {
       spikes: (sideConditionNames.includes('spikes') && sideConditions.spikes?.[1]) || 0,
       isReflect: sideConditionNames.includes('reflect'),
@@ -103,16 +94,38 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     };
   };
 
-  // Creates an initial battle state
+  // Creates a valid generation number EDITINGNOTE: where does this actually need to go?
+  detectGenFromFormat (format, defaultGen = null) {
+    if (typeof format === 'number') {
+      return Math.max(format, 0);
+    }
+
+    const genFormatRegex = /^gen(10|\d)/i;
+
+    if (!genFormatRegex.test(format)) {
+      return defaultGen;
+    }
+
+    const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
+
+    if (gen < 1) {
+      return defaultGen;
+    }
+
+    return gen;
+  };
+
+  // Creates the initial battle state
   initToolsState() {
     const battleInstance = this.battle;
     const battleId = battleInstance?.id || this.battleId;
 
+    // Checks if the battle ID is valid
     if (!battleId) {
       return;
     }
 
-    // Prevents the initial state tool from running again once it is already initialized
+    // Checks if the battle has already been initialized
     if (battleInstance.toolsStateInit) {
       console.debug(
         '[Gen 3 OU Tools] Tools state has already been initialized for', battleId,
@@ -123,6 +136,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return;
     }
 
+    // Defines the initial nonce representing the battle state
     const initNonce = 0
 
     console.debug(
@@ -131,24 +145,24 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nbattle:', battleInstance,
     );
 
-    // Creates a snapshot of the battle 
+    // Creates a snapshot of the battle state
     this.toolsState = {
       battleId: battleId,
       battleNonce: initNonce,
       gen: battleInstance.gen,
-      // EDITINGNOTE: I think I just want gen3ou or null? Regardless, I need to change this once I see gen3ou's battleId
-      format: battleId,
+      // EDITINGNOTE: Where do I restrict to the right format for my tool, gen3ou ?singles?
+      format: battleId.split('-').find((part) => detectGenFromFormat(part)),
       gameType: battleInstance.gameType === 'doubles' ? 'Doubles' : 'Singles',
       turn: Math.max((battleInstance.turn || 0), 0),
-      // EDITINGNOTE: do I even need this? it says its used for cleanup routines but i only want tools to close once the window is closed
+      // EDITINGNOTE: Do I need this?
       active: !battleInstance.ended,
-      // EDITINGNOTE: I don't understand the purpose of this or how it works, but it seems important
+      // EDITINGNOTE: I don't understand this
       switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
       p1: {},
       p2: {},
     };
 
-    // gets player and side information
+    // Populates the snapshot with player and side data
     ['p1', 'p2'].forEach((playerKey) => {
       const player = battleInstance[playerKey];
 
@@ -156,14 +170,14 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         active: !!player?.id,
         name: player?.name || null,
         rating: player?.rating || null,
-        // EDITINGNOTE: I don't know what's going on here, or whether I even need it, but null isn't right
+        // EDITINGNOTE: I need to change this. I don't understand this.
         autoSelect: null,
         side: {
           conditions: clonePlayerSideConditions(player?.sideConditions)
         },
       };
 
-      // populates the player side conditions with sanitized information
+      // Populates the player side conditions with sanitized data
       this.toolsState[playerKey].side = {
         conditions: this.toolsState[playerKey].side.conditions,
         ...sanitizePlayerSide(
@@ -173,28 +187,27 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       };
     });
 
-    // sets the lock
+    // Sets the initialization lock
     battleInstance.toolsStateInit = true;
   }
 
-  // EDITINGNOTE: I introduce the nonce here, this needs to be updated with the data that I actually use so that it can accurately track state changes, also do I actually need ; after the last }
+  // Creates a string that represents a unique battle state EDITINGNOTE: This needs to be updated with the data that my calculations actually use so that I can sync at the right times
   calcBattleToolsNonce(battle, request) {
-    const stepQueue = battle?.stepQueue
-    ?.filter?.((q) => !!q && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(q))
-    || [];
-    
+    const stepQueue = battle?.stepQueue?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step)) || [];
+
     return stepQueue.join(';');
   }
 
-  // address battleInstance = this.battle
+  // 
   syncTools() {
     const battleInstance = this.battle;
 
+    // Checks if the battle ID is valid
     if (!battleInstance?.id) {
       return;
     }
 
-    // don't render if we've already destroyed the calcdex state
+    // Checks if Tools has been destroyed
     if (battleInstance.toolsDestroyed) {
       console.debug(
         '[Gen 3 OU Tools] Tools state has been destroyed for', battleInstance.id,
@@ -205,11 +218,11 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return;
     }
 
-    // ignore any freshly created battle objects with missing players
-    if (['p1', 'p2'].every((k) => !battleInstance[k]?.id)) {
+    // Checks if the battle is missing players
+    if (['p1', 'p2'].every((playerKey) => !battleInstance[playerKey]?.id)) {
       console.debug(
         '[Gen 3 OU Tools] Not all players exist yet in the battle!',
-        '\nplayers:', ['p1', 'p2'].map((k) => battleInstance[k]?.id),
+        '\nplayers:', ['p1', 'p2'].map((playerKey) => battleInstance[playerKey]?.id),
         '\nstepQueue:', battleInstance.stepQueue,
         '\nbattle.id:', battleInstance.id,
       );
@@ -220,13 +233,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     if (!battleInstance.toolsStateInit) {
       
-      // 
+      // defines the userID
       const authUserId = (!!Adapter?.authUsername && formatId(Adapter.authUsername)) || null;
 
       this.initCalcdexState();
 
-      // 
-      if (!battleInstance.ended && ['p1', 'p2'].some((k) => formatId(battleInstance[k]?.name) === authUserId)) {
+      // Checks if the user is a player in the battle
+      if (!battleInstance.ended && ['p1', 'p2'].some((playerKey) => formatId(battleInstance[playerKey]?.name) === authUserId)) {
         return;
       }
     }
@@ -236,14 +249,14 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // make sure the battle was active on the previous sync, but now has ended
-    if (this.battleState?.active && battleInstance.ended) {
+    if (this.toolsState?.active && battleInstance.ended) {
       console.debug(
         '[Gen 3 OU Tools] Battle', battleInstance.id, 'ended; updating active state...',
         '\ntoolsRoomId:', battleInstance.toolsRoomId,
         '\nbattle:', battleInstance,
       );
 
-      // should I be putting all of this. onto adapter. instead? what is the point of active false paused true? should I initialize active and paused variables during init?
+      // what is the point of active false paused true? should I initialize paused during init?
       this.toolsState = {
         battleId: battleInstance.id,
         battleNonce: battleInstance.nonce,
@@ -258,26 +271,166 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest);
 
     // 
-    if (!this.battleState?.battleNonce) {
+    if (!this.toolsState?.battleNonce) {
       return;
     }
 
     // dispatch a battle sync if the nonces are different (i.e., something changed)
-    if (this.battle.nonce === this.battleState.battleNonce) {
+    if (this.battle.nonce === this.toolsState.battleNonce) {
       return;
     }
 
     console.debug(
       'Syncing battle for', this.battle.id,
-      '\nnonce (prev):', this.battleState.battleNonce, '(now):', this.battle.nonce,
+      '\nnonce (prev):', this.toolsState.battleNonce, '(now):', this.battle.nonce,
       '\nrequest:', this.battleRequest,
       '\nbattle:', this.battle,
-      '\nstate (prev):', this.battleState,
+      '\nstate (prev):', this.toolsState,
     );
 
-    // why can we get rid of their custom function for connecting with redux, its quite a beast, it sets up quite a lot of tracking
+    // EDITINGNOTE: Make sure this is implemented elsewhere, as in the original it is calling from redux
     this.syncBattle(this.battle, this.battleRequest);
   }
+
+  // EDITINGNOTE
+  getDexForFormat (format) {
+    if (typeof Dex === 'undefined') {
+        console.warn(
+          'Global Dex object is not available.',
+          '\nformat', format,
+        );
+
+      return null;
+    }
+
+    if (!format) {
+      return Dex;
+    }
+
+    if (typeof format === 'number') {
+      return format > 0 ? Dex.forGen(format) : Dex;
+    }
+
+    const formatAsId = formatId(format);
+
+    const gen = detectGenFromFormat(formatAsId);
+
+    if (typeof gen !== 'number' || gen < 1) {
+      return Dex;
+    }
+
+    return Dex.forGen(gen);
+  };
+
+  // EDITINGNOTE LEFT OFF HERE KIND OF
+  parsePokemonDetails(details, delimiter = ', ') {
+    if (!details) {
+      return null;
+    }
+
+    const [
+      speciesForme,
+      ...rest
+    ] = details.split(delimiter);
+
+    if (!speciesForme) {
+      return null;
+    }
+
+    const output = {
+      speciesForme,
+    };
+
+    rest.forEach((detail) => {
+      if (/^L\d+$/.test(detail)) {
+        output.level = parseInt(detail.slice(1), 10) || 0;
+
+        if (!output.level) {
+          delete output.level;
+        }
+
+        return;
+      }
+
+      if (/^(M|F)$/.test(detail)) {
+        output.gender = detail as Showdown.GenderName;
+      }
+    });
+
+    return output;
+  };
+
+
+
+
+
+
+
+
+
+
+
+
+  import { type GenerationNum } from '@smogon/calc';
+  import { getDexForFormat } from '@showdex/utils/dex';
+  import { getPresetFormes } from '@showdex/utils/presets';
+  import { parsePokemonDetails } from './parsePokemonDetails';
+
+  // EDITINGNOTE: where does this actually need to go?
+  similarPokemon(pokemonA, pokemonB, config) {
+    if (!pokemonA?.details || !pokemonB?.details) {
+      return false;
+    }
+
+    const { details: detailsA } = pokemonA;
+    const { details: detailsB } = pokemonB;
+
+    const {
+      format,
+      normalizeFormes,
+    } = config || {};
+
+    const shouldNormalizeFormes = normalizeFormes === 'wildcard' && [detailsA, detailsB].some((details) => details.includes('-*'));
+
+    const dex = getDexForFormat(format);
+
+    const { speciesForme: speciesA } = parsePokemonDetails(detailsA);
+
+    const dexA = dex.species.get(speciesA);
+
+    const formeA = (
+      dexA?.exists && (
+        shouldNormalizeFormes ? dexA.baseSpecies : dexA.name
+      )
+    ) || null;
+
+    if (!formeA) {
+      return false;
+    }
+
+    const { speciesForme: speciesB } = parsePokemonDetails(detailsB);
+
+    const dexB = dex.species.get(speciesB);
+
+    const formeB = (
+      dexB?.exists && (
+        shouldNormalizeFormes ? dexB.baseSpecies : dexB.name
+      )
+    ) || null;
+
+    if (!formeB) {
+      return false;
+    }
+
+    return (formeA === formeB);
+  };
+
+
+
+
+
+
+
 
 
 
@@ -289,111 +442,75 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
 
   // patches in the calcdexId to client Showdown.Pokemon
-  protected patchClientCalcdexIdentifier(
-    playerKey: CalcdexPlayerKey,
-    addPokemon: Showdown.Side['addPokemon'],
-    addPokemonArgv: Parameters<Showdown.Side['addPokemon']>,
-  ): ReturnType<Showdown.Side['addPokemon']> {
-    this.startTimer();
+  patchClientToolsIdentifier(playerKey, addPokemon, addPokemonArgv) {
 
+    // checks for valid inputs
     if (!playerKey || typeof addPokemon !== 'function' || !addPokemonArgv?.length) {
-      this.endTimer('(bad patch args)');
-
       return null;
     }
 
     const execAddPokemon = () => addPokemon(...addPokemonArgv);
 
-    if (!this.battle?.id || !this.battle.calcdexStateInit) {
-      this.endTimer('(bad battle)', this.battle?.id, this.battle);
-
+    // execute the client's function if we have a bad state
+    if (!this.battle?.id || !this.battle.toolsStateInit) {
       return execAddPokemon();
     }
-
-    /* if (this.battle.calcdexIdPatched) {
-      this.endTimer('(already patched)');
-
-      return execAddPokemon();
-    } */
 
     const side = this.battle[playerKey];
 
+    // execute the client's function if we have a bad side
     if (!side?.sideid) {
-      this.endTimer('(bad side)', side);
-
       return execAddPokemon();
     }
 
-    // we'll collect potential candidates to assemble the final search list below
-    const pokemonSearchCandidates: (Showdown.Pokemon | CalcdexPokemon)[] = [];
+    // we'll collect potential candidates to assemble the final search list below WHAT IS THIS AND WHY DO WE GET RID OF IT
+    const pokemonSearchCandidates = [];
 
     // make sure this comes first before `pokemonState` in case `replaceSlot` is specified
     if (side.pokemon?.length) {
       pokemonSearchCandidates.push(...side.pokemon);
     }
 
-    // update (2024/01/03): someone encountered a strange case in Gen 9 VGC 2024 Reg F when after using Parting Shot,
-    // accessing battleState.format in the similarPokemon() call below would result in a TypeError, causing their
-    // Showdown to break (spitting the runMajor() stack trace into the BattleRoom chat)... which means battleState was
-    // undefined for some reason o_O (apparently this doesn't happen often tho)
-    if (!this.battleState?.battleId) {
-      // we'll just let the client deal with whatever this is
-      return addPokemon(...addPokemonArgv);
+    // checks for valid toolsstate
+    if (!this.toolsState?.battleId) {
+      return execAddPokemon();
     }
 
-    const { pokemon: pokemonFromState } = this.battleState[playerKey] || {};
+    // defines pokemonFromState WHERE IS POKEMON COMING FROM
+    const { pokemon: pokemonFromState } = this.toolsState[playerKey] || {};
 
     if (pokemonFromState?.length) {
       pokemonSearchCandidates.push(...pokemonFromState);
     }
 
-    // don't filter this in case `replaceSlot` is specified
-    const pokemonSearchList = pokemonSearchCandidates.map((p) => ({
-      calcdexId: p.calcdexId,
-      ident: p.ident,
-      // name: p.name,
-      speciesForme: p.speciesForme,
-      gender: p.gender,
-      details: p.details,
-      searchid: p.searchid,
+    // don't filter this in case `replaceSlot` is specified DO I NEED ALL THIS?
+    const pokemonSearchList = pokemonSearchCandidates.map((pokemon) => ({
+      toolsId: pokemon.toolsId,
+      ident: pokemon.ident,
+      speciesForme: pokemon.speciesForme,
+      gender: pokemon.gender,
+      details: pokemon.details,
+      searchid: pokemon.searchid,
     }));
 
     const [
-      , // unused; i.e., name
+      ,
       ident,
       details,
       replaceSlot = -1,
     ] = addPokemonArgv;
 
-    // just js things uwu
-    const prevPokemon = (replaceSlot > -1 && pokemonSearchList[replaceSlot])
-      || pokemonSearchList.filter((p) => !!p.calcdexId).find((p) => (
-        // e.g., ident = 'p1: CalcdexDemolisher' (nicknamed) or 'p1: Ditto' (unnamed default)
-        // update (2023/07/30): while `ident` is mostly available, when viewing a replay (i.e., an old saved battle), it's not!
-        (!ident || (
-          (!!p?.ident && p.ident === ident)
-            // e.g., searchid = 'p1: CalcdexDemolisher|Ditto'
-            // nickname case: pass; default case: fail ('p1: CalcdexDemolisher' !== 'p1: Ditto')
-            // note: not doing startsWith() since 'p1: Mewtwo|Mewtwo' will pass when given ident 'p1: Mew'
-            || (!!p?.searchid?.includes('|') && p.searchid.split('|')[0] === ident)
-        ))
-          && similarPokemon({ details }, p, {
-            format: this.battleState.format,
+    // 
+    const prevPokemon = (replaceSlot > -1 && pokemonSearchList[replaceSlot]) || 
+      pokemonSearchList.filter((pokemon) => !!pokemon.toolsId).find((pokemon) => (
+        (!ident || ((!!pokemon?.ident && pokemon.ident === ident) || (!!pokemon?.searchid?.includes('|') && pokemon.searchid.split('|')[0] === ident)))
+          && similarPokemon({ details }, pokemon, {
+            format: this.toolsState.format,
             normalizeFormes: 'wildcard',
-            ignoreMega: true,
           })
       ));
 
-    /* l.debug(
-      'side.addPokemon()', 'for', ident || name || details?.split(',')?.[0], 'for player', side.sideid,
-      '\n', 'ident', ident,
-      '\n', 'details', details,
-      '\n', 'replaceSlot', replaceSlot,
-      '\n', 'prevPokemon[]', prevPokemon,
-      '\n', 'pokemonSearchList[]', pokemonSearchList,
-      // '\n', 'side', side,
-      // '\n', 'battle', this.battle,
-    ); */
+
 
     const newPokemon = execAddPokemon();
 
@@ -422,6 +539,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     return newPokemon;
   }
+
+
+
+
+
+
+
 
   // patches in the calcdexId to Showdown.ServerPokemon (i.e., battle.myPokemon[])
   // note: the myPokemon[] arg should be from the freshest source, e.g., (request as Showdown.BattleRequest).side.pokemon[],
@@ -506,7 +630,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const { nonce: prevNonce } = this.battle;
 
-    this.battle.nonce = calcBattleCalcdexNonce(this.battle, this.battleRequest);
+    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest);
 
     l.debug(
       'Restored previous calcdexId\'s in battle.myPokemon[]',
