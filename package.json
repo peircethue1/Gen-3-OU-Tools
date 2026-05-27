@@ -2,14 +2,13 @@
   "name": "gen-3-ou-tools",
   "version": "1.0.0",
   "description": "Team prediction tool for Pokemon Showdown's Gen 3 OU format",
+  "author": "",
+  "license": "ISC",
+  "type": "module",
   "scripts": {
     "build": "node build.js",
     "watch": "node build.js --watch"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
   "devDependencies": {
     "esbuild": "^0.28.0"
   }

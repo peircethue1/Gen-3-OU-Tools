@@ -1,17 +1,17 @@
-﻿// Creates the initialization lifecycle
+﻿/**
+ * Creates the initialization lifecycle
+ */
+
 export class BootAdapter {
 
   // Defines the initialization state
   static __initialized = false;
 
-  // Defines the lifecycle hooks
+  // Defines the initialization lifecycle hooks
   static hook = null;
   static ready = null;
 
-  // EDITINGNOTE: check if this is needed
-  // static receiverFactory = null;
-
-  // Prepares the internal state
+  // Prepares the extension state
   static async __init() {
     if (this.__initialized) {
       return;
@@ -19,11 +19,13 @@ export class BootAdapter {
 
     // Defines the initialization lock
     this.__initialized = true;
-  }
+  };
 
-  // Executes the initialization pipeline
+  // EDITINGNOTE: Some getters and setters are created here for getState/rootState and authUsername. Do I need analogs?
+
+  // Executes the initialization sequence
   static async run() {
-    console.log('[Gen 3 OU Tools] Starting the initialization pipeline.');
+    console.debug('[Gen 3 OU Tools] Starting the initialization sequence.');
 
     // Executes hook setup
     try {
@@ -42,9 +44,9 @@ export class BootAdapter {
         await this.ready();
       }
     } catch (error) {
-      console.error("[Gen 3 OU Tools] Initialization failed: An error occurred during post-initialization setup.", error);
+      console.error("[Gen 3 OU Tools] Initialization failed: An error occurred while executing post-initialization setup.", error);
     }
 
-    console.log('[Gen 3 OU Tools] The initialization pipeline completed successfully.');
-  }
+    console.debug('[Gen 3 OU Tools] The initialization pipeline finished successfully.');
+  };
 }

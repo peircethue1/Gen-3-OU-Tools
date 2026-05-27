@@ -1,4 +1,6 @@
-﻿// Creates references and a template for the bootstrappers
+﻿/**
+ * Creates references and a template for the bootstrappers
+ */
 
 import { BootAdapter } from './BootAdapter';
 import { BootManager } from './BootManager';
@@ -12,20 +14,20 @@ export class BootBootstrappable {
   // Determines if the client is in the single panel layout
   static hasSinglePanel = () => false;
 
-  // Creates an error if a lifecycle method is executed without being implemented
+  // Checks if a lifecycle method is executed without being implemented
   open() {
-    throw new Error('Bootstrapper Error: "open()" is not implemented.');
+    throw new Error('Bootstrapper Error: open() is not implemented.');
   }
 
   close() {
-    throw new Error('Bootstrapper Error: "close()" is not implemented.');
+    throw new Error('Bootstrapper Error: close() is not implemented.');
   }
 
   run() {
-    throw new Error('Bootstrapper Error: "run()" is not implemented.');
+    throw new Error('Bootstrapper Error: run() is not implemented.');
   }
 
   destroy() {
-    throw new Error('Bootstrapper Error: "destroy()" is not implemented.');
+    throw new Error('Bootstrapper Error: destroy() is not implemented.');
   }
 }

@@ -288,7 +288,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nstate (prev):', this.toolsState,
     );
 
-    // EDITINGNOTE: Make sure this is implemented elsewhere, as in the original it is calling from redux
+    // EDITINGNOTE: Make sure this is implemented elsewhere, as in the original it is calling from redux/actions/syncbattle.ts
     this.syncBattle(this.battle, this.battleRequest);
   }
 
@@ -322,59 +322,14 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     return Dex.forGen(gen);
   };
 
-  // EDITINGNOTE LEFT OFF HERE KIND OF
-  parsePokemonDetails(details, delimiter = ', ') {
+  // EDITINGNOTE: where does this actually need to go? if these are only used in one place, maybe best to put them in there
+  parsePokemonDetails(details) {
     if (!details) {
       return null;
     }
 
-    const [
-      speciesForme,
-      ...rest
-    ] = details.split(delimiter);
-
-    if (!speciesForme) {
-      return null;
-    }
-
-    const output = {
-      speciesForme,
-    };
-
-    rest.forEach((detail) => {
-      if (/^L\d+$/.test(detail)) {
-        output.level = parseInt(detail.slice(1), 10) || 0;
-
-        if (!output.level) {
-          delete output.level;
-        }
-
-        return;
-      }
-
-      if (/^(M|F)$/.test(detail)) {
-        output.gender = detail as Showdown.GenderName;
-      }
-    });
-
-    return output;
+    return details.split(',', 1) || null;
   };
-
-
-
-
-
-
-
-
-
-
-
-
-  import { type GenerationNum } from '@smogon/calc';
-  import { getDexForFormat } from '@showdex/utils/dex';
-  import { getPresetFormes } from '@showdex/utils/presets';
-  import { parsePokemonDetails } from './parsePokemonDetails';
 
   // EDITINGNOTE: where does this actually need to go?
   similarPokemon(pokemonA, pokemonB, config) {
@@ -463,7 +418,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return execAddPokemon();
     }
 
-    // we'll collect potential candidates to assemble the final search list below WHAT IS THIS AND WHY DO WE GET RID OF IT
+    // we'll collect potential candidates to assemble the final search list below, do I need to initialize this?
     const pokemonSearchCandidates = [];
 
     // make sure this comes first before `pokemonState` in case `replaceSlot` is specified
@@ -476,7 +431,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return execAddPokemon();
     }
 
-    // defines pokemonFromState WHERE IS POKEMON COMING FROM
+    // EDITINGNOTE: this is coming back from redux via syncbattle
     const { pokemon: pokemonFromState } = this.toolsState[playerKey] || {};
 
     if (pokemonFromState?.length) {

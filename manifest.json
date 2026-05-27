@@ -3,10 +3,7 @@
   "name": "Gen 3 OU Tools",
   "version": "1.0.0",
   "description": "Team prediction tool for Pokemon Showdown's Gen 3 OU format",
-
-  "permissions": [
-    "storage"
-  ],
+  "author": "",
 
   "host_permissions": [
     "https://play.pokemonshowdown.com/*",

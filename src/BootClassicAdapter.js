@@ -1,4 +1,4 @@
-﻿// Creates the data receiver lifecycles for active rooms
+﻿// Creates the data receiver lifecycles for active rooms EDITINGNOTE: LEFT OFF HERE ON SECOND PASS - DO BOOTMANAGER FIRST THEN THIS, then CONTINUE DOWN, DO MAIN LAST
 import { BootAdapter } from './BootAdapter.js';
 
 export class BootClassicAdapter extends BootAdapter {

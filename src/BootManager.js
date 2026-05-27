@@ -1,4 +1,7 @@
-﻿// Creates registration and execution lifecycles EDITINGNOTE: check earlier files for consistent variable naming
+﻿/**
+ * Creates registration and execution lifecycles
+ */
+
 import { BootAdapter } from './BootAdapter';
 
 export class BootManager {
