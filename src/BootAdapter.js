@@ -33,7 +33,7 @@ export class BootAdapter {
         await this.hook();
       }
     } catch (error) {
-      console.error("[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.", error);
+      console.error('[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.', error);
     }
 
     // Executes post-initialization setup
@@ -44,7 +44,7 @@ export class BootAdapter {
         await this.ready();
       }
     } catch (error) {
-      console.error("[Gen 3 OU Tools] Initialization failed: An error occurred while executing post-initialization setup.", error);
+      console.error('[Gen 3 OU Tools] Initialization failed: An error occurred while executing post-initialization setup.', error);
     }
 
     console.debug('[Gen 3 OU Tools] The initialization pipeline finished successfully.');

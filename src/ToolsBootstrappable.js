@@ -1,34 +1,39 @@
-﻿// EDITINGNOTE: pick a convention for thing}; and make it consistent across files, same with thing.thing()
-// fix error messages
+﻿/**
+ * 
+ * EDITINGNOTE: LEFT OFF HERE ON SECOND PASS - CONTINUE DOWN, DO MAIN SECOND TO LAST, DO CONTENT LAST BUT IT HAS BEEN CLEANED UP ALREADY
+ * EDITINGNOTE: fix error messages
+ */
+
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
 
-  // Creates the battle observer
+  // 
+  prevBattleSubscription = null;
+
+  // 
+  battleSubscription = (state) => {
+    console.debug(
+      '[Gen 3 OU Tools] battle.subscribe()', state, 'for', this.battle?.id || this.battleId,
+      '\nbattle:', this.battle,
+      '\nrequest:', this.battleRequest,
+    );
+
+    // 
+    this.prevBattleSubscription?.(state);
+
+    // 
+    this.syncTools();
+  };
+
+  // 
   constructor(battleId) {
     super();
 
     this.battleId = battleId || null;
-
-    // Stores the previous battle subscription
-    this.prevBattleSubscription = null;
-
-    // Creates the new battle subscription
-    this.battleSubscription = (state) => {
-      console.debug(
-        '[Gen 3 OU Tools] battle.subscribe()', state, 'for', this.battle?.id || this.battleId,
-        '\nbattle:', this.battle,
-        '\nrequest:', this.battleRequest,
-      );
-
-      // Passes the client data to the previous battle subscription
-      this.prevBattleSubscription?.(state);
-
-      this.syncTools();
-    };
   }
 
-  // Creates an error if the getter is executed without being implemented
+  // 
   get battle() {
     throw new Error('ToolsBootstrappable Error: get battle() is not implemented.');
   }
@@ -39,20 +44,19 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
   // Checks if initialization is disabled for the battle
   get initDisabled() {
-    const stepQueue = this.battle?.stepQueue || [];
-    return stepQueue.some((step) => typeof step === 'string' && step.startsWith('|noinit|nonexistent|'));
+    return (this.battle?.stepQueue || []).some((step) => step?.startsWith('|noinit|nonexistent|'));
   }
 
-  // Creates an clone of the side conditions that is separate from client data EDITINGNOTE: where does this actually need to go? should these be static?
-  clonePlayerSideConditions(conditions) {
+  // Creates a clone of the side conditions
+  static clonePlayerSideConditions(conditions) {
     return Object.entries(conditions || {}).reduce((prev, [key, value]) => {
       prev[key] = Array.isArray(value) ? [...value] : value;
       return prev;
     }, {});
   }
 
-  // Creates an clean ID EDITINGNOTE: where does this actually need to go?
-  formatId(value) {
+  // Creates an clean ID EDITINGNOTE: where does this actually need to go? LEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERE
+  static formatId(value) {
     return value
       ?.toString?.()
       .normalize('NFD')
@@ -61,7 +65,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   }
 
   // Creates a standardized object for the current battle state EDITINGNOTE: where does this actually need to go?
-  sanitizePlayerSide(player, battleSide) {
+  static sanitizePlayerSide(player, battleSide) {
     const {
       selectionIndex,
       pokemon: playerPokemon,
@@ -95,7 +99,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   };
 
   // Creates a valid generation number EDITINGNOTE: where does this actually need to go?
-  detectGenFromFormat (format, defaultGen = null) {
+  static detectGenFromFormat (format, defaultGen = null) {
     if (typeof format === 'number') {
       return Math.max(format, 0);
     }
@@ -192,7 +196,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   }
 
   // Creates a string that represents a unique battle state EDITINGNOTE: This needs to be updated with the data that my calculations actually use so that I can sync at the right times
-  calcBattleToolsNonce(battle, request) {
+  static calcBattleToolsNonce(battle, request) {
     const stepQueue = battle?.stepQueue?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step)) || [];
 
     return stepQueue.join(';');
@@ -293,7 +297,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   }
 
   // EDITINGNOTE
-  getDexForFormat (format) {
+  static getDexForFormat (format) {
     if (typeof Dex === 'undefined') {
         console.warn(
           'Global Dex object is not available.',
@@ -323,7 +327,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   };
 
   // EDITINGNOTE: where does this actually need to go? if these are only used in one place, maybe best to put them in there
-  parsePokemonDetails(details) {
+  static parsePokemonDetails(details) {
     if (!details) {
       return null;
     }
@@ -332,7 +336,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   };
 
   // EDITINGNOTE: where does this actually need to go?
-  similarPokemon(pokemonA, pokemonB, config) {
+  static similarPokemon(pokemonA, pokemonB, config) {
     if (!pokemonA?.details || !pokemonB?.details) {
       return false;
     }

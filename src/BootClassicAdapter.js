@@ -1,4 +1,7 @@
-﻿// Creates the data receiver lifecycles for active rooms EDITINGNOTE: LEFT OFF HERE ON SECOND PASS - DO BOOTMANAGER FIRST THEN THIS, then CONTINUE DOWN, DO MAIN LAST
+﻿/**
+ * Creates the data receiver lifecycle
+ */
+
 import { BootAdapter } from './BootAdapter.js';
 
 export class BootClassicAdapter extends BootAdapter {
@@ -8,30 +11,30 @@ export class BootClassicAdapter extends BootAdapter {
   static __battleReceivers = [];
   static __mutex = {
     ok: false,
-    battleBuf: []
+    battleBuf: [],
   };
 
   static receiverFactory = null;
 
   // Intercepts client data
   static hook = () => {
-    console.log('[Gen 3 OU Tools] Intercepting client data via window.app.receive.');
+    console.debug('[Gen 3 OU Tools] Intercepting client data via window.app.receive.');
 
     // Creates a copy of the client data receiver
     this.__appReceive = window.app.receive.bind(window.app);
 
-    // Sends client data to data recievers
+    // Sends the client data to the data receivers
     window.app.receive = (data) => {
 
       // Sends the client data to the client data receiver
       this.__appReceive(data);
 
-      // Checks if the client data is the correct type
+      // Checks if the client data is in the correct format
       if (typeof data !== 'string' || !data.length) {
         return;
       }
 
-      // Checks if the client data is user data and identifies the username
+      // Checks if the client data is user data and stores the username
       if (data.startsWith('|updateuser|')) {
         const [
           ,
@@ -41,11 +44,12 @@ export class BootClassicAdapter extends BootAdapter {
         ] = data.split('|');
 
         console.debug(
-          '[Gen 3 OU Tools] User logged in as', namedCode === '1' ? 'registered' : 'guest', 'username:', username?.trim(),
+          '[Gen 3 OU Tools] Logged in as', namedCode === '1' ? 'registered' : 'guest', 'user.',
+          '\nusername:', username?.trim(),
           '\ndata:', data,
         );
 
-        // Checks if the username is valid and registered
+        // Checks if the user has a username and is registered
         if (!username || namedCode !== '1') {
           return;
         }
@@ -54,20 +58,26 @@ export class BootClassicAdapter extends BootAdapter {
         BootClassicAdapter.authUsername = username;
       }
 
-      // Checks if the client data is from a battle room and identifies the room
+      // Checks if the client data is battle data and sends the battle data to the data receiver
       if (data.startsWith('>battle-')) {
         const roomId = data.slice(1, data.indexOf('\n'));
 
-        // Stores the client data in a buffer if the initialization pipeline is active
+        console.debug(
+          '[Gen 3 OU Tools] window.app.receive data for battle room:', roomId,
+          '\ndata:', data,
+        );
+
+        // Stores the battle data in the buffer if the initialization sequence is active
         if (!this.__mutex.ok) {
           this.__mutex.battleBuf.push([roomId, data]);
+
           return;
         }
 
-        // Defines the data receiver for the room
+        // Fetches the data receiver for the battle room
         let receiver = this.battleReceiverNamed(roomId);
 
-        // Generates a data receiver for the room if none exists
+        // Creates the data receiver for the battle room if none exists
         if (!receiver && typeof this.receiverFactory === 'function') {
           receiver = this.receiverFactory(roomId);
 
@@ -76,11 +86,12 @@ export class BootClassicAdapter extends BootAdapter {
           }
         }
 
+        // Checks if the data receiver is valid
         if (typeof receiver !== 'function') {
           return;
         }
 
-        // Sends the client data to the data receiver
+        // Sends the battle data to the data receiver
         receiver(data);
       }
     };
@@ -88,11 +99,11 @@ export class BootClassicAdapter extends BootAdapter {
 
   // Flushes the buffer after initialization
   static ready = () => {
-    console.log('[Gen 3 OU Tools] Adapter initialized. Flushing the buffer.');
 
-    // Sends the client data collected by the buffer during initialization to the data receiver
+    // Sends the battle data collected by the buffer during initialization to the data receiver
     this.__mutex.battleBuf.forEach(([roomId, data]) => {
       const receiver = this.battleReceiverNamed(roomId);
+
       if (typeof receiver === 'function') {
         receiver(data);
       }
@@ -103,41 +114,50 @@ export class BootClassicAdapter extends BootAdapter {
     this.__mutex.ok = true;
   };
 
-  // Creates a list of active rooms
+  // Creates an array of data receivers
   static get receivers() {
     return this.__battleReceivers;
-  }
+  };
 
-  // Identifies the data receiver for a room
+  // Fetches the data receiver for the battle room
   static battleReceiverNamed(key) {
     if (!key || !this.__battleReceivers.length) {
       return null;
     }
-    const pair = this.__battleReceivers.find((r) => r[0] === key);
-    return pair ? pair[1] : null;
-  }
 
-  // Adds new rooms and data receivers to the list of active rooms
+    const pair = this.__battleReceivers.find((receiver) => receiver[0] === key);
+
+    return pair ? pair[1] : null;
+  };
+
+  // Adds the data receiver to the array of data receivers
   static addBattleReceiver(roomId, receiver) {
-    if (!roomId || typeof receiver !== 'function' || this.__battleReceivers.some((r) => r[0] === roomId)) {
+    if (!roomId || typeof receiver !== 'function' || this.__battleReceivers.some((receiver) => receiver[0] === roomId)) {
       return;
     }
-    this.__battleReceivers.push([roomId, receiver]);
-  }
 
-  // Removes a room from the list of active rooms
+    this.__battleReceivers.push([roomId, receiver]);
+  };
+
+  // Removes the data receiver from the array of data receivers
   static removeBattleReceiver(key) {
     if (!key || !this.__battleReceivers.length) {
       return;
     }
-    const index = this.__battleReceivers.findIndex((r) => r[0] === key);
+
+    const index = this.__battleReceivers.findIndex((receiver) => receiver[0] === key);
+
     if (index >= 0) {
       this.__battleReceivers.splice(index, 1);
     }
-  }
+  };
 
-  // Removes all rooms from the list of active rooms
+  // Removes all data receivers from the array of data receivers
   static clearBattleReceivers() {
+    if (!this.__battleReceivers.length) {
+      return;
+    }
+
     this.__battleReceivers.length = 0;
-  }
+  };
 }

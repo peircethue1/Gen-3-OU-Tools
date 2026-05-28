@@ -19,7 +19,7 @@ export class BootManager {
       .map(([name]) => name);
   }
 
-  // Adds a new bootstrapper to the registry
+  // Adds the bootstrapper to the registry
   static register(name, Bootstrapper) {
     if (!name || !(name in this.__bootstrappers) || typeof Bootstrapper !== 'function') {
       return;
@@ -27,11 +27,13 @@ export class BootManager {
 
     this.__bootstrappers[name] = Bootstrapper;
 
-    console.debug(`[Gen 3 OU Tools] Registered the`, name, `bootstrapper as:`, Bootstrapper.name,
-    `\nCurrent registry:`, this.registry);
+    console.debug(
+      '[Gen 3 OU Tools] Registered', Bootstrapper.name, 'as the', name, 'bootstrapper.',
+      '\nregistry:', this.registry,
+    );
   }
 
-  // Checks if a bootstrapper has been registered
+  // Checks if the bootstrapper has been registered
   static registered(name) {
     return !!this.__bootstrappers[name];
   }
@@ -41,10 +43,12 @@ export class BootManager {
     const Bootstrapper = this.__bootstrappers[name];
 
     if (!this.registered(name)) {
-      console.error(`[Gen 3 OU Tools] Bootstrapper isn't registered to BootManager:`, name,
-      `\nBootstrapper:`, Bootstrapper.name, Bootstrapper);
+      console.error(
+        '[Gen 3 OU Tools] The', name, 'bootstrapper is not registered.',
+        '\nbootstrapper:', Bootstrapper.name, Bootstrapper,
+      );
 
-      throw new Error(`The`, name, `bootstrapper could not be found.`);
+      throw new Error('The', name, 'bootstrapper could not be found.');
     }
 
     return Bootstrapper;
@@ -59,7 +63,7 @@ export class BootManager {
     new (this.named('tools'))(battleId).run();
   }
 
-  // Opens the existing Tools panel or creates a new one
+  // Opens the Tools panel
   static openTools(battleId) {
     if (!battleId) {
       return;

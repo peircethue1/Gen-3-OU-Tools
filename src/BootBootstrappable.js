@@ -1,5 +1,5 @@
 ﻿/**
- * Creates references and a template for the bootstrappers
+ * Creates the bootstrapper template
  */
 
 import { BootAdapter } from './BootAdapter';
@@ -11,23 +11,23 @@ export class BootBootstrappable {
   static Adapter = BootAdapter;
   static Manager = BootManager;
 
-  // Determines if the client is in the single panel layout
+  // Determines if the client is in the single panel layout EDITINGNOTE: determines? this is really initializing right? why is this here?
   static hasSinglePanel = () => false;
 
   // Checks if a lifecycle method is executed without being implemented
   open() {
-    throw new Error('Bootstrapper Error: open() is not implemented.');
+    throw new Error('Bootstrapper error: open() is not implemented.');
   }
 
   close() {
-    throw new Error('Bootstrapper Error: close() is not implemented.');
+    throw new Error('Bootstrapper error: close() is not implemented.');
   }
 
   run() {
-    throw new Error('Bootstrapper Error: run() is not implemented.');
+    throw new Error('Bootstrapper error: run() is not implemented.');
   }
 
   destroy() {
-    throw new Error('Bootstrapper Error: destroy() is not implemented.');
+    throw new Error('Bootstrapper error: destroy() is not implemented.');
   }
 }
