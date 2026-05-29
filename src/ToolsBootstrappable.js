@@ -1,7 +1,7 @@
 ﻿/**
  * 
  * EDITINGNOTE: LEFT OFF HERE ON SECOND PASS - CONTINUE DOWN, DO MAIN SECOND TO LAST, DO CONTENT LAST BUT IT HAS BEEN CLEANED UP ALREADY
- * EDITINGNOTE: fix error messages
+ * EDITINGNOTE: fix error messages and comments
  */
 
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
@@ -35,11 +35,16 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
   // 
   get battle() {
-    throw new Error('ToolsBootstrappable Error: get battle() is not implemented.');
+    throw new Error('Bootstrapper error: get battle() is not implemented.');
   }
 
   get battleRequest() {
-    throw new Error('ToolsBootstrappable Error: get battleRequest() is not implemented.');
+    throw new Error('Bootstrapper error: get battleRequest() is not implemented.');
+  }
+
+  // 
+  get battleState() {
+    return this.toolsState;
   }
 
   // Checks if initialization is disabled for the battle
@@ -55,7 +60,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }, {});
   }
 
-  // Creates an clean ID EDITINGNOTE: where does this actually need to go? LEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERE
+  // Creates an clean ID
   static formatId(value) {
     return value
       ?.toString?.()
@@ -64,7 +69,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       .toLowerCase();
   }
 
-  // Creates a standardized object for the current battle state EDITINGNOTE: where does this actually need to go?
+  // Creates a standardized object for the current battle state
   static sanitizePlayerSide(player, battleSide) {
     const {
       selectionIndex,
@@ -96,9 +101,9 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       isForesight: volatileNames.includes('foresight'),
       isSwitching: currentPokemon?.active ? 'out' : 'in',
     };
-  };
+  }
 
-  // Creates a valid generation number EDITINGNOTE: where does this actually need to go?
+  // Creates a valid generation number
   static detectGenFromFormat (format, defaultGen = null) {
     if (typeof format === 'number') {
       return Math.max(format, 0);
@@ -117,7 +122,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     return gen;
-  };
+  }
 
   // Creates the initial battle state
   initToolsState() {
@@ -129,19 +134,20 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return;
     }
 
-    // Checks if the battle has already been initialized
+    // Checks if the battle has already been initialized EDITINGNOTE: the original contains a reference to redux here, do I need it?
     if (battleInstance.toolsStateInit) {
       console.debug(
         '[Gen 3 OU Tools] Tools state has already been initialized for', battleId,
         '\ntoolsStateInit:', battleInstance.toolsStateInit,
         '\nbattle:', battleInstance,
+        '\ntoolsState:', this.toolsState,
       );
 
       return;
     }
 
     // Defines the initial nonce representing the battle state
-    const initNonce = 0
+    const initNonce = 0;
 
     console.debug(
       '[Gen 3 OU Tools] Initializing Tools state for', battleId,
@@ -154,16 +160,34 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       battleId: battleId,
       battleNonce: initNonce,
       gen: battleInstance.gen,
-      // EDITINGNOTE: Where do I restrict to the right format for my tool, gen3ou ?singles?
+      // EDITINGNOTE: Where do I restrict usage to the right format and game type, Gen 3 OU Singles?
       format: battleId.split('-').find((part) => detectGenFromFormat(part)),
       gameType: battleInstance.gameType === 'doubles' ? 'Doubles' : 'Singles',
       turn: Math.max((battleInstance.turn || 0), 0),
       // EDITINGNOTE: Do I need this?
       active: !battleInstance.ended,
-      // EDITINGNOTE: I don't understand this
+      // EDITINGNOTE: How does this work?
       switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
-      p1: {},
-      p2: {},
+      p1: {
+        active: false,
+        name: null,
+        rating: null,
+        // EDITINGNOTE: Do I need this?
+        autoSelect: false,
+        side: {
+          conditions: {},
+        },
+      },
+      p2: {
+        active: false,
+        name: null,
+        rating: null,
+        // EDITINGNOTE: Do I need this?
+        autoSelect: false,
+        side: {
+          conditions: {},
+        },
+      },
     };
 
     // Populates the snapshot with player and side data
@@ -174,20 +198,17 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         active: !!player?.id,
         name: player?.name || null,
         rating: player?.rating || null,
-        // EDITINGNOTE: I need to change this. I don't understand this.
-        autoSelect: null,
+        // EDITINGNOTE: Do I need this? How does this work? This is dependent on authUsername, which I may need to add back.
+        autoSelect: false,
         side: {
-          conditions: clonePlayerSideConditions(player?.sideConditions)
+          conditions: clonePlayerSideConditions(player?.sideConditions),
         },
       };
 
       // Populates the player side conditions with sanitized data
       this.toolsState[playerKey].side = {
         conditions: this.toolsState[playerKey].side.conditions,
-        ...sanitizePlayerSide(
-          this.toolsState[playerKey],
-          player,
-        ),
+        ...sanitizePlayerSide(this.toolsState[playerKey], player),
       };
     });
 
@@ -236,11 +257,15 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     // 
     if (!battleInstance.toolsStateInit) {
-      
+
+      // 
+      const { Adapter } = ToolsBootstrappable;
+
       // defines the userID
       const authUserId = (!!Adapter?.authUsername && formatId(Adapter.authUsername)) || null;
 
-      this.initCalcdexState();
+      // 
+      this.initToolsState();
 
       // Checks if the user is a player in the battle
       if (!battleInstance.ended && ['p1', 'p2'].some((playerKey) => formatId(battleInstance[playerKey]?.name) === authUserId)) {
@@ -248,19 +273,20 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       }
     }
 
+    // 
     if (!battleInstance.toolsStateInit) {
       return;
     }
 
-    // make sure the battle was active on the previous sync, but now has ended
-    if (this.toolsState?.active && battleInstance.ended) {
+    // make sure the battle was active on the previous sync, but now has ended EDITINGNOTE: what is toolsRoomId???
+    if (this.battleState?.active && battleInstance.ended) {
       console.debug(
         '[Gen 3 OU Tools] Battle', battleInstance.id, 'ended; updating active state...',
         '\ntoolsRoomId:', battleInstance.toolsRoomId,
         '\nbattle:', battleInstance,
       );
 
-      // what is the point of active false paused true? should I initialize paused during init?
+      // EDITINGNOTE: what is the point of active false paused true? should I initialize paused during init?
       this.toolsState = {
         battleId: battleInstance.id,
         battleNonce: battleInstance.nonce,
@@ -272,31 +298,31 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // 
-    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest);
+    battleInstance.nonce = calcBattleToolsNonce(battleInstance, this.battleRequest);
 
     // 
-    if (!this.toolsState?.battleNonce) {
+    if (!this.battleState?.battleNonce) {
       return;
     }
 
     // dispatch a battle sync if the nonces are different (i.e., something changed)
-    if (this.battle.nonce === this.toolsState.battleNonce) {
+    if (battleInstance.nonce === this.battleState.battleNonce) {
       return;
     }
 
     console.debug(
-      'Syncing battle for', this.battle.id,
-      '\nnonce (prev):', this.toolsState.battleNonce, '(now):', this.battle.nonce,
+      '[Gen 3 OU Tools] Syncing battle for', battleInstance.id,
+      '\nnonce (prev):', this.battleState.battleNonce, '(now):', battleInstance.nonce,
       '\nrequest:', this.battleRequest,
-      '\nbattle:', this.battle,
-      '\nstate (prev):', this.toolsState,
+      '\nbattle:', battleInstance,
+      '\nstate (prev):', this.battleState,
     );
 
-    // EDITINGNOTE: Make sure this is implemented elsewhere, as in the original it is calling from redux/actions/syncbattle.ts
+    // EDITINGNOTE: Make sure this is implemented elsewhere, as in the original it is calling from redux/actions/syncbattle.ts LEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERE
     this.syncBattle(this.battle, this.battleRequest);
   }
 
-  // EDITINGNOTE
+  // EDITINGNOTE: 
   static getDexForFormat (format) {
     if (typeof Dex === 'undefined') {
         console.warn(

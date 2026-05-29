@@ -6,6 +6,7 @@ export class BootAdapter {
 
   // Defines the initialization state
   static __initialized = false;
+  static __authUsername = null;
 
   // Defines the initialization lifecycle hooks
   static hook = null;
@@ -21,7 +22,17 @@ export class BootAdapter {
     this.__initialized = true;
   };
 
-  // EDITINGNOTE: Some getters and setters are created here for getState/rootState and authUsername. Do I need analogs?
+  // EDITINGNOTE: A getter is created here for rootState based on getState(). Do I need an analog?
+
+  // Fetches the username
+  static get authUsername() {
+    return this.__authUsername;
+  }
+
+  // Updates the username
+  static set authUsername(value) {
+    this.__authUsername = value?.trim() || null;
+  }
 
   // Executes the initialization sequence
   static async run() {
