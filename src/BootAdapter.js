@@ -58,6 +58,6 @@ export class BootAdapter {
       console.error('[Gen 3 OU Tools] Initialization failed: An error occurred while executing post-initialization setup.', error);
     }
 
-    console.debug('[Gen 3 OU Tools] The initialization pipeline finished successfully.');
+    console.debug('[Gen 3 OU Tools] The initialization sequence finished successfully.');
   };
 }
