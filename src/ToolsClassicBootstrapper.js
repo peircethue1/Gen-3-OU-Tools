@@ -1,33 +1,26 @@
 ﻿/**
  * 
+ * EDITINGNOTE: run, destroy, open, and close? Need to strip away redux and react
  */
 
 // import * as ReactDOM from 'react-dom/client';
-// import { CalcdexPlayerKeys as AllPlayerKeys } from '@showdex/interfaces/calc';
-// import { calcdexSlice } from '@showdex/redux/store';
-// import { tRef } from '@showdex/utils/app';
-// import { detectAuthPlayerKeyFromBattle } from '@showdex/utils/battle';
-// import { formatId, nonEmptyObject } from '@showdex/utils/core';
-// import { logger, wtf } from '@showdex/utils/debug';
-// import { detectClassicHost } from '@showdex/utils/host';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
-// import { CalcdexDomRenderer } from './CalcdexRenderer';
-// import styles from './Calcdex.module.scss';
+import { ToolsDomRenderer } from './ToolsRenderer.js';
+// import styles from './Tools.module.scss';
+import toolsHtml from './Tools.html';
 
 export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
-  // EDITINGNOTE: I may need to copy over formatid from toolsbootstrappable
-  static getToolsRoomId(this, battleId) {
-    return `view-tools-${formatId(battleId)}`;
+  // 
+  static getToolsRoomId(battleId) {
+    return `view-tools-${ToolsBootstrappable.formatId(battleId)}`;
   }
 
-  static createCalcdexRoom(battleId, focus) {
+  // 
+  static createToolsRoom(battleId, focus) {
     if (!battleId) {
       return null;
     }
-
-    // EDITINGNOTE: rootstate and store are redux, what should I do here?
-    const { rootState, store } = this.Adapter || {};
 
     // 
     const side = !window.Dex?.prefs('rightpanelbattles');
@@ -44,8 +37,10 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       return toolsRoom;
     }
 
-    // EDITINGNOTE: this is react, I need to make a decision whether or not to implement react.
-    toolsRoom.reactRoot = ReactDOM.createRoot(toolsRoom.el);
+    //
+    toolsRoom.el.innerHTML = toolsHtml;
+
+    // 
     toolsRoom.requestLeave = () => {
       const battle = window.app.rooms?.[battleId]?.battle;
 
@@ -53,16 +48,15 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
         delete battle.toolsHtmlRoom;
       }
 
-      // EDITINGNOTE: also react
-      toolsRoom.reactRoot?.unmount?.();
+      //
+      toolsRoom.el.innerHTML = '';
 
-      // LEFTOFFHERE
-      // clean up allocated memory from Redux for this Calcdex instance
-      store.dispatch(calcdexSlice.actions.destroy(battleId));
+      // clean up allocated memory from toolsState for this Tools instance
+      this.toolsState = null;
 
       if (battle?.id) {
-        // technically calcdexReactRoot would only exist for battle-overlayed Calcdexes,
-        // but calling it here just in case I screwed something up LOL
+        // technically toolsReactRoot would only exist for battle-overlayed Tools,
+        // but calling it here just in case I screwed something up LOL rct (this may go away because of overlay)
         battle.toolsReactRoot?.unmount?.();
         battle.toolsDestroyed = true;
       }
@@ -74,150 +68,143 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     return toolsRoom;
   }
 
-  // what is nonemptyobject?
+  // 
+  static nonEmptyObject(obj) {
+    if (typeof obj !== 'object') {
+      return false;
+    }
+
+    if (Array.isArray(obj)) {
+      return !!obj.length;
+    }
+
+    return !!Object.keys(obj || {}).length;
+  }
+
+  // 
   get battleRoom() {
-    if (!nonEmptyObject(window.app?.rooms) || !this.battleId?.startsWith?.('battle-')) {
+    if (!ToolsClassicBootstrapper.nonEmptyObject(window.app?.rooms) || !this.battleId?.startsWith?.('battle-')) {
       return null;
     }
 
     return window.app.rooms[this.battleId];
   }
 
-  protected get battle() {
+  get battle() {
     return this.battleRoom?.battle;
   }
 
-  protected get battleRequest() {
+  get battleRequest() {
     return this.battleRoom?.request;
   }
 
-  protected override startTimer(): void {
-    super.startTimer(CalcdexClassicBootstrapper.scope);
-  }
+  // 
+  patchToolsIdentifier(){
 
-  protected override patchCalcdexIdentifier(): void {
-    this.startTimer();
-
-    if (!detectClassicHost(window)) {
-      return void this.endTimer('(bad classic)', window.__SHOWDEX_HOST);
-    }
-
+    // 
     if (!this.battle?.id) {
-      return void this.endTimer('(bad battle.id)');
+      return;
     }
 
-    if (this.battle.calcdexIdPatched) {
-      return void this.endTimer('(already patched)');
+    // 
+    if (this.battle.toolsIdPatched) {
+      return;
     }
 
-    AllPlayerKeys.forEach((playerKey) => {
+    // 
+    ['p1', 'p2'].forEach((playerKey) => {
+
+      // 
       if (!(playerKey in this.battle) || typeof this.battle[playerKey]?.addPokemon !== 'function') {
         return;
       }
 
-      l.debug(
-        'Overriding side.addPokemon() of player', playerKey,
-        '\n', 'battle.id', this.battle.id,
+      console.debug(
+        '[Gen 3 OU Tools] Overriding side.addPokemon() of player:', playerKey,
+        '\nbattle.id:', this.battle.id,
       );
 
+      // 
       const side = this.battle[playerKey];
-      const addPokemon = side.addPokemon.bind(side) as Showdown.Side['addPokemon'];
+      const addPokemon = side.addPokemon.bind(side);
 
-      side.addPokemon = (...argv) => this.patchClientCalcdexIdentifier(playerKey, addPokemon, argv);
+      side.addPokemon = (...argv) => this.patchClientToolsIdentifier(playerKey, addPokemon, argv);
     });
 
-    this.startTimer();
-
-    l.debug(
-      'Overriding updateSide() of the current battleRoom',
-      '\n', 'battle.id', this.battle.id,
+    console.debug(
+      '[Gen 3 OU Tools] Overriding updateSide() of the current battleRoom',
+      '\nbattle.id:', this.battle.id,
     );
 
-    const updateSide = this.battleRoom.updateSide.bind(this.battleRoom) as Showdown.ClientBattleRoom['updateSide'];
+    const updateSide = this.battleRoom.updateSide.bind(this.battleRoom);
 
     this.battleRoom.updateSide = () => {
+
       // grab a copy of myPokemon[] before updateSide() unleashes valhalla on it
       const myPokemon = [...(this.battleRoom.battle?.myPokemon || [])];
 
       // now run the original function, which will directly mutate myPokemon[] from the battleRoom.requests.side.pokemon[]
       updateSide();
 
-      /* l.debug(
-        'updateSide()',
-        '\n', 'battle.id', this.battle.id,
-        '\n', 'myPokemon[]', '(prev)', myPokemon, '(now)', this.battle.myPokemon,
-      ); */
-
-      this.patchServerCalcdexIdentifier(myPokemon);
+      this.patchServerToolsIdentifier(myPokemon);
     };
-
-    this.endTimer('(classic patch ok)');
   }
 
-  protected preparePanel(): void {
-    this.startTimer();
+  // 
+  preparePanel() {
 
-    if (!detectClassicHost(window)) {
-      return void this.endTimer('(bad classic)', window.__SHOWDEX_HOST);
-    }
-
+    // 
     if (!this.battle?.id) {
-      return void this.endTimer('(bad battle.id)');
+      return;
     }
 
-    if (this.battle.calcdexAsOverlay) {
-      return void this.endTimer('(wrong render mode)', 'calcdexAsOverlay?', this.battle.calcdexAsOverlay);
+    // create the toolsRoom if it doesn't already exist (shouldn't tho)
+    if (!this.battle.toolsHtmlRoom) {
+      this.battle.toolsHtmlRoom = ToolsClassicBootstrapper.createToolsRoom(this.battleId, true);
+      this.battle.toolsRoomId = this.battle.toolsHtmlRoom?.id;
     }
 
-    // create the calcdexRoom if it doesn't already exist (shouldn't tho)
-    // update (2023/04/22): createCalcdexRoom() will also create a ReactDOM.Root under reactRoot
-    if (!this.battle.calcdexHtmlRoom) {
-      this.battle.calcdexHtmlRoom = CalcdexClassicBootstrapper.createCalcdexRoom(this.battleId, true);
-      this.battle.calcdexRoomId = this.battle.calcdexHtmlRoom?.id as Showdown.RoomID; // bacc compat w/ the new v1.3.0 bootloader system for preact
+    // 
+    if (!this.battle.toolsRoomId) {
+      return;
     }
 
-    if (!this.battle.calcdexRoomId) {
-      return void this.endTimer('(bad calcdexRoomId)', this.battle.calcdexRoomId);
-    }
+    const { getToolsRoomId } = ToolsClassicBootstrapper;
 
-    const { Adapter, getCalcdexRoomId } = CalcdexClassicBootstrapper;
+    // handle destroying the Tools when leaving the battleRoom
+    const requestLeave = this.battleRoom.requestLeave.bind(this.battleRoom);
 
-    // handle destroying the Calcdex when leaving the battleRoom
-    const requestLeave = this.battleRoom.requestLeave.bind(this.battleRoom) as Showdown.ClientBattleRoom['requestLeave'];
+    // 
+    this.battleRoom.requestLeave = (event) => {
 
-    this.battleRoom.requestLeave = (e) => {
-      const shouldLeave = requestLeave(e);
+      // 
+      const shouldLeave = requestLeave(event);
 
       // ForfeitPopup probably appeared
       if (!shouldLeave) {
+
         // similar to the battle overlay, we'll override the submit() handler of the ForfeitPopup
-        const forfeitPopup = window.app.popups.find((p) => (p as Showdown.ForfeitPopup).room === this.battleRoom);
+        const forfeitPopup = window.app.popups.find((popup) => (popup).room === this.battleRoom);
 
         if (typeof forfeitPopup?.submit === 'function') {
-          l.debug(
-            'Overriding submit() of spawned ForfeitPopup in app.popups[]...',
-            '\n', 'battle.id', this.battle.id,
+          console.debug(
+            '[Gen 3 OU Tools] Intercepting submit() of forfeitPopup in window.app.popups.',
+            '\nbattleId:', this.battle.id,
           );
 
-          const submitForfeit = forfeitPopup.submit.bind(forfeitPopup) as typeof forfeitPopup.submit;
+          const submitForfeit = forfeitPopup.submit.bind(forfeitPopup);
 
-          // unlike the battle overlay, we'll only close if configured to (and destroy if closing the room)
+          // we'll only close if configured to (and destroy if closing the room)
           forfeitPopup.submit = (...args) => {
-            const calcdexRoomId = getCalcdexRoomId(this.battleId);
+            const toolsRoomId = getToolsRoomId(this.battleId);
 
-            // grab the current settings
-            const { calcdex: settings } = Adapter.rootState?.showdex?.settings || {};
+            if (toolsRoomId && toolsRoomId in (window.app.rooms || {})) {
 
-            if (settings?.closeOn !== 'never' && calcdexRoomId && calcdexRoomId in (window.app.rooms || {})) {
-              // this will trigger calcdexRoom's requestLeave() handler,
-              // which may destroy the state depending on the user's settings
-              window.app.leaveRoom(calcdexRoomId);
+              // this will trigger toolsRoom's requestLeave() handler, which may destroy the state depending on the user's settings
+              window.app.leaveRoom(toolsRoomId);
             }
 
-            this.updateBattleRecord('loss');
-
             // call ForfeitPopup's original submit() handler
-            // (note: should be a `void` return, but `return`'ing here shouldn't hurt in case it isn't)
             return submitForfeit(...args);
           };
         }
@@ -229,392 +216,91 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       // actually leave the room
       return true;
     };
-
-    this.endTimer('(panel prep ok)');
   }
 
-  protected prepareOverlay(): void {
-    this.startTimer();
-
-    if (!detectClassicHost(window)) {
-      return void this.endTimer('(bad classic)', window.__SHOWDEX_HOST);
-    }
-
-    if (!this.battle?.id) {
-      return void this.endTimer('(bad battle.id)');
-    }
-
-    if (!this.battle.calcdexAsOverlay) {
-      return void this.endTimer('(wrong render mode)', 'calcdexAsOverlay?', this.battle.calcdexAsOverlay);
-    }
-
-    if (typeof this.battleRoom?.$controls?.find !== 'function') {
-      return void this.endTimer('(bad battleRoom)', this.battleRoom);
-    }
-
-    const { Adapter } = CalcdexClassicBootstrapper;
-
-    const {
-      $el,
-      $chatFrame,
-      $controls,
-      $userList,
-    } = this.battleRoom;
-
-    // local helper function that will be called once the native BattleRoom controls are rendered in the `overrides` below
-    // (warning: most of this logic is from trial & error tbh -- may make very little sense LOL)
-    const injectToggleButton = (): void => {
-      // grab the latest overlayVisible value
-      const state = Adapter.rootState?.calcdex?.[this.battle.id];
-      const { overlayVisible: visible } = state || {};
-
-      const toggleButtonIcon = visible ? 'close' : 'calculator';
-      const toggleButtonLabel = (
-        typeof tRef.value === 'function'
-          && tRef.value(`calcdex:overlay.control.${visible ? '' : 'in'}activeLabel`, '')
-      ) || `${visible ? 'Close' : 'Open'} Calcdex`;
-
-      const $existingToggleButton = $controls.find('button[name*="toggleCalcdexOverlay"]');
-      const hasExistingToggleButton = !!$existingToggleButton.length;
-
-      const $toggleButton = hasExistingToggleButton ? $existingToggleButton : $(`
-        <button
-          class="button"
-          style="float: right;"
-          type="button"
-          name="toggleCalcdexOverlay"
-        >
-          <i class="fa fa-${toggleButtonIcon}"></i>
-          <span>${toggleButtonLabel}</span>
-        </button>
-      `);
-
-      // update the existing $toggleButton's children
-      if (hasExistingToggleButton) {
-        $toggleButton.children('i.fa').attr('class', `fa fa-${toggleButtonIcon}`);
-        $toggleButton.children('span').text(toggleButtonLabel);
-      }
-
-      // $floatingContainer typically contains spectator & replay controls
-      // (asterisk [*] in the CSS selector [style*="<value>"] checks if style includes the <value>)
-      const $floatingContainer = $controls.find('div.controls span[style*="float:"]');
-
-      if ($floatingContainer.length) {
-        $floatingContainer.css('text-align', 'right');
-        $toggleButton.css('float', ''); // since the container itself floats!
-      }
-
-      // $waitingContainer typically contains the "Waiting for opponent..." message
-      const $waitingContainer = $controls.find('div.controls > p:first-of-type');
-
-      // $whatDoContainer typically contains player controls (move/Pokemon selection)
-      const $whatDoContainer = $controls.find('div.controls .whatdo'); // wat it dooo ??
-
-      // doesn't matter if $whatDoContainer is empty since it'll be checked again when
-      // for $controlsTarget below (by checking $controlsContainer's length)
-      const $controlsContainer = $floatingContainer.length
-        ? $floatingContainer
-        : $waitingContainer.length
-          ? $waitingContainer
-          : $whatDoContainer;
-
-      // add some spacing between a button or the control container's right side
-      $toggleButton.css('margin-right', 7);
-
-      // only add the $toggleButton if there wasn't one to begin with, obviously
-      if (hasExistingToggleButton) {
-        return;
-      }
-
-      // all this positioning work, which would likely break if they ever changed the HTML... LOL
-      const $controlsTarget = $controlsContainer.length
-        ? $controlsContainer
-        : $controls;
-
-      // button's name could be "startTimer" or "setTimer",
-      // hence why we're only matching names containing (`name*=`) "Timer" lmao
-      const $timerButton = $controlsTarget.find('button[name*="Timer"]');
-      const hasTimerButton = !!$timerButton.length;
-
-      if (hasTimerButton) {
-        $toggleButton.insertAfter($timerButton);
-      } else {
-        $controlsTarget[hasTimerButton ? 'append' : 'prepend']($toggleButton);
-      }
-    };
-
-    // there are lots of different functions for rendering the controls,
-    // which all need to be individually overridden :o
-    const overrides: BattleRoomOverride[] = ([
-      'updateControls', // p, div.controls p
-      'updateControlsForPlayer', // conditionally calls one of the update*Controls() below
-      'updateMoveControls', // div.controls .whatdo
-      'updateSwitchControls', // div.controls .whatdo
-      'updateTeamControls', // div.controls .whatdo
-      'updateWaitControls', // div.controls p
-    ] as FunctionPropertyNames<Showdown.ClientBattleRoom>[]).map((name) => ({
-      name,
-      native: typeof this.battleRoom[name] === 'function'
-        ? this.battleRoom[name].bind(this.battleRoom) as Showdown.ClientBattleRoom[typeof name]
-        : null,
-    })).filter((o) => typeof o.native === 'function');
-
-    // this could've been more disgusting by chaining it directly to the filter,
-    // but I sense my future self will appreciate the slightly improved readability lmao
-    overrides.forEach(({
-      name,
-      native,
-    }) => {
-      // sometimes you gotta do what you gotta do to get 'er done
-      // (but this definitely hurts my soul lmfao)
-      (this.battleRoom as unknown as Record<FunctionPropertyNames<Showdown.ClientBattleRoom>, (...args: unknown[]) => void>)[name] = (
-        ...args: unknown[]
-      ) => {
-        // run the native function first since it modifies $controls (from battleRoom)
-        native(...args);
-        injectToggleButton();
-      };
-    });
-
-    // $rootContainer[0] references the underlying HTMLDivElement created below,
-    // which will house the React DOM root
-    const $rootContainer = $(`<div class="${styles.overlayContainer}"></div>`);
-
-    // since the Calcdex overlay is initially hidden,
-    // make sure we apply the display: none; so that the chat isn't blocked by an invisible div
-    $rootContainer.css('display', 'none');
-
-    // button handler (which is the value of its name prop)
-    this.battleRoom.toggleCalcdexOverlay = (): void => {
-      // battle.calcdexOverlayVisible = !battle.calcdexOverlayVisible;
-
-      const state = Adapter.rootState?.calcdex?.[this.battle.id];
-      const visible = !state?.overlayVisible;
-
-      Adapter.store.dispatch(calcdexSlice.actions.update({
-        scope: `${l.scope}:prepareOverlay():battleRoom.toggleCalcdexOverlay()`,
-        battleId: this.battle.id,
-        overlayVisible: visible,
-      }));
-
-      const battleRoomStyles: React.CSSProperties = {
-        display: visible ? 'block' : 'none',
-        opacity: visible ? 0.3 : 1,
-        visibility: visible ? 'hidden' : 'visible',
-      };
-
-      $rootContainer.css('display', battleRoomStyles.display);
-      $chatFrame.css('opacity', battleRoomStyles.opacity);
-      $el.find('.battle-log-add').css('opacity', battleRoomStyles.opacity);
-      $userList.css('visibility', battleRoomStyles.visibility);
-
-      // omfg didn't know $chatbox was constantly being focused, which was the source of my distress >:(
-      // you won't believe how many hours I spent googling to find the source of this problem,
-      // which was dropdowns would open, then immediately close. happened only when opening as a
-      // Battle Overlay... & it was very inconsistent... LOL
-      // (shoutout to SpiffyTheSpaceman for helping me debug this in < 5 minutes while blasted af)
-      // also note that $chatbox comes & goes, so sometimes it's null, hence the check
-      if (this.battleRoom.$chatbox?.length) {
-        this.battleRoom.$chatbox.prop('disabled', visible);
-      }
-
-      // found another one lol (typically in spectator mode)
-      if (this.battleRoom.$chatAdd?.length) {
-        const $joinButton = this.battleRoom.$chatAdd.find('button');
-
-        if ($joinButton.length) {
-          $joinButton.prop('disabled', visible);
-        }
-      }
-
-      // for mobile (no effect on desktops), prevent pinch-to-zoom & auto-zoom into focused <input>'s
-      if (visible) {
-        const $existingMeta = $('meta[data-calcdex*="no-mobile-zoom"]');
-
-        if ($existingMeta.length) {
-          $existingMeta.attr('content', 'width=device-width, initial-scale=1, maximum-scale=1');
-        } else {
-          $('head').append(`
-            <meta
-              name="viewport"
-              content="width=device-width, initial-scale=1, maximum-scale=1"
-              data-calcdex="no-mobile-zoom"
-            />
-          `);
-        }
-      } else {
-        // allow pinch zooming again once the Calcdex is closed
-        // (warning: not enough to just remove the meta tag as the browser will continue to enforce the no pinch zoom!)
-        $('meta[data-calcdex*="no-mobile-zoom"]').attr('content', 'width=device-width, user-scalable=yes');
-      }
-
-      // most BattleRoom button callbacks seem to do this at the end lol
-      this.battleRoom.updateControls();
-    };
-
-    // render the $rootContainer in the entire battleRoom itself
-    // (couldn't get it to play nicely when injecting into $chatFrame sadge)
-    // (also, $rootContainer's className is the .overlayContainer module to position it appropriately)
-    $el.append($rootContainer);
-    this.battle.calcdexReactRoot = ReactDOM.createRoot($rootContainer[0]);
-
-    // handle destroying the Calcdex when leaving the battleRoom
-    const requestLeave = this.battleRoom.requestLeave.bind(this.battleRoom) as Showdown.ClientBattleRoom['requestLeave'];
-
-    this.battleRoom.requestLeave = (e): boolean => {
-      const shouldLeave = requestLeave(e);
-
-      // ForfeitPopup probably appeared
-      if (!shouldLeave) {
-        // attempt to find the ForfeitPopup to override its submit() callback to destroy the Calcdex
-        // (otherwise, the state will remain in the Hellodex since the battleRoom's overrides didn't fire)
-        const forfeitPopup = window.app.popups.find((p) => (p as Showdown.ForfeitPopup).room === this.battleRoom);
-
-        if (typeof forfeitPopup?.submit === 'function') {
-          l.debug(
-            'Overriding submit() of spawned ForfeitPopup in app.popups[]...',
-            '\n', 'battleId', this.battleId,
-          );
-
-          const submitForfeit = forfeitPopup.submit.bind(forfeitPopup) as typeof forfeitPopup.submit;
-
-          forfeitPopup.submit = (...args): void => {
-            // clean up allocated memory from React & Redux for this Calcdex instance
-            this.battle.calcdexReactRoot?.unmount?.();
-            Adapter.store.dispatch(calcdexSlice.actions.destroy(this.battleId));
-
-            // update the Hellodex W/L battle record
-            this.updateBattleRecord('loss');
-
-            // call the original function
-            return submitForfeit(...args);
-          };
-        }
-
-        // don't actually leave the room, as requested by requestLeave()
-        return false;
-      }
-
-      this.battle.calcdexReactRoot?.unmount?.();
-      this.battle.calcdexStateInit = false;
-      this.battle.calcdexDestroyed = true;
-      Adapter.store.dispatch(calcdexSlice.actions.destroy(this.battle.id));
-
-      // actually leave the room
-      return true;
-    };
-
-    this.endTimer('(overlay prep ok)');
-  }
-
-  protected renderCalcdex(dom: ReactDOM.Root): void {
-    if (!detectClassicHost(window) || !this.battleId || !dom) {
+  // EDITINGNOTE: 
+  renderTools(element) {
+    if (!this.battleId || !element) {
       return;
     }
 
-    const {
-      Adapter,
-      Manager,
-      openUserPopup,
-    } = CalcdexClassicBootstrapper as unknown as typeof BootdexClassicBootstrappable;
-
-    CalcdexDomRenderer(dom, {
-      store: Adapter.store,
-      battleId: this.battleId,
-      onUserPopup: openUserPopup,
-      onRequestHellodex: () => void Manager?.openHellodex(),
-      onRequestHonkdex: (id) => void Manager?.openHonkdex(id),
-      onCloseOverlay: () => void this.battleRoom?.toggleCalcdexOverlay?.(),
-    });
+    ToolsDomRenderer(
+      element,
+      {
+        state: this.battleState,
+        battleId: this.battleId,
+      },
+    );
   }
 
-  public open(): void {
-    if (!detectClassicHost(window) || !this.battleState?.battleId) {
+  // EDITINGNOTE: check whether these methods are actually implemented, and decide what to do with them (these are broken and have not recieved a pass)
+  open() {
+    if (!this.battleState?.battleId) {
       return;
     }
 
-    const { store } = CalcdexClassicBootstrapper.Adapter || {};
+    const { store } = ToolsClassicBootstrapper.Adapter || {};
 
-    // check if the Calcdex is rendered as an overlay for this battle
-    if (this.battleState.renderMode === 'overlay') {
-      // if we're not even in the battleRoom anymore, destroy the state
-      if (!window.app.rooms?.[this.battleId]?.id) {
-        return void store.dispatch(calcdexSlice.actions.destroy(this.battleId));
-      }
+    // check if the Tools tab is already open
+    const toolsRoomId = ToolsClassicBootstrapper.getToolsRoomId(this.battleId);
 
-      const shouldFocus = !window.app.curRoom?.id || window.app.curRoom.id !== this.battleId;
-
-      if (shouldFocus) {
-        window.app.focusRoom(this.battleId);
-      }
-
-      // we'll toggle it both ways here (only if we didn't have to focus the room),
-      // for use as an "emergency exit" (hehe) should the "Close Calcdex" go missing...
-      // but it shouldn't tho, think I covered all the bases... hopefully :o
-      if (!shouldFocus || !this.battleState.overlayVisible) {
-        this.battleRoom.toggleCalcdexOverlay?.();
-      }
-
-      // for overlays, this is all we'll do since the Calcdex is rendered inside the battle frame
-      // (entirely possible to do more like reopen as a tab later, but for v1.0.3, nah)
-      return;
-    }
-
-    // check if the Calcdex tab is already open
-    const calcdexRoomId = CalcdexClassicBootstrapper.getCalcdexRoomId(this.battleId);
-
-    if (calcdexRoomId in window.app.rooms) {
+    if (toolsRoomId in window.app.rooms) {
       // no need to call app.topbar.updateTabbar() since app.focusRoomRight() will call it for us
       // (app.focusRoomRight() -> app.updateLayout() -> app.topbar.updateTabbar())
-      window.app.focusRoomRight(calcdexRoomId);
+      window.app.focusRoomRight(toolsRoomId);
     } else {
       // at this point, we need to recreate the room
       // (we should also be in the 'panel' renderMode now)
-      const calcdexRoom = CalcdexClassicBootstrapper.createCalcdexRoom(this.battleId, true);
+      const toolsRoom = ToolsClassicBootstrapper.createToolsRoom(this.battleId, true);
 
-      this.renderCalcdex(calcdexRoom.reactRoot);
+      // React
+      // this.renderTools(toolsRoom.reactRoot);
+
+      // 
+      this.renderTools(toolsRoom.el);
 
       // if the battleRoom exists, attach the created room to the battle object
       if (this.battleRoom?.battle?.id) {
-        this.battleRoom.battle.calcdexDestroyed = false; // just in case
-        this.battleRoom.battle.calcdexHtmlRoom = calcdexRoom;
+        this.battleRoom.battle.toolsDestroyed = false; // just in case
+        this.battleRoom.battle.toolsHtmlRoom = toolsRoom;
       }
     }
 
-    // refocus the battleRoom that the tabbed Calcdex pertains to, if still joined
+    // refocus the battleRoom that the tabbed Tools pertains to, if still joined
     if ((!window.app.curRoom?.id || window.app.curRoom.id !== this.battleId) && this.battleId in window.app.rooms) {
       window.app.focusRoom(this.battleId);
     }
   }
 
-  public close(): void {
-    if (!detectClassicHost(window) || !this.battleId || !nonEmptyObject(window.app?.rooms)) {
+  close() {
+    if (!this.battleId || !ToolsClassicBootstrapper.nonEmptyObject(window.app?.rooms)) {
       return;
     }
 
-    const { Adapter, getCalcdexRoomId } = CalcdexClassicBootstrapper;
-    const calcdexRoomId = getCalcdexRoomId(this.battleId);
+    const { Adapter, getToolsRoomId } = ToolsClassicBootstrapper;
+    const toolsRoomId = getToolsRoomId(this.battleId);
 
-    if (window.app.rooms[calcdexRoomId]) {
-      window.app.leaveRoom(calcdexRoomId);
+    if (window.app.rooms[toolsRoomId]) {
+      window.app.leaveRoom(toolsRoomId);
     }
 
-    if (this.battleRoom?.id && !Adapter.rootState?.calcdex?.[this.battleId]?.active) {
+    if (this.battleRoom?.id && !Adapter.rootState?.tools?.[this.battleId]?.active) {
       window.app.leaveRoom(this.battleId);
     }
   }
 
-  public destroy(): void {
-    if (!detectClassicHost(window) || !this.battleId) {
+  destroy() {
+    if (!this.battleId) {
       return;
     }
 
-    const { Adapter } = CalcdexClassicBootstrapper as unknown as typeof BootdexClassicBootstrappable;
+    const { Adapter } = ToolsClassicBootstrapper;
 
-    if (this.battle?.calcdexStateInit) {
-      this.battle.calcdexReactRoot?.unmount?.();
-      this.battle.calcdexStateInit = false;
-      this.battle.calcdexDestroyed = true;
+    if (this.battle?.toolsStateInit) {
+      // this is a reference to the react root created by react, but we're not usingthat, what is the right analog?
+      this.battle.toolsReactRoot?.unmount?.();
+      this.battle.toolsStateInit = false;
+      this.battle.toolsDestroyed = true;
     }
 
     this.close();
@@ -622,220 +308,155 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     Adapter.store.dispatch(calcdexSlice.actions.destroy(this.battleId));
   }
 
-  public run(): void {
-    this.startTimer();
-
-    if (!detectClassicHost(window)) {
-      return void this.endTimer('(bad classic)', window.__SHOWDEX_HOST);
-    }
-
-    l.silly(
-      'Calcdex classic bootstrapper was invoked;',
+  run() {
+    console.debug(
+      'Tools classic bootstrapper was invoked;',
       'determining if there\'s anything to do...',
       '\n', 'battleId', this.battleId,
     );
 
     if (!this.battleId?.startsWith?.('battle-')) {
-      l.debug(
-        'Calcdex classic bootstrap request was ignored for battleId', this.battleId,
+      console.debug(
+        'Tools classic bootstrap request was ignored for battleId', this.battleId,
         'since it\'s not a Showdown.ClientBattleRoom',
       );
 
-      return void this.endTimer('(wrong room)', this.battleId);
+      return;
     }
 
-    const { Adapter, getCalcdexRoomId } = CalcdexClassicBootstrapper;
-    const { hasSinglePanel } = CalcdexClassicBootstrapper as unknown as typeof BootdexClassicBootstrappable;
+    const { Adapter, getToolsRoomId } = ToolsClassicBootstrapper;
+    const { hasSinglePanel } = ToolsClassicBootstrapper;
 
     if (!this.battle?.id) {
       // we'd typically reach this point when the user forfeits through the popup
       if (!this.battleState?.battleId) {
-        l.debug(
-          'Calcdex classic bootstrap request was ignored for battleId', this.battleId,
+        console.debug(
+          'Tools classic bootstrap request was ignored for battleId', this.battleId,
           'since no proper Showdown.Battle exists within the current Showdown.ClientBattleRoom',
         );
 
-        return void this.endTimer('(bad battle)', this.battleId);
+        return;
       }
 
       if (this.battleState?.active) {
         Adapter.store.dispatch(calcdexSlice.actions.update({
-          scope: l.scope,
           battleId: this.battleId,
           active: false,
         }));
       }
 
-      const calcdexRoomId = getCalcdexRoomId(this.battleId);
+      const toolsRoomId = getToolsRoomId(this.battleId);
 
       if (
         this.battleState.renderMode === 'panel'
           && this.calcdexSettings?.closeOn !== 'never'
-          && calcdexRoomId in window.app.rooms
+          && toolsRoomId in window.app.rooms
       ) {
-        l.debug(
-          'Leaving the calcdexRoom', calcdexRoomId, 'w/ a destroyed battle due to the user\'s settings...',
+        console.debug(
+          'Leaving the toolsRoom', toolsRoomId, 'w/ a destroyed battle due to the user\'s settings...',
           '\n', 'battleId', this.battleId,
           '\n', 'state', this.battleState,
-          '\n', 'settings', this.calcdexSettings,
         );
 
-        // this will destroy the Calcdex state if configured to, via calcdexRoom's requestLeave() handler
-        window.app.leaveRoom(calcdexRoomId);
+        // this will destroy the Tools state if configured to, via toolsRoom's requestLeave() handler
+        window.app.leaveRoom(toolsRoomId);
 
-        // update (2023/02/04): did I forget a return here? ...probably cause it keeps triggering the return from
-        // the typeof battle?.subscribe check
-        return void this.endTimer('(calcdex destroyed)');
+        return;
       }
 
-      l.debug(
-        'Calcdex for battleId', this.battleId, 'exists in state, but battle was forcibly ended, probably.',
+      console.debug(
+        'Tools for battleId', this.battleId, 'exists in state, but battle was forcibly ended, probably.',
         '\n', 'battle', this.battle,
         '\n', 'battleRoom', this.battleRoom,
         '\n', 'state', this.battleState,
       );
 
-      // update (2023/02/04): might as well put a return here too since this is part of the !battle?.id handler
-      return void this.endTimer('(battle destroyed)', this.battleId);
+      return;
     }
 
     if (this.initDisabled) {
-      l.debug(
-        'Calcdex classic bootstrap request was ignored for battleId', this.battleId,
+      console.debug(
+        'Tools classic bootstrap request was ignored for battleId', this.battleId,
         'since the battle is marked as nonexistent & shouldn\'t be initialized',
-        '\n', 'stepQueue[]', '(match)', this.battle.stepQueue.find((s) => s?.startsWith('|noinit|nonexistent|')),
+        '\n', 'stepQueue[]', '(match)', this.battle.stepQueue.find((step) => step?.startsWith('|noinit|nonexistent|')),
         '\n', 'battle', this.battle,
       );
 
-      return void this.endTimer('(noinit nonexistent)', this.battleId);
+      return;
     }
 
     if (typeof this.battle?.subscribe !== 'function') {
-      l.warn(
+      console.warn(
         'Must have some jank battle object cause battle.subscribe() is apparently type',
-        wtf(this.battle?.subscribe), // eslint-disable-line @typescript-eslint/unbound-method
+        typeof this.battle?.subscribe,
       );
 
-      return void this.endTimer('(bad subscriber)', this.battleId);
+      return;
     }
 
-    // delaying initialization if the battle hasn't instantiated all the players yet
-    // (which we can quickly determine by the existence of '|player|' steps in the stepQueue)
-    if (!this.battle.stepQueue?.length || !this.battle.stepQueue.some((q) => q?.startsWith('|player|'))) {
-      l.debug(
-        'Ignoring Calcdex classic init due to uninitialized players in battle',
+    // delaying initialization if the battle hasn't instantiated all the players yet (which we can quickly determine by the existence of '|player|' steps in the stepQueue)
+    if (!this.battle.stepQueue?.length || !this.battle.stepQueue.some((step) => step?.startsWith('|player|'))) {
+      console.debug(
+        'Ignoring Tools classic init due to uninitialized players in battle',
         '\n', 'stepQueue[]', this.battle.stepQueue,
         '\n', 'battle.id', this.battle.id,
         '\n', 'battle', this.battle,
       );
 
-      return void this.endTimer('(uninit players)', this.battleId);
+      return;
     }
 
     // don't process this battle if we've already added (or forcibly prevented) the filth
-    if (this.battle.calcdexInit) {
+    if (this.battle.toolsInit) {
       // force a battle sync if we've received some data, but the active battle is just idling
-      if (this.battle.calcdexStateInit && this.battle.atQueueEnd) {
+      if (this.battle.toolsStateInit && this.battle.atQueueEnd) {
         this.battle.subscription('atqueueend');
       }
 
-      return void this.endTimer('(already filthy)', this.battleId);
+      return;
     }
 
     // note: anything below here executes once per battle
-    const authPlayerKey = detectAuthPlayerKeyFromBattle(this.battle);
 
-    /** @todo `this.battle.calcdex*` hard prop assignemtns are temp until `CalcdexHostBattle` c: */
-    // determine if we should even init the Calcdex based on the openOnStart setting
-    // (purposefully ignoring 'always', obviously)
-    this.battle.calcdexDisabled = this.calcdexSettings?.openOnStart === 'never'
-      || (this.calcdexSettings?.openOnStart === 'playing' && !authPlayerKey)
-      || (this.calcdexSettings?.openOnStart === 'spectating' && !!authPlayerKey);
-
-    if (this.battle.calcdexDisabled) {
-      return void this.endTimer('(calcdex denied)', this.battleId);
+    if (!this.battle.toolsStateInit) {
+      this.initToolsState();
     }
 
-    // update (2023/02/01): used to be in the battle object as calcdexReactRoot, but post-refactor, we no longer
-    // need to keep a reference in the battle object (Hellodex will create a new root via ReactDOM.createRoot() btw)
-    // update (2023/04/22): jk, we need a reference to it now in order to call calcdexReactRoot.unmount() --
-    // just in the debug logs that the React roots of already closed battles (in the same session) are still mounted!
-    // the ReactDOM.Root will be stored in battle.calcdexRoom.reactRoot for panel tabs & (rather confusingly)
-    // battle.calcdexReactRoot for battle overlays (potentially could rename it to calcdexOverlayReactRoot... LOL)
-    // let calcdexReactRoot: ReactDOM.Root;
+    this.preparePanel();
 
-    this.battle.calcdexAsOverlay = this.calcdexSettings.openAs === 'overlay'
-      || (this.calcdexSettings.openAs !== 'showdown' && hasSinglePanel());
+    const toolsElement = this.battle.toolsHtmlRoom?.el;
 
-    if (!this.battle.calcdexStateInit) {
-      this.initCalcdexState();
-    }
-
-    void (this.battle.calcdexAsOverlay ? this.prepareOverlay() : this.preparePanel());
-
-    // update (2023/02/01): we're now only rendering the Calcdex once since React is no longer
-    // dispatching battle updates (we're dispatching them out here in the bootstrapper).
-    // state mutations in Redux should trigger necessary UI re-renders within React.
-    // (also probably no longer need to reference the calcdexReactRoot in the battle object now tbh)
-    // update (2023/04/22): nope -- we still do! we have to call calcdexReactRoot.unmount(),
-    // which obviously won't be available on subsequent bootstrapper invocations as a local var,
-    // so... back in the `battle` (for overlays) or `calcdexRoom` (for tabs) you go!
-    const calcdexReactRoot = this.battle.calcdexReactRoot || this.battle.calcdexHtmlRoom?.reactRoot;
-
-    if (!calcdexReactRoot) {
-      l.error(
+    if (!toolsElement) {
+      console.error(
         'ReactDOM root hasn\'t been initialized, despite completing the classic bootstrap;',
         'something is horribly wrong here!',
         '\n', 'battleId', this.battle.id,
-        '\n', 'calcdexReactRoot', '(typeof)', wtf(calcdexReactRoot), calcdexReactRoot,
+        '\n', 'toolsElement', '(typeof)', typeof toolsElement, toolsElement,
         '\n', 'battle', this.battle,
         '\n', 'battleRoom', this.battleRoom,
       );
 
-      return void this.endTimer('(bad react root)', this.battleId);
+      return;
     }
 
-    this.patchCalcdexIdentifier();
+    this.patchToolsIdentifier();
 
-    /* l.debug(
-      'Rendering Calcdex for', this.battle.id,
-      // '\n', 'nonce', '(now)', this.battle.nonce || initNonce,
-      // '\n', 'request', this.battleRoom.request,
-      '\n', 'battle', this.battle,
-      '\n', 'battleRoom', this.battleRoom,
-    ); */
+    // some of this needs to move up, they are using react a single render whereas I need to use a render every time the battlenonce changes (I guess whenever syncBattle is called)
+    this.renderTools(toolsElement);
 
-    this.renderCalcdex(calcdexReactRoot);
-
-    l.debug(
+    console.debug(
       'About to inject some real filth into battle.subscribe()...',
       '\n', 'battleId', this.battleId,
-      '\n', 'battle.subscription()', '(typeof)', wtf(this.battle.subscription),
+      '\n', 'battle.subscription()', '(typeof)', typeof this.battle.subscription,
       '\n', 'battle', this.battle,
     );
 
-    this.prevBattleSubscription = this.battle.subscription?.bind?.(this.battle) as Showdown.Battle['subscription'];
+    this.prevBattleSubscription = this.battle.subscription?.bind?.(this.battle);
     this.battle.subscribe(this.battleSubscription);
-    this.battle.calcdexInit = true;
+    this.battle.toolsInit = true;
 
-    // force a callback after rendering
-    // update (2023/02/04): bad idea, sometimes leads to a half-initialized battle object where there's
-    // only one player (which breaks the syncing); downside is that it doesn't appear to the user that the
-    // Calcdex is loading that fast, but it loads with the battle frame, so it isn't the worst thing ever
-    // update (2023/02/06): now checking if we're already at the queue end, which could happen if you refresh
-    // the page mid-battle or join a spectating game; otherwise, the Calcdex won't appear until the players
-    // do something (e.g., choose an option, turn on the timer, etc.) that triggers the subscription callback
-    if (calcdexReactRoot && this.battle.atQueueEnd) {
-      /* l.debug(
-        'Forcing a battle sync via battle.subscription() since the battle is atQueueEnd',
-        '\n', 'battle.atQueueEnd', this.battle.atQueueEnd,
-        '\n', 'battle', this.battle,
-        '\n', 'battleRoom', this.battleRoom,
-      ); */
-
+    if (toolsElement && this.battle.atQueueEnd) {
       this.battle.subscription('atqueueend');
     }
-
-    this.endTimer('(bootstrap complete)', this.battleId);
   }
 }

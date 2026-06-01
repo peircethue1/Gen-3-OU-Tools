@@ -9,6 +9,7 @@ const config = {
   format: 'iife',
   target: ['chrome100'],
   sourcemap: true,
+  loader: { '.html': 'text' },
 };
 
 if (isWatch) {

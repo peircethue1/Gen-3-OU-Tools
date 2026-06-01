@@ -83,12 +83,12 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     // Creates an array of sanitized side conditions
     const sideConditionNames = Object.keys(sideConditions)
-      .map((condition) => formatId(condition))
+      .map((condition) => ToolsBootstrappable.formatId(condition))
       .filter(Boolean);
 
     // Creates an array of sanitized volatiles
     const volatileNames = Object.keys(currentPokemon?.volatiles || {})
-      .map((volatile) => formatId(volatile))
+      .map((volatile) => ToolsBootstrappable.formatId(volatile))
       .filter(Boolean);
 
     // Creates a state object
@@ -157,10 +157,10 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     // Creates a snapshot of the battle state
     this.toolsState = {
-      battleId: battleId,
+      battleId,
       battleNonce: initNonce,
       gen: battleInstance.gen,
-      format: battleId.split('-').find((part) => detectGenFromFormat(part)),
+      format: battleId.split('-').find((part) => ToolsBootstrappable.detectGenFromFormat(part)),
       gameType: battleInstance.gameType === 'doubles' ? 'Doubles' : 'Singles',
       turn: Math.max((battleInstance.turn || 0), 0),
       active: !battleInstance.ended,
@@ -200,14 +200,14 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         // EDITINGNOTE: Do I need this? How does this work? This is dependent on authUsername, which I will need if I revert to Showdex's implementation.
         autoSelect: false,
         side: {
-          conditions: clonePlayerSideConditions(player?.sideConditions),
+          conditions: ToolsBootstrappable.clonePlayerSideConditions(player?.sideConditions),
         },
       };
 
       // Populates the player side conditions with sanitized data
       this.toolsState[playerKey].side = {
         conditions: this.toolsState[playerKey].side.conditions,
-        ...sanitizePlayerSide(this.toolsState[playerKey], player),
+        ...ToolsBootstrappable.sanitizePlayerSide(this.toolsState[playerKey], player),
       };
     });
 
@@ -261,13 +261,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       const { Adapter } = ToolsBootstrappable;
 
       // defines the userID
-      const authUserId = (!!Adapter?.authUsername && formatId(Adapter.authUsername)) || null;
+      const authUserId = (!!Adapter?.authUsername && ToolsBootstrappable.formatId(Adapter.authUsername)) || null;
 
       // 
       this.initToolsState();
 
       // Checks if the user is a player in the battle
-      if (!battleInstance.ended && ['p1', 'p2'].some((playerKey) => formatId(battleInstance[playerKey]?.name) === authUserId)) {
+      if (!battleInstance.ended && ['p1', 'p2'].some((playerKey) => ToolsBootstrappable.formatId(battleInstance[playerKey]?.name) === authUserId)) {
         return;
       }
     }
@@ -297,7 +297,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // 
-    battleInstance.nonce = calcBattleToolsNonce(battleInstance, this.battleRequest);
+    battleInstance.nonce = ToolsBootstrappable.calcBattleToolsNonce(battleInstance, this.battleRequest);
 
     // 
     if (!this.battleState?.battleNonce) {
@@ -341,8 +341,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return format > 0 ? Dex.forGen(format) : Dex;
     }
 
-    const formatAsId = formatId(format);
-    const gen = detectGenFromFormat(formatAsId);
+    const formatAsId = ToolsBootstrappable.formatId(format);
+    const gen = ToolsBootstrappable.detectGenFromFormat(formatAsId);
 
     if (typeof gen !== 'number' || gen < 1) {
       return Dex;
@@ -378,9 +378,9 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const shouldNormalizeFormes = normalizeFormes === 'wildcard' && [detailsA, detailsB].some((details) => details.includes('-*'));
 
-    const dex = getDexForFormat(format);
+    const dex = ToolsBootstrappable.getDexForFormat(format);
 
-    const { speciesForme: speciesA } = parsePokemonDetails(detailsA);
+    const { speciesForme: speciesA } = ToolsBootstrappable.parsePokemonDetails(detailsA);
     const dexA = dex.species.get(speciesA);
     const formeA = (dexA?.exists && (shouldNormalizeFormes ? dexA.baseSpecies : dexA.name)) || null;
 
@@ -388,7 +388,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return false;
     }
 
-    const { speciesForme: speciesB } = parsePokemonDetails(detailsB);
+    const { speciesForme: speciesB } = ToolsBootstrappable.parsePokemonDetails(detailsB);
     const dexB = dex.species.get(speciesB);
     const formeB = (dexB?.exists && (shouldNormalizeFormes ? dexB.baseSpecies : dexB.name)) || null;
 
@@ -461,7 +461,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     const prevPokemon = (replaceSlot >= 0 && pokemonSearchList[replaceSlot]) ||
       pokemonSearchList.filter((pokemon) => !!pokemon.toolsId).find((pokemon) => (
         (!ident || ((!!pokemon?.ident && pokemon.ident === ident) || (!!pokemon?.searchid?.includes('|') && pokemon.searchid.split('|')[0] === ident))) &&
-          similarPokemon(
+          ToolsBootstrappable.similarPokemon(
             { details },
             pokemon, 
             {
@@ -503,7 +503,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return;
     }
 
-    const format = this.battle.id.split('-').find((part) => detectGenFromFormat(part));
+    const format = this.battle.id.split('-').find((part) => ToolsBootstrappable.detectGenFromFormat(part));
 
     if (!format) {
       return;
@@ -529,7 +529,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
       const prevMyPokemon = myPokemon.find((p) => !!p?.ident && (
         p.ident === pokemon.ident || p.speciesForme === pokemon.speciesForme || p.details === pokemon.details || 
-        similarPokemon(pokemon, p, {
+        ToolsBootstrappable.similarPokemon(pokemon, p, {
           format,
           normalizeFormes: 'wildcard',
         })
@@ -549,7 +549,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const { nonce: prevNonce } = this.battle;
 
-    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest);
+    this.battle.nonce = ToolsBootstrappable.calcBattleToolsNonce(this.battle, this.battleRequest);
 
     console.debug(
       '[Gen 3 OU Tools] Restored server toolsIds.',
