@@ -22,8 +22,6 @@ export class BootAdapter {
     this.__initialized = true;
   };
 
-  // EDITINGNOTE: A getter is created here for rootState based on getState(). Do I need an analog?
-
   // Fetches the username
   static get authUsername() {
     return this.__authUsername;

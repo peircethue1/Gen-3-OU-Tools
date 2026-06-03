@@ -1,14 +1,19 @@
 ﻿/**
  * 
- * EDITINGNOTE: LEFT OFF HERE (comments and excel map only, code and console messages reviewed), DO MAIN SECOND TO LAST, DO CONTENT LAST BUT IT HAS BEEN CLEANED UP ALREADY
+ * EDITINGNOTE: REVIEW THIS, THEN TOOLSCLASSICBOOTSTRAPPER, THEN SYNCBATTLE, THEN MAIN SECOND TO LAST, THEN CONTENT LAST BUT CONTENT ONLY NEEDS THE EXCEL MAP
+ * EDITINGNOTE: Review comment content and excel map only
  */
 
+import { syncBattle } from './syncBattle.js';
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
 
   // 
   prevBattleSubscription = null;
+
+  // 
+  syncBattle = syncBattle;
 
   // 
   battleSubscription = (state) => {
@@ -147,7 +152,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // Defines the initial nonce representing the battle state
-    const initNonce = 0;
+    const initNonce = "00000000-0000-0000-0000-000000000000";
 
     console.debug(
       '[Gen 3 OU Tools] Initializing Tools for this battle:', battleId,
@@ -161,18 +166,15 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       battleNonce: initNonce,
       gen: battleInstance.gen,
       format: battleId.split('-').find((part) => ToolsBootstrappable.detectGenFromFormat(part)),
-      gameType: battleInstance.gameType === 'doubles' ? 'Doubles' : 'Singles',
+      gameType: battleInstance.gameType === 'singles' ? 'singles' : 'doubles',
       turn: Math.max((battleInstance.turn || 0), 0),
       active: !battleInstance.ended,
       paused: false,
-      // EDITINGNOTE: Do I need this? How does this work?
       switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
       p1: {
         active: false,
         name: null,
         rating: null,
-        // EDITINGNOTE: Do I need this?
-        autoSelect: false,
         side: {
           conditions: {},
         },
@@ -181,8 +183,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         active: false,
         name: null,
         rating: null,
-        // EDITINGNOTE: Do I need this?
-        autoSelect: false,
         side: {
           conditions: {},
         },
@@ -197,8 +197,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         active: !!player?.id,
         name: player?.name || null,
         rating: player?.rating || null,
-        // EDITINGNOTE: Do I need this? How does this work? This is dependent on authUsername, which I will need if I revert to Showdex's implementation.
-        autoSelect: false,
         side: {
           conditions: ToolsBootstrappable.clonePlayerSideConditions(player?.sideConditions),
         },
@@ -257,10 +255,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     if (!battleInstance.toolsStateInit) {
 
-      // 
-      const { Adapter } = ToolsBootstrappable;
-
       // defines the userID
+      const { Adapter } = ToolsBootstrappable;
       const authUserId = (!!Adapter?.authUsername && ToolsBootstrappable.formatId(Adapter.authUsername)) || null;
 
       // 
@@ -407,6 +403,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return null;
     }
 
+    // 
     const execAddPokemon = () => addPokemon(...addPokemonArgv);
 
     // execute the client's function if we have a bad state
@@ -414,6 +411,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return execAddPokemon();
     }
 
+    // 
     const side = this.battle[playerKey];
 
     // execute the client's function if we have a bad side
@@ -441,7 +439,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       pokemonSearchCandidates.push(...pokemonFromState);
     }
 
-    // don't filter this in case `replaceSlot` is specified 
+    // don't filter this in case `replaceSlot` is specified
     const pokemonSearchList = pokemonSearchCandidates.map((pokemon) => ({
       toolsId: pokemon.toolsId,
       ident: pokemon.ident,
@@ -458,8 +456,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     ] = addPokemonArgv;
 
     // 
-    const prevPokemon = (replaceSlot >= 0 && pokemonSearchList[replaceSlot]) ||
-      pokemonSearchList.filter((pokemon) => !!pokemon.toolsId).find((pokemon) => (
+    const prevPokemon = (replaceSlot >= 0 && pokemonSearchList[replaceSlot]) || pokemonSearchList.filter((pokemon) => !!pokemon.toolsId).find((pokemon) => (
         (!ident || ((!!pokemon?.ident && pokemon.ident === ident) || (!!pokemon?.searchid?.includes('|') && pokemon.searchid.split('|')[0] === ident))) &&
           ToolsBootstrappable.similarPokemon(
             { details },
@@ -473,14 +470,17 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const newPokemon = execAddPokemon();
 
+    // 
     if (!newPokemon?.speciesForme) {
       return newPokemon;
     }
 
+    // 
     if (!prevPokemon?.toolsId) {
       return newPokemon;
     }
 
+    // 
     newPokemon.toolsId = prevPokemon.toolsId;
 
     console.debug(
@@ -495,14 +495,18 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
   // 
   patchServerToolsIdentifier(myPokemon) {
+
+    // 
     if (!this.battle?.id) {
       return;
     }
 
+    // 
     if (!myPokemon?.length) {
       return;
     }
 
+    // 
     const format = this.battle.id.split('-').find((part) => ToolsBootstrappable.detectGenFromFormat(part));
 
     if (!format) {
@@ -515,40 +519,56 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nmyPokemon (cur):', myPokemon,
     );
 
+    // 
     if (!Array.isArray(this.battle.myPokemon)) {
       return;
     }
 
+    // 
     let didUpdate = !myPokemon?.length && !!this.battle.myPokemon?.length;
 
     // with each updated myPokemon[], see if we find a match to restore its toolsId
     this.battle.myPokemon.forEach((pokemon) => {
+
+      // 
       if (!pokemon?.ident || pokemon.toolsId) {
         return;
       }
 
-      const prevMyPokemon = myPokemon.find((p) => !!p?.ident && (
-        p.ident === pokemon.ident || p.speciesForme === pokemon.speciesForme || p.details === pokemon.details || 
-        ToolsBootstrappable.similarPokemon(pokemon, p, {
-          format,
-          normalizeFormes: 'wildcard',
-        })
+      // 
+      const prevMyPokemon = myPokemon.find((prev) => !!prev?.ident && (
+        prev.ident === pokemon.ident || prev.speciesForme === pokemon.speciesForme || prev.details === pokemon.details || 
+        ToolsBootstrappable.similarPokemon(
+          pokemon,
+          prev,
+          {
+            format,
+            normalizeFormes: 'wildcard',
+          }
+        )
       ));
 
+      // 
       if (!prevMyPokemon?.toolsId) {
         return;
       }
 
+      // 
       pokemon.toolsId = prevMyPokemon.toolsId;
+
+      // 
       didUpdate = true;
     });
 
+    // 
     if (!didUpdate || !this.battle.toolsInit) {
       return;
     }
 
+    // 
     const { nonce: prevNonce } = this.battle;
 
+    // 
     this.battle.nonce = ToolsBootstrappable.calcBattleToolsNonce(this.battle, this.battleRequest);
 
     console.debug(

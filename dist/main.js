@@ -14,7 +14,6 @@
       }
       this.__initialized = true;
     }
-    // EDITINGNOTE: A getter is created here for rootState based on getState(). Do I need an analog?
     // Fetches the username
     static get authUsername() {
       return this.__authUsername;
@@ -159,6 +158,35 @@
       this.__battleReceivers.length = 0;
     }
   };
+
+  // src/ToolsRenderer.js
+  var ToolsDomRenderer = (element, props) => {
+    if (!element || !props?.state) {
+      return;
+    }
+    element.innerHTML = `
+    <div id="tools-container" class="tools-panel" style="font-size: 9px">
+      <h3>Gen 3 OU Tools</h3>
+      <pre>${JSON.stringify(props.state, null, 2)}</pre>
+    </div>
+  `;
+  };
+
+  // src/syncBattle.js
+  function syncBattle(battle, request) {
+    if (!this.toolsState || !battle) {
+      return;
+    }
+    this.toolsState.battleNonce = battle.nonce;
+    this.toolsState.turn = Math.max(battle.turn || 0, 0);
+    const toolsElement = battle.toolsHtmlRoom?.el;
+    if (!toolsElement) {
+      console.warn("[Gen 3 OU Tools] syncBattle completed, but the room element was not found for this battle:", battle.id);
+      return;
+    }
+    console.debug("[Gen 3 OU Tools] syncBattle completed successfully. Rendering the panel.");
+    this.renderTools(toolsElement);
+  }
 
   // src/BootManager.js
   var BootManager = class {
@@ -319,6 +347,8 @@
     // 
     prevBattleSubscription = null;
     // 
+    syncBattle = syncBattle;
+    // 
     battleSubscription = (state) => {
       console.debug(
         "[Gen 3 OU Tools] Received an event from battle.subscribe():",
@@ -420,7 +450,7 @@
         );
         return;
       }
-      const initNonce = 0;
+      const initNonce = "00000000-0000-0000-0000-000000000000";
       console.debug(
         "[Gen 3 OU Tools] Initializing Tools for this battle:",
         battleId,
@@ -434,18 +464,15 @@
         battleNonce: initNonce,
         gen: battleInstance.gen,
         format: battleId.split("-").find((part) => _ToolsBootstrappable.detectGenFromFormat(part)),
-        gameType: battleInstance.gameType === "doubles" ? "Doubles" : "Singles",
+        gameType: battleInstance.gameType === "singles" ? "singles" : "doubles",
         turn: Math.max(battleInstance.turn || 0, 0),
         active: !battleInstance.ended,
         paused: false,
-        // EDITINGNOTE: Do I need this? How does this work?
         switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
         p1: {
           active: false,
           name: null,
           rating: null,
-          // EDITINGNOTE: Do I need this?
-          autoSelect: false,
           side: {
             conditions: {}
           }
@@ -454,8 +481,6 @@
           active: false,
           name: null,
           rating: null,
-          // EDITINGNOTE: Do I need this?
-          autoSelect: false,
           side: {
             conditions: {}
           }
@@ -467,8 +492,6 @@
           active: !!player?.id,
           name: player?.name || null,
           rating: player?.rating || null,
-          // EDITINGNOTE: Do I need this? How does this work? This is dependent on authUsername, which I will need if I revert to Showdex's implementation.
-          autoSelect: false,
           side: {
             conditions: _ToolsBootstrappable.clonePlayerSideConditions(player?.sideConditions)
           }
@@ -716,10 +739,14 @@
         if (!pokemon?.ident || pokemon.toolsId) {
           return;
         }
-        const prevMyPokemon = myPokemon.find((p) => !!p?.ident && (p.ident === pokemon.ident || p.speciesForme === pokemon.speciesForme || p.details === pokemon.details || _ToolsBootstrappable.similarPokemon(pokemon, p, {
-          format,
-          normalizeFormes: "wildcard"
-        })));
+        const prevMyPokemon = myPokemon.find((prev) => !!prev?.ident && (prev.ident === pokemon.ident || prev.speciesForme === pokemon.speciesForme || prev.details === pokemon.details || _ToolsBootstrappable.similarPokemon(
+          pokemon,
+          prev,
+          {
+            format,
+            normalizeFormes: "wildcard"
+          }
+        )));
         if (!prevMyPokemon?.toolsId) {
           return;
         }
@@ -759,22 +786,8 @@
     }
   };
 
-  // src/ToolsRenderer.js
-  var ToolsDomRenderer = (element, props) => {
-    if (!element || !props?.state) {
-      return;
-    }
-    const toolsState = JSON.stringify(props.state, null, 2);
-    element.innerHTML = `
-    <div id="tools-container" class="tools-panel" style="font-size: 9px">
-      <h3>Gen 3 OU Tools</h3>
-      <pre>${toolsState}</pre>
-    </div>
-  `;
-  };
-
-  // src/Tools.html
-  var Tools_default = '<div id="tools-container" class="tools-panel" style="font-size: 9px">\r\n    <h3>Gen 3 OU Tools</h3>\r\n    <p>loading...</p>\r\n</div>';
+  // src/tools.html
+  var tools_default = '<div id="tools-container" class="tools-panel" style="font-size: 9px">\r\n    <h3>Gen 3 OU Tools</h3>\r\n    <p>loading...</p>\r\n</div>';
 
   // src/ToolsClassicBootstrapper.js
   var ToolsClassicBootstrapper = class _ToolsClassicBootstrapper extends ToolsBootstrappable {
@@ -789,16 +802,20 @@
       }
       const side = !window.Dex?.prefs("rightpanelbattles");
       const toolsRoomId = this.getToolsRoomId(battleId);
-      const toolsRoom = this.createHtmlRoom(toolsRoomId, "Tools", {
-        side,
-        icon: "toolbox",
-        focus,
-        maxWidth: 650
-      });
+      const toolsRoom = this.createHtmlRoom(
+        toolsRoomId,
+        "Tools",
+        {
+          side,
+          icon: "wrench",
+          focus,
+          maxWidth: 650
+        }
+      );
       if (!toolsRoom?.el) {
         return toolsRoom;
       }
-      toolsRoom.el.innerHTML = Tools_default;
+      toolsRoom.el.innerHTML = tools_default;
       toolsRoom.requestLeave = () => {
         const battle = window.app.rooms?.[battleId]?.battle;
         if (battle?.id) {
@@ -807,7 +824,6 @@
         toolsRoom.el.innerHTML = "";
         this.toolsState = null;
         if (battle?.id) {
-          battle.toolsReactRoot?.unmount?.();
           battle.toolsDestroyed = true;
         }
         return true;
@@ -831,9 +847,11 @@
       }
       return window.app.rooms[this.battleId];
     }
+    // 
     get battle() {
       return this.battleRoom?.battle;
     }
+    // 
     get battleRequest() {
       return this.battleRoom?.request;
     }
@@ -850,20 +868,16 @@
           return;
         }
         console.debug(
-          "[Gen 3 OU Tools] Overriding side.addPokemon() of player:",
+          "[Gen 3 OU Tools] Intercepting side.addPokemon for this player:",
           playerKey,
-          "\nbattle.id:",
+          "\nbattleId:",
           this.battle.id
         );
         const side = this.battle[playerKey];
         const addPokemon = side.addPokemon.bind(side);
         side.addPokemon = (...argv) => this.patchClientToolsIdentifier(playerKey, addPokemon, argv);
       });
-      console.debug(
-        "[Gen 3 OU Tools] Overriding updateSide() of the current battleRoom",
-        "\nbattle.id:",
-        this.battle.id
-      );
+      console.debug("[Gen 3 OU Tools] Intercepting updateSide for this battle:", this.battle.id);
       const updateSide = this.battleRoom.updateSide.bind(this.battleRoom);
       this.battleRoom.updateSide = () => {
         const myPokemon = [...this.battleRoom.battle?.myPokemon || []];
@@ -890,11 +904,7 @@
         if (!shouldLeave) {
           const forfeitPopup = window.app.popups.find((popup) => popup.room === this.battleRoom);
           if (typeof forfeitPopup?.submit === "function") {
-            console.debug(
-              "[Gen 3 OU Tools] Intercepting submit() of forfeitPopup in window.app.popups.",
-              "\nbattleId:",
-              this.battle.id
-            );
+            console.debug("[Gen 3 OU Tools] Intercepting of forfeitPopup.submit for this battle:", this.battle.id);
             const submitForfeit = forfeitPopup.submit.bind(forfeitPopup);
             forfeitPopup.submit = (...args) => {
               const toolsRoomId = getToolsRoomId(this.battleId);
@@ -909,7 +919,7 @@
         return true;
       };
     }
-    // EDITINGNOTE: 
+    // 
     renderTools(element) {
       if (!this.battleId || !element) {
         return;
@@ -922,12 +932,11 @@
         }
       );
     }
-    // EDITINGNOTE: check whether these methods are actually implemented, and decide what to do with them (these are broken and have not recieved a pass)
+    // 
     open() {
       if (!this.battleState?.battleId) {
         return;
       }
-      const { store } = _ToolsClassicBootstrapper.Adapter || {};
       const toolsRoomId = _ToolsClassicBootstrapper.getToolsRoomId(this.battleId);
       if (toolsRoomId in window.app.rooms) {
         window.app.focusRoomRight(toolsRoomId);
@@ -943,131 +952,101 @@
         window.app.focusRoom(this.battleId);
       }
     }
+    // 
     close() {
       if (!this.battleId || !_ToolsClassicBootstrapper.nonEmptyObject(window.app?.rooms)) {
         return;
       }
-      const { Adapter, getToolsRoomId } = _ToolsClassicBootstrapper;
+      const { getToolsRoomId } = _ToolsClassicBootstrapper;
       const toolsRoomId = getToolsRoomId(this.battleId);
       if (window.app.rooms[toolsRoomId]) {
         window.app.leaveRoom(toolsRoomId);
       }
-      if (this.battleRoom?.id && !Adapter.rootState?.tools?.[this.battleId]?.active) {
+      if (this.battleRoom?.id && this.toolsState?.active) {
         window.app.leaveRoom(this.battleId);
       }
     }
+    // 
     destroy() {
       if (!this.battleId) {
         return;
       }
       const { Adapter } = _ToolsClassicBootstrapper;
       if (this.battle?.toolsStateInit) {
-        this.battle.toolsReactRoot?.unmount?.();
         this.battle.toolsStateInit = false;
         this.battle.toolsDestroyed = true;
       }
       this.close();
       Adapter.removeBattleReceiver(this.battleId);
-      Adapter.store.dispatch(calcdexSlice.actions.destroy(this.battleId));
+      this.toolsState = null;
     }
+    // 
     run() {
-      console.debug(
-        "Tools classic bootstrapper was invoked;",
-        "determining if there's anything to do...",
-        "\n",
-        "battleId",
-        this.battleId
-      );
+      console.debug("[Gen 3 OU Tools] The bootstrapper run() method was called for this battle:", this.battleId);
       if (!this.battleId?.startsWith?.("battle-")) {
-        console.debug(
-          "Tools classic bootstrap request was ignored for battleId",
-          this.battleId,
-          "since it's not a Showdown.ClientBattleRoom"
-        );
+        console.debug("[Gen 3 OU Tools] The bootstrap request was ignored for this battle with invalid battleId:", this.battleId);
         return;
       }
-      const { Adapter, getToolsRoomId } = _ToolsClassicBootstrapper;
-      const { hasSinglePanel } = _ToolsClassicBootstrapper;
+      const { getToolsRoomId } = _ToolsClassicBootstrapper;
       if (!this.battle?.id) {
         if (!this.battleState?.battleId) {
-          console.debug(
-            "Tools classic bootstrap request was ignored for battleId",
-            this.battleId,
-            "since no proper Showdown.Battle exists within the current Showdown.ClientBattleRoom"
-          );
+          console.debug("[Gen 3 OU Tools] The bootstrap request was ignored for this battle with no battleState:", this.battleId);
           return;
         }
         if (this.battleState?.active) {
-          Adapter.store.dispatch(calcdexSlice.actions.update({
+          this.toolsState = {
             battleId: this.battleId,
             active: false
-          }));
+          };
         }
         const toolsRoomId = getToolsRoomId(this.battleId);
-        if (this.battleState.renderMode === "panel" && this.calcdexSettings?.closeOn !== "never" && toolsRoomId in window.app.rooms) {
+        if (toolsRoomId in window.app.rooms) {
           console.debug(
-            "Leaving the toolsRoom",
+            "[Gen 3 OU Tools] Leaving with a destroyed battleState for this toolsRoom:",
             toolsRoomId,
-            "w/ a destroyed battle due to the user's settings...",
-            "\n",
-            "battleId",
+            "\nbattleId:",
             this.battleId,
-            "\n",
-            "state",
+            "\nbattleState:",
             this.battleState
           );
           window.app.leaveRoom(toolsRoomId);
           return;
         }
         console.debug(
-          "Tools for battleId",
+          "[Gen 3 OU Tools] This battle was forcibly ended:",
           this.battleId,
-          "exists in state, but battle was forcibly ended, probably.",
-          "\n",
-          "battle",
+          "\nbattle:",
           this.battle,
-          "\n",
-          "battleRoom",
+          "\nbattleRoom:",
           this.battleRoom,
-          "\n",
-          "state",
+          "\nbattleState:",
           this.battleState
         );
         return;
       }
       if (this.initDisabled) {
         console.debug(
-          "Tools classic bootstrap request was ignored for battleId",
+          "[Gen 3 OU Tools] The bootstrap request was ignored because this battle was marked as nonexistent:",
           this.battleId,
-          "since the battle is marked as nonexistent & shouldn't be initialized",
-          "\n",
-          "stepQueue[]",
-          "(match)",
+          "\nstep:",
           this.battle.stepQueue.find((step) => step?.startsWith("|noinit|nonexistent|")),
-          "\n",
-          "battle",
+          "\nbattle:",
           this.battle
         );
         return;
       }
       if (typeof this.battle?.subscribe !== "function") {
-        console.warn(
-          "Must have some jank battle object cause battle.subscribe() is apparently type",
-          typeof this.battle?.subscribe
-        );
+        console.warn("[Gen 3 OU Tools] battle.subscribe has an invalid type:", typeof this.battle?.subscribe);
         return;
       }
       if (!this.battle.stepQueue?.length || !this.battle.stepQueue.some((step) => step?.startsWith("|player|"))) {
         console.debug(
-          "Ignoring Tools classic init due to uninitialized players in battle",
-          "\n",
-          "stepQueue[]",
+          "[Gen 3 OU Tools] Tools was not initialized due to uninitialized players in the battle",
+          "\nstepQueue:",
           this.battle.stepQueue,
-          "\n",
-          "battle.id",
+          "\nbattleId:",
           this.battle.id,
-          "\n",
-          "battle",
+          "\nbattle:",
           this.battle
         );
         return;
@@ -1107,16 +1086,11 @@
       this.patchToolsIdentifier();
       this.renderTools(toolsElement);
       console.debug(
-        "About to inject some real filth into battle.subscribe()...",
-        "\n",
-        "battleId",
+        "[Gen 3 OU Tools] Intercepting client data via battle.subscribe for this battle:",
         this.battleId,
-        "\n",
-        "battle.subscription()",
-        "(typeof)",
+        "\nbattle.subscription:",
         typeof this.battle.subscription,
-        "\n",
-        "battle",
+        "\nbattle:",
         this.battle
       );
       this.prevBattleSubscription = this.battle.subscription?.bind?.(this.battle);
