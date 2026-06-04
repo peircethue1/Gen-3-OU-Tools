@@ -315,7 +315,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     );
 
     // 
-    this.syncBattle(this.battle, this.battleRequest);
+    this.syncBattle(battleInstance, this.battleRequest);
   }
 
   // 

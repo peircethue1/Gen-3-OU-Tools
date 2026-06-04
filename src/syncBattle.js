@@ -36,17 +36,12 @@ export function syncBattle(battle, request) {
 
 
 
- // EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE EVERYWHERE IN THIS CHUNK, calcdex for tools, settings
- // EDITINGNOTE: check for the existence of import dependencies
- // may not be worth supporting ditto
+ // EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE FOR ALL DEFINITIONS IN THIS CHUNK, CALCDEX WITH TOOLS
+ // EDITINGNOTE: search terms: settings
+ // EDITINGNOTE: check for import dependencies
+ // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey?
 
-  const rootState = api.getState() as RootState;
-  const settings = rootState?.showdex?.settings?.calcdex;
-  const showdownSettings = rootState?.showdex?.settings?.showdown;
-  const state = rootState?.calcdex;
-
-
-
+ // EDITINGNOTE: do i need each of these? check initialized and synced variables are consistent
   const {
     id: battleId,
     nonce: battleNonce,
@@ -60,88 +55,220 @@ export function syncBattle(battle, request) {
     stepQueue,
   } = battle || {};
 
+  // 
   if (!battleId) {
-    throw new Error('Attempted to initialize a CalcdexBattleState with a falsy battleId.');
+    throw new Error('Attempted to sync a battle instance with an invalid battleId.');
   }
 
-  if (!(battleId in state)) {
-    throw new Error(`Could not find a CalcdexBattleState with battleId ${battleId}`);
-  }
-
-  if (battleState.battleNonce && battleState.battleNonce === battleNonce) {
+  // 
+  if (this.battleState.battleNonce && this.battleState.battleNonce === battleNonce) {
       console.debug(
-        'Skipping this round of syncing due to same nonce from before',
-        '\n', 'nonce', battleNonce,
-        '\n', 'battle', battleId, battle,
-        '\n', 'state', battleState,
+        '[Gen 3 OU Tools] Skipping sync due to matching battleNonce for this battle:', battleId,
+        '\nbattleNonce:', battleNonce,
+        '\nbattle:', battle,
+        '\nbattleState:', this.battleState,
       );
-    
+
     return;
   }
 
   // update the gen, if provided
   if (typeof gen === 'number' && gen > 0) {
-    battleState.gen = gen;
+    this.toolsState.gen = gen;
   }
 
-  // detect the battle's rules EDITINGNOTE: Do I need this?
-  battleState.rules = detectBattleRules(battle);
-
-  // update the battle's active state, but only allow it to go from true -> false (as to avoid updating the HellodexBattleRecord from replays & battle re-inits)
-  if (battleState.active && typeof ended === 'boolean' && ended) {
-    battleState.active = !ended;
+  // update the battle's active state, but only allow it to go from true -> false
+  if (this.toolsState.active && typeof ended === 'boolean' && ended) {
+    this.toolsState.active = false;
   }
 
+  // 
   if (typeof paused === 'boolean' || typeof ended === 'boolean') {
-    battleState.paused = paused || ended;
+    this.toolsState.paused = paused || ended;
   }
 
-  // note: this bit is here mainly for the 'preact' __SHOWDEX_HOST cause the battle might've not been fully populated at CalcdexBootstrappable.initCalcdexState()
-  battleState.gameType = gameType === 'singles' ? 'singles' : 'doubles';
-
-  // check if the user hit the replay button (we'll use this value later to reset the Pokemon back to full health
-  const startedReplay = !battleState.active && battleState.turn > 1 && !turn;
+  // 
+  this.toolsState.gameType = gameType === 'singles' ? 'singles' : 'doubles';
 
   // update the current turn number
-  battleState.turn = turn || 0;
+  this.toolsState.turn = Math.max((turn || 0), 0);
+
+  // 
+  const detectPokemonIdent = (pokemon) => [
+    ('side' in (pokemon || {}) && pokemon.side?.sideid) || pokemon?.searchid?.split?.(':')[0] || pokemon?.ident?.split?.(':')[0],
+    pokemon?.speciesForme || pokemon?.details?.split?.(', ')?.[0] || pokemon?.searchid?.split?.('|')[1] || pokemon?.ident?.split?.(': ')[1] || pokemon?.name,
+  ].filter(Boolean).join(': ') || pokemon?.ident || pokemon?.searchid?.split?.('|')[0] || null;
+
+  // 
+  const detectPlayerKeyFromPokemon = (pokemon) => {
+    if (pokemon?.playerKey) {
+      return pokemon.playerKey;
+    }
+
+    const ident = detectPokemonIdent(pokemon);
+
+    if (!ident) {
+      return null;
+    }
+
+    return /^(p\d)[a-z]?:/.exec(ident)?.[1];
+  };
+
+  // 
+  const getAuthUsername = () => (
+    window.app.user?.attributes?.name || null
+  );
+
+  // 
+  const detectAuthPlayerKeyFromBattle = () => {
+    const detectedPlayerKey = detectPlayerKeyFromPokemon(battle?.myPokemon?.[0]);
+
+    if (detectedPlayerKey) {
+      return detectedPlayerKey;
+    }
+
+    const authName = getAuthUsername();
+
+    if (!authName) {
+      return null;
+    }
+
+    return battle?.sides?.find?.((side) => 'name' in (side || {}) && [
+      side.id,
+      side.name,
+    ].filter(Boolean).includes(authName))?.sideid || null;
+  };
 
   // update the authPlayerKey (if any)
-  battleState.authPlayerKey = detectAuthPlayerKeyFromBattle(battle);
+  this.toolsState.authPlayerKey = detectAuthPlayerKeyFromBattle();
 
-  // find out which side myPokemon[] belongs to
-  const detectedPlayerKey = battleState.authPlayerKey || detectPlayerKeyFromBattle(battle);
-
+  // 
+  const detectedPlayerKey = this.toolsState.authPlayerKey;
+  
   if (detectedPlayerKey) {
-    battleState.playerKey = detectedPlayerKey;
-    battleState.opponentKey = battleState.playerKey === 'p2' ? 'p1' : 'p2';
+    this.toolsState.playerKey = detectedPlayerKey;
+    this.toolsState.opponentKey = this.toolsState.playerKey === 'p2' ? 'p1' : 'p2';
   }
 
   // update the sidesSwitched from the battle
-  battleState.switchPlayers = battle.viewpointSwitched ?? battle.sidesSwitched;
+  this.toolsState.switchPlayers = battle.viewpointSwitched ?? battle.sidesSwitched;
+
+  // 
+  const nonEmptyObject = (obj) => {
+    if (typeof obj !== 'object') {
+      return false;
+    }
+
+    if (Array.isArray(obj)) {
+      return !!obj.length;
+    }
+
+    return !!Object.keys(obj || {}).length;
+  };
+
+  // 
+  const cloneField = (field) => {
+    const output = {
+      ...field,
+    };
+
+    if ('attackerSide' in output) {
+      delete output.attackerSide;
+    }
+
+    if ('defenderSide' in output) {
+      delete output.defenderSide;
+    }
+
+    return output;
+  };
+
+  // 
+  const formatId = (value) => value
+    ?.toString?.()
+    .normalize('NFD')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
+
+  // 
+  const sanitizeField = () => {
+    const {
+      pseudoWeather,
+      weather,
+    } = battle || {};
+
+    const pseudoWeatherMoveNames = pseudoWeather
+      ?.map((weatherState) => formatId(weatherState?.[0]))
+      .filter(Boolean)
+      ?? [];
+
+    const [pseudoWeatherName] = pseudoWeatherMoveNames;
+
+    const sanitizedField = {
+      weather: WeatherMap[weather] || null,
+      terrain: PseudoWeatherMap[pseudoWeatherName] || null,
+      attackerSide: null,
+      defenderSide: null,
+    };
+
+    return sanitizedField;
+  };
+
+  // 
+  const syncField = () => {
+    if (!nonEmptyObject(this.battleState?.field) || !battle?.p1) {
+      console.warn(
+        '[Gen 3 OU Tools] The field or battle is invalid.',
+        '\nbattleState.field:', this.battleState.field,
+        '\nbattle:', battle,
+      );
+
+      return this.battleState?.field;
+    }
+
+    const newField = cloneField(this.battleState.field);
+    const updatedField = sanitizeField();
+
+    Object.keys(updatedField).forEach((key) => {
+      if (['attackerSide', 'defenderSide'].includes(key)) {
+        return;
+      }
+
+      const value = updatedField?.[key];
+      const originalValue = this.battleState.field?.[key];
+
+      if (JSON.stringify(value) === JSON.stringify(originalValue)) {
+        return;
+      }
+
+      newField[key] = value;
+    });
+
+    newField.autoWeather = null;
+
+    return newField;
+  };
 
   // sync the field first cause we'll need the updated values for some calculations later
-  const syncedField = syncField(battleState, battle);
+  const syncedField = syncField();
 
   if (!syncedField) {
       console.warn(
-        'Failed to sync the field state from the battle',
-        '\n', 'synced', syncedField,
-        '\n', 'field', '(state)', battleState.field,
-        '\n', 'battle', battleId, battle,
-        '\n', 'state', battleState,
+        '[Gen 3 OU Tools] Could not sync the field state for this battle:', battleId,
+        '\nsyncedField:', syncedField,
+        '\nbattleState.field:', this.battleState.field,
+        '\nbattle:', battle,
+        '\nbattleState:', this.battleState,
       );
   } else {
-    battleState.field = syncedField;
+    this.toolsState.field = syncedField;
   }
 
   // keep track of CalcdexPokemon mutations from one player to another (e.g., revealed properties of the transform target Pokemon from the current player's transformed Pokemon)
-  const futureMutations = ['p1', 'p2'].reduce((prev, key) => ({
-    ...prev,
-    [key]: [],
-  }), {
-    p1: null,
-    p2: null,
-  });
+  const futureMutations = {
+    p1: [],
+    p2: [],
+  };
 
   for (const playerKey of ['p1', 'p2']) {
     if (!(playerKey in battle) || battle[playerKey]?.sideid !== playerKey) {
@@ -149,7 +276,7 @@ export function syncBattle(battle, request) {
     }
 
     const player = battle[playerKey];
-    const playerState = battleState[playerKey];
+    const playerState = this.toolsState[playerKey];
 
     if (player.name && playerState.name !== player.name) {
       playerState.name = player.name;
@@ -164,81 +291,50 @@ export function syncBattle(battle, request) {
     }
 
     // determine if `myPokemon[]` belongs to the current player
-    const isMyPokemonSide = !!battleState.playerKey && playerKey === battleState.playerKey;
+    const isMyPokemonSide = !!this.battleState.playerKey && playerKey === this.battleState.playerKey;
     const hasMyPokemon = !!myPokemon?.length;
 
-    if (
-      (!isMyPokemonSide || !hasMyPokemon)
-        && (!Array.isArray(player.pokemon) || !player.pokemon.length)
-    ) {
+    if ((!isMyPokemonSide || !hasMyPokemon) && (!Array.isArray(player.pokemon) || !player.pokemon.length)) {
         console.debug(
-          'Ignoring Pokemon updates for', playerKey, 'since they don\'t have any Pokemon!',
-          ...(isMyPokemonSide ? ['\n', 'myPokemon[]', myPokemon] : []),
-          '\n', 'pokemon[]', '(battle)', player.pokemon,
-          '\n', 'pokemon[]', '(state)', playerState.pokemon,
-          '\n', 'battle', battleId, battle,
-          '\n', 'state', battleState,
+          '[Gen 3 OU Tools] Skipping Pokemon sync because no Pokemon were found for this player:', playerKey,
+          ...(isMyPokemonSide ? ['\nmyPokemon:', myPokemon] : []),
+          '\nbattle.pokemon:', player.pokemon,
+          '\nbattleState.pokemon:', playerState.pokemon,
+          '\nbattleId:', battleId, 
+          '\nbattle:', battle,
+          '\nbattleState', battleState,
         );
-
-      // reset this Pokemon back to full if this is the first turn of the replay (should only happen once per replay, during this specific edge case)
-      if (!startedReplay) {
-        continue;
-      }
-
-      playerState.pokemon.forEach((pokemon) => {
-        pokemon.hp = pokemon.maxhp;
-        pokemon.fainted = false;
-        pokemon.faintCounter = 0;
-        pokemon.hitCounter = 0;
-        pokemon.status = null;
-
-        if (!pokemon.item && pokemon.prevItem) {
-          pokemon.item = pokemon.prevItem;
-          pokemon.prevItem = null;
-          pokemon.prevItemEffect = null;
-        }
-      });
 
       continue;
     }
 
     // determine the max amount of Pokemon
-    const maxPokemon = Math.max(player?.totalPokemon || 0, env.int('calcdex-player-min-pokemon', 0));
+    const maxPokemon = Math.max(player?.totalPokemon || 0, 6);
 
     if (playerState.maxPokemon !== maxPokemon) {
       playerState.maxPokemon = maxPokemon;
     }
 
     // if we're in an active battle and the logged-in user is also a player, but did not receieve myPokemon from the server yet, don't process any Pokemon! (we need the calcdexId to be assigned to myPokemon first, then mapped to the clientPokemon)
-    const initialPokemon = (
-      battleState.active
-        && isMyPokemonSide
-        && battleState.authPlayerKey === playerKey
-        ? myPokemon
-        : player.pokemon
-    ) || [];
+    const initialPokemon = (this.battleState.active && isMyPokemonSide && this.battleState.authPlayerKey === playerKey ? myPokemon : player.pokemon) || [];
 
+    // EDITINGNOTE: LEFT OFF HERE, gemini is telling me that wildcard is only for replays? which is somewhere in my code
     const currentOrder = initialPokemon.map((pokemon) => {
       const clientSourced = 'getIdent' in pokemon;
 
-      if (!pokemon.calcdexId) {
-        // found a case where the client Pokemon was given before the ServerPokemon for the myPokemon[] side
-        pokemon.calcdexId = (
-          isMyPokemonSide
-            && !!pokemon.details // update (2023/07/27): might be guaranteed to exist actually :o
-            && [
-              ...(myPokemon || []),
-              ...(player.pokemon || []),
-              ...(playerState.pokemon || []),
-            ].find((p) => (
-              !!p?.calcdexId
-                && !!p.details
-                && similarPokemon(pokemon, p, {
-                  format: battleState.format,
-                  normalizeFormes: 'fucked',
-                  // ignoreMega: true,
-                })
-            ))?.calcdexId
+      if (!pokemon.toolsId) {
+
+        // found a case where the client Pokemon was given before the ServerPokemon for the myPokemon[] side EDITINGNOTE: need to add similarPokemon
+        pokemon.toolsId = (isMyPokemonSide && !!pokemon.details && [
+          ...(myPokemon || []),
+          ...(player.pokemon || []),
+          ...(playerState.pokemon || []),
+        ].find((p) => (!!p?.toolsId && !!p.details && similarPokemon(pokemon, p, {
+              format: battleState.format,
+              normalizeFormes: 'fucked',
+              // ignoreMega: true,
+            })
+        ))?.calcdexId
         ) || calcPokemonCalcdexId(pokemon, playerKey);
 
         console.debug(
@@ -864,9 +960,7 @@ export function syncBattle(battle, request) {
 
 
 
-  // 
-  this.toolsState.battleNonce = battle.nonce;
-  this.toolsState.turn = Math.max((battle.turn || 0), 0);
+
 
   // Retrieve the HTML room container tied to this battle
   const toolsElement = battle.toolsHtmlRoom?.el;
