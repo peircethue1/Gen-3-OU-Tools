@@ -39,7 +39,7 @@ export function syncBattle(battle, request) {
 
  // EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE FOR ALL DEFINITIONS IN THIS CHUNK, CALCDEX WITH TOOLS
  // EDITINGNOTE: search terms: settings
- // EDITINGNOTE: check for import dependencies
+ // EDITINGNOTE: check for import dependencies, check continues
  // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey?
 
  // EDITINGNOTE: do i need each of these? check initialized and synced variables are consistent
@@ -271,24 +271,12 @@ export function syncBattle(battle, request) {
     p2: [],
   };
 
-
-
-
-
-
-
   // 
   const serializePayload = (payload) => Object.entries(payload || {})
     .map(([key, value]) => `${key}:${(typeof value === 'object' ? JSON.stringify(value) : String(value)) ?? '???'}`)
     .join('|');
 
-
-
-
-
-
-
-  // need to add uuid and change the NIL UUID below and initnonce too
+  // 
   const calcToolsId = (payload) => {
     const serialized = nonEmptyObject(payload) ? serializePayload(payload) :
       ['string', 'number', 'boolean'].includes(typeof payload) ? String(payload) : null;
@@ -303,45 +291,157 @@ export function syncBattle(battle, request) {
     );
   };
 
+  // EDITINGNOTE: I am betting that ident and speciesforme is enough for gen 3 ou
+  const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
+    ident: [
+      playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
+      uuidv4(),
+    ].filter(Boolean).join(': '),
 
+    speciesForme: pokemon?.speciesForme,
+  });
 
+  // 
+  const detectGenFromFormat = (format, defaultGen = null) => {
+    if (typeof format === 'number') {
+      return Math.max(format, 0);
+    }
 
+    const genFormatRegex = /^gen(10|\d)/i;
 
+    if (!genFormatRegex.test(format)) {
+      return defaultGen;
+    }
 
+    const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
 
+    if (gen < 1) {
+      return defaultGen;
+    }
 
+    return gen;
+  }
 
+  // 
+  const getDexForFormat = (format) => {
+    if (typeof Dex === 'undefined') {
+      console.warn(
+        '[Gen 3 OU Tools] The global Dex object is not available.',
+        '\nformat:', format,
+      );
 
-const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
-  ident: [
-    playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
-    uuidv4(),
-  ].filter(Boolean).join(': '),
+      return null;
+    }
 
-  speciesForme: pokemon?.speciesForme,
-  level: String(pokemon?.level ?? 100),
-  gender: pokemon?.gender || 'N', // seems like 'N'-gendered Pokemon occasionally report back with an empty string
-});
+    if (!format) {
+      return Dex;
+    }
 
+    if (typeof format === 'number') {
+      return format > 0 ? Dex.forGen(format) : Dex;
+    }
 
+    const formatAsId = formatId(format);
+    const gen = detectGenFromFormat(formatAsId);
 
+    if (typeof gen !== 'number' || gen < 1) {
+      return Dex;
+    }
 
+    return Dex.forGen(gen);
+  };
 
+  // 
+  const parsePokemonDetails = (details) => {
+    if (!details) {
+      return null;
+    }
 
+    const [speciesForme] = details.split(', ');
 
+    if (!speciesForme) {
+      return null;
+    }
 
+    return { speciesForme };
+  };
 
+  // 
+  const similarPokemon = (pokemonA, pokemonB, config) => {
+    if (!pokemonA?.details || !pokemonB?.details) {
+      return false;
+    }
 
+    const { details: detailsA } = pokemonA;
+    const { details: detailsB } = pokemonB;
+    const { format } = config || {};
 
+    const dex = getDexForFormat(format);
 
+    const { speciesForme: speciesA } = parsePokemonDetails(detailsA);
+    const dexA = dex.species.get(speciesA);
+    const formeA = (dexA?.exists && dexA.baseSpecies) || null;
 
+    if (!formeA) {
+      return false;
+    }
 
+    const { speciesForme: speciesB } = parsePokemonDetails(detailsB);
+    const dexB = dex.species.get(speciesB);
+    const formeB = (dexB?.exists && dexB.baseSpecies) || null;
 
+    if (!formeB) {
+      return false;
+    }
+
+    return formeA === formeB;
+  };
+
+  // 
+  const diffArrays = (arrayA, arrayB, serialize) => {
+    if (!Array.isArray(arrayA) || !Array.isArray(arrayB)) {
+      return null;
+    }
+
+    if (!arrayA.length && !arrayB.length) {
+      return [];
+    }
+
+    if (arrayA.length && !arrayB.length) {
+      return [...arrayA];
+    }
+
+    if (!arrayA.length && arrayB.length) {
+      return [...arrayB];
+    }
+
+    const parse = (value) => (
+      serialize ? JSON.stringify(value) : value
+    );
+
+    const parsedA = serialize ? arrayA.map((value) => parse(value)) : arrayA;
+    const parsedB = serialize ? arrayB.map((value) => parse(value)) : arrayB;
+
+    const diffIndexFilter = (source, target) => (sourceIndex) => !(serialize ? target.includes(source[sourceIndex]) : target.some((value) => value === source[sourceIndex]));
+
+    const diffIndicesA = parsedA.map((_, index) => index).filter(diffIndexFilter(parsedA, parsedB));
+    const diffIndicesB = parsedB.map((_, index) => index).filter(diffIndexFilter(parsedB, parsedA));
+
+    return [
+      ...diffIndicesA.map((index) => arrayA[index]),
+      ...diffIndicesB.map((index) => arrayB[index]),
+    ];
+  };
+
+  // 
   for (const playerKey of ['p1', 'p2']) {
+
+    // 
     if (!(playerKey in battle) || battle[playerKey]?.sideid !== playerKey) {
       continue;
     }
 
+    // 
     const player = battle[playerKey];
     const playerState = this.toolsState[playerKey];
 
@@ -349,10 +449,12 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
       playerState.name = player.name;
     }
 
+    // 
     if (player.rating && playerState.rating !== player.rating) {
       playerState.rating = player.rating;
     }
 
+    // 
     if (!playerState.active) {
       playerState.active = true;
     }
@@ -367,7 +469,7 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
           ...(isMyPokemonSide ? ['\nmyPokemon:', myPokemon] : []),
           '\nbattle.pokemon:', player.pokemon,
           '\nbattleState.pokemon:', playerState.pokemon,
-          '\nbattleId:', battleId, 
+          '\nbattleId:', battleId,
           '\nbattle:', battle,
           '\nbattleState', battleState,
         );
@@ -385,78 +487,81 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
     // if we're in an active battle and the logged-in user is also a player, but did not receieve myPokemon from the server yet, don't process any Pokemon! (we need the calcdexId to be assigned to myPokemon first, then mapped to the clientPokemon)
     const initialPokemon = (this.battleState.active && isMyPokemonSide && this.battleState.authPlayerKey === playerKey ? myPokemon : player.pokemon) || [];
 
-    // EDITINGNOTE: LEFT OFF HERE, gemini is telling me that wildcard is only for replays? which is somewhere in my code
+    // 
     const currentOrder = initialPokemon.map((pokemon) => {
+
+      // 
       const clientSourced = 'getIdent' in pokemon;
 
+      // 
       if (!pokemon.toolsId) {
 
-        // found a case where the client Pokemon was given before the ServerPokemon for the myPokemon[] side EDITINGNOTE: need to add similarPokemon
+        // found a case where the client Pokemon was given before the ServerPokemon for the myPokemon[] side
         pokemon.toolsId = (isMyPokemonSide && !!pokemon.details && [
           ...(myPokemon || []),
           ...(player.pokemon || []),
           ...(playerState.pokemon || []),
-        ].find((p) => (!!p?.toolsId && !!p.details && similarPokemon(pokemon, p, {
-              format: battleState.format,
-              normalizeFormes: 'fucked',
-              // ignoreMega: true,
-            })
-        ))?.toolsId
+        ].find((existingPokemon) => (!!existingPokemon?.toolsId && !!existingPokemon.details && similarPokemon(pokemon, existingPokemon, {
+          format: this.battleState.format,
+        })))?.toolsId
         ) || calcPokemonToolsId(pokemon, playerKey);
 
         console.debug(
-          'Assigned calcdexId to the', clientSourced ? 'client' : 'server', pokemon.speciesForme, 'for player', playerKey,
-          '\n', 'isMyPokemonSide?', isMyPokemonSide, 'hasMyPokemon?', hasMyPokemon,
-          '\n', clientSourced ? 'client' : 'server', pokemon.calcdexId, pokemon,
-          '\n', 'battle', battleId, battle,
-          '\n', 'state', battleState,
+          '[Gen 3 OU Tools] Assigned toolsId for this player:', playerKey,
+          '\nspeciesForme:', pokemon.speciesForme,
+          '\nisMyPokemonSide:', isMyPokemonSide,
+          '\nhasMyPokemon:', hasMyPokemon,
+          '\nsourced:', clientSourced ? 'client' : 'server',
+          '\ntoolsId:', pokemon.toolsId,
+          '\npokemon:', pokemon,
+          '\nbattleId:', battleId,
+          '\nbattle:', battle,
+          '\nbattleState:', battleState,
         );
       }
 
+      // 
       if (isMyPokemonSide && hasMyPokemon && !clientSourced) {
+
+        // 
         const clientPokemon = player.pokemon
-          .find((p) => !p.calcdexId && !!p.details && (
-            similarPokemon(pokemon, p, {
-              format: battleState.format,
-              normalizeFormes: 'fucked',
-              // ignoreMega: true,
-            })
-          ));
+          .find((clientPokemon) => !clientPokemon.toolsId && !!clientPokemon.details && similarPokemon(pokemon, clientPokemon, {
+            format: this.battleState.format,
+          }));
 
         if (clientPokemon) {
-          clientPokemon.calcdexId = pokemon.calcdexId;
+          clientPokemon.toolsId = pokemon.toolsId;
         }
       }
 
-      return pokemon.calcdexId;
+      return pokemon.toolsId;
     });
 
     // reconstruct a full list of the current player's Pokemon, whether revealed or not (but if we don't have the relevant info [i.e., !isMyPokemonSide], then just access the player's `pokemon`)
-    const playerPokemon = currentOrder.map((calcdexId) => {
-      // try to find a matching clientPokemon that has already been revealed using the ident, which is seemingly consistent between the player's `pokemon` (Pokemon[]) and `myPokemon` (ServerPokemon[])
-      const clientPokemonIndex = player.pokemon.findIndex((p) => p.calcdexId === calcdexId);
+    const playerPokemon = currentOrder.map((toolsId) => {
 
+      // try to find a matching clientPokemon that has already been revealed using the ident, which is seemingly consistent between the player's `pokemon` (Pokemon[]) and `myPokemon` (ServerPokemon[])
+      const clientPokemonIndex = player.pokemon.findIndex((pokemon) => pokemon.toolsId === toolsId);
+
+      // 
       if (clientPokemonIndex > -1) {
         return player.pokemon[clientPokemonIndex];
       }
 
-      const serverPokemon = (
-        isMyPokemonSide
-          && hasMyPokemon
-          && myPokemon.find((p) => p.calcdexId === calcdexId)
-      ) || null;
+      // 
+      const serverPokemon = (isMyPokemonSide && hasMyPokemon && myPokemon.find((pokemon) => pokemon.toolsId === toolsId)) || null;
 
       if (!serverPokemon?.details) {
         return null;
       }
 
-      if (!serverPokemon.calcdexId) {
-        serverPokemon.calcdexId = calcdexId;
+      if (!serverPokemon.toolsId) {
+        serverPokemon.toolsId = toolsId;
       }
 
       // at this point, most likely means that the Pokemon is not yet revealed, so convert the ServerPokemon into a partially-filled Pokemon object
       return {
-        calcdexId: serverPokemon.calcdexId,
+        toolsId: serverPokemon.toolsId,
         ident: serverPokemon.ident,
         searchid: serverPokemon.searchid,
         name: serverPokemon.name,
@@ -469,50 +574,56 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
       };
     });
 
+    // 
     if (diffArrays(currentOrder, playerState.pokemonOrder || []).length) {
       playerState.pokemonOrder = currentOrder;
     }
 
-      console.debug(
-        'Preparing to process', playerPokemon.length, 'of', '(max)', maxPokemon, 'Pokemon for player', playerKey,
-        '\n', 'isMyPokemonSide?', isMyPokemonSide, 'hasMyPokemon?', hasMyPokemon, 'illusionMap', illusionMap,
-        '\n', 'order[]', playerState.pokemonOrder,
-        '\n', 'pokemon[]', '(assembled)', playerPokemon,
-        '\n', 'pokemon[]', '(battle)', player.pokemon,
-        '\n', 'battle', battleId, battle,
-        '\n', 'state', battleState,
-      );
-    
+    console.debug(
+      '[Gen 3 OU Tools] Preparing to process Pokemon for this player:', playerKey,
+      '\npokemon:', playerPokemon.length,
+      '\nmaxPokemon:', maxPokemon,
+      '\nisMyPokemonSide:', isMyPokemonSide,
+      '\nhasMyPokemon:', hasMyPokemon,
+      '\npokemonOrder:', playerState.pokemonOrder,
+      '\npokemon (assembled):', playerPokemon,
+      '\npokemon (battle):', player.pokemon,
+      '\nbattleId:', battleId,
+      '\nbattle:', battle,
+      '\nbattleState', this.battleState,
+    );
 
-    // update each pokemon (note that the index `i` should be relatively consistent between turns)
-    for (let i = 0; i < playerPokemon.length; i++) {
-      const clientPokemon = playerPokemon[i];
+    // update each pokemon (note that the index `i` should be relatively consistent between turns) EDITINGNOTE: LEFT OFF HERE
+    for (let index = 0; index < playerPokemon.length; index++) {
 
-      if (!clientPokemon?.calcdexId) {
-          l.debug(
-            'Ignoring untagged Pokemon', clientPokemon?.ident || clientPokemon?.speciesForme, 'w/o calcdexId',
-            'at index', i, 'for player', playerKey,
-            '\n', 'client', clientPokemon?.calcdexId, clientPokemon,
-            '\n', 'order[]', playerState.pokemonOrder,
-            '\n', 'pokemon[]', '(assembled)', playerPokemon,
-            '\n', 'pokemon[]', '(battle)', player.pokemon,
-            '\n', 'battle', battleId, battle,
-            '\n', 'state', battleState,
-          );
+      // 
+      const clientPokemon = playerPokemon[index];
+
+      if (!clientPokemon?.toolsId) {
+        console.debug(
+          '[Gen 3 OU Tools] Skipping Pokemon without toolsId for this player:', playerKey,
+          '\nindex:', index,
+          '\npokemon:', clientPokemon?.ident || clientPokemon?.speciesForme,
+          '\nclientPokemon.toolsId:', clientPokemon?.toolsId,
+          '\nclientPokemon:', clientPokemon,
+          '\norder:', playerState.pokemonOrder,
+          '\npokemon (assembled):', playerPokemon,
+          '\npokemon (battle):', player.pokemon,
+          '\nbattleId:', battleId,
+          '\nbattle:', battle,
+          '\nbattleState', battleState,
+        );
 
         continue;
       }
 
-      const serverPokemon = (
-        isMyPokemonSide
-          && hasMyPokemon
-          && myPokemon.find((p) => p.calcdexId === clientPokemon.calcdexId)
-      ) || null;
+      // 
+      const serverPokemon = (isMyPokemonSide && hasMyPokemon && myPokemon.find((pokemon) => pokemon.toolsId === clientPokemon.toolsId)) || null;
 
-      const matchedPokemonIndex = playerState.pokemon.findIndex((p) => p.calcdexId === clientPokemon.calcdexId);
+      const matchedPokemonIndex = playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === clientPokemon.toolsId);
       const matchedPokemon = playerState.pokemon[matchedPokemonIndex] || null;
 
-      // this is our starting point for the current clientPokemon
+      // this is our starting point for the current clientPokemon editingnote: LEFT OFF HERE
       const basePokemon = matchedPokemon || sanitizePokemon(
         clientPokemon,
         battleState.format,
@@ -547,7 +658,7 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
       });
 
       // update (2023/10/18): not really using `slot` at all, so yolo ?
-      syncedPokemon.slot = i;
+      syncedPokemon.slot = index;
 
       // update the syncedPokemon's playerKey, if falsy or mismatched
       if (!syncedPokemon.playerKey || syncedPokemon.playerKey !== playerKey) {
@@ -573,7 +684,7 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
         if (syncedPokemon.source === 'server' && ['p1', 'p2'].includes(targetPlayerKey)) {
             console.debug(
               'Adding revealed info to', targetClientPokemon.ident || targetClientPokemon.speciesForme, 'of player', targetPlayerKey,
-              'from transformed', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', i, 'of player', playerKey,
+              'from transformed', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', index, 'of player', playerKey,
               '\n', 'target', targetClientPokemon.calcdexId, targetClientPokemon,
               '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,
               '\n', 'battle', battleId, battle,
@@ -749,7 +860,7 @@ const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
 
         if (playerState.pokemon.length >= playerState.maxPokemon) {
             console.warn(
-              'Ignoring', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', i, 'for player', playerKey,
+              'Ignoring', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', index, 'for player', playerKey,
               'since they have the max number of Pokemon',
               '\n', 'length', '(now)', playerState.pokemon.length, '(max)', playerState.maxPokemon,
               '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,

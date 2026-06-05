@@ -371,15 +371,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const { details: detailsA } = pokemonA;
     const { details: detailsB } = pokemonB;
-    const { format, normalizeFormes } = config || {};
-
-    const shouldNormalizeFormes = normalizeFormes === 'wildcard' && [detailsA, detailsB].some((details) => details.includes('-*'));
+    const { format } = config || {};
 
     const dex = ToolsBootstrappable.getDexForFormat(format);
 
     const { speciesForme: speciesA } = ToolsBootstrappable.parsePokemonDetails(detailsA);
     const dexA = dex.species.get(speciesA);
-    const formeA = (dexA?.exists && (shouldNormalizeFormes ? dexA.baseSpecies : dexA.name)) || null;
+    const formeA = (dexA?.exists && dexA.baseSpecies) || null;
 
     if (!formeA) {
       return false;
@@ -387,7 +385,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const { speciesForme: speciesB } = ToolsBootstrappable.parsePokemonDetails(detailsB);
     const dexB = dex.species.get(speciesB);
-    const formeB = (dexB?.exists && (shouldNormalizeFormes ? dexB.baseSpecies : dexB.name)) || null;
+    const formeB = (dexB?.exists && dexB.baseSpecies) || null;
 
     if (!formeB) {
       return false;
@@ -462,10 +460,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
           ToolsBootstrappable.similarPokemon(
             { details },
             pokemon, 
-            {
-              format: this.battleState.format,
-              normalizeFormes: 'wildcard',
-            },
+            { format: this.battleState.format },
           )
       ));
 
@@ -542,10 +537,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         ToolsBootstrappable.similarPokemon(
           pokemon,
           prev,
-          {
-            format,
-            normalizeFormes: 'wildcard',
-          }
+          { format }
         )
       ));
 
