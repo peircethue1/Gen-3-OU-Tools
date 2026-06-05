@@ -9,6 +9,9 @@
     "build": "node build.js",
     "watch": "node build.js --watch"
   },
+  "dependencies": {
+    "uuid": "^14.0.0"
+  },
   "devDependencies": {
     "esbuild": "^0.28.0"
   }

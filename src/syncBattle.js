@@ -3,6 +3,7 @@
  */
 
 import { ToolsDomRenderer } from './ToolsRenderer.js';
+import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
 export function syncBattle(battle, request) {
 
@@ -270,6 +271,72 @@ export function syncBattle(battle, request) {
     p2: [],
   };
 
+
+
+
+
+
+
+  // 
+  const serializePayload = (payload) => Object.entries(payload || {})
+    .map(([key, value]) => `${key}:${(typeof value === 'object' ? JSON.stringify(value) : String(value)) ?? '???'}`)
+    .join('|');
+
+
+
+
+
+
+
+  // need to add uuid and change the NIL UUID below and initnonce too
+  const calcToolsId = (payload) => {
+    const serialized = nonEmptyObject(payload) ? serializePayload(payload) :
+      ['string', 'number', 'boolean'].includes(typeof payload) ? String(payload) : null;
+
+    if (!serialized) {
+      return null;
+    }
+
+    return uuidv5(
+      serialized?.replace(/[^A-Z0-9\x20~`!@#$%^&*()+\-_=\[\]{}<>\|:;,\.'"\/\\]/gi, ''),
+      uuidnil,
+    );
+  };
+
+
+
+
+
+
+
+
+
+
+const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
+  ident: [
+    playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
+    uuidv4(),
+  ].filter(Boolean).join(': '),
+
+  speciesForme: pokemon?.speciesForme,
+  level: String(pokemon?.level ?? 100),
+  gender: pokemon?.gender || 'N', // seems like 'N'-gendered Pokemon occasionally report back with an empty string
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   for (const playerKey of ['p1', 'p2']) {
     if (!(playerKey in battle) || battle[playerKey]?.sideid !== playerKey) {
       continue;
@@ -334,8 +401,8 @@ export function syncBattle(battle, request) {
               normalizeFormes: 'fucked',
               // ignoreMega: true,
             })
-        ))?.calcdexId
-        ) || calcPokemonCalcdexId(pokemon, playerKey);
+        ))?.toolsId
+        ) || calcPokemonToolsId(pokemon, playerKey);
 
         console.debug(
           'Assigned calcdexId to the', clientSourced ? 'client' : 'server', pokemon.speciesForme, 'for player', playerKey,

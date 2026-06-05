@@ -4,6 +4,7 @@
  * EDITINGNOTE: Review comment content and excel map only
  */
 
+import { NIL as uuidnil } from 'uuid';
 import { syncBattle } from './syncBattle.js';
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 
@@ -152,7 +153,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // Defines the initial nonce representing the battle state
-    const initNonce = "00000000-0000-0000-0000-000000000000";
+    const initNonce = uuidnil;
 
     console.debug(
       '[Gen 3 OU Tools] Initializing Tools for this battle:', battleId,
