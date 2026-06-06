@@ -1,4 +1,7 @@
-﻿// Creates the initialization engine
+﻿/**
+ * Creates the initialization engine
+ */
+
 import { BootClassicAdapter } from './BootClassicAdapter.js';
 import { ToolsClassicBootstrapper } from './ToolsClassicBootstrapper.js';
 
@@ -30,7 +33,7 @@ if (window.__GEN_3_OU_TOOLS_INIT) {
 window.__GEN_3_OU_TOOLS_INIT = 'gen-3-ou-tools';
 window.__GEN_3_OU_TOOLS_HOST = typeof window.app?.receive === 'function' ? 'classic' : null;
 
-// Creates the initialization lifecycle EDITINGNOTE: this comment is duplicative with the top level comment on BootAdapter.js
+// Executes initialization
 (async () => {
   if (window.__GEN_3_OU_TOOLS_HOST === 'classic') {
 

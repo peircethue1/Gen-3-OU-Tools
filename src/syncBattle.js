@@ -1,5 +1,6 @@
 /**
- * EDITINGNOTE: Build
+ * 
+ * EDITINGNOTE: Building...
  */
 
 import { ToolsDomRenderer } from './ToolsRenderer.js';
@@ -8,25 +9,9 @@ import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 export function syncBattle(battle, request) {
 
   // 
-  if (!this.toolsState || !battle) {
+  if (!battle || !this.battleState) {
     return;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -40,9 +25,9 @@ export function syncBattle(battle, request) {
  // EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE FOR ALL DEFINITIONS IN THIS CHUNK, CALCDEX WITH TOOLS
  // EDITINGNOTE: search terms: settings
  // EDITINGNOTE: check for import dependencies, check continues
- // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey?
+ // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey? I also need to detect the format since I only want to support gen 3 ou
 
- // EDITINGNOTE: do i need each of these? check initialized and synced variables are consistent
+ // EDITINGNOTE: do i need each of these? make initialized and synced variables consistent
   const {
     id: battleId,
     nonce: battleNonce,
@@ -64,7 +49,7 @@ export function syncBattle(battle, request) {
   // 
   if (this.battleState.battleNonce && this.battleState.battleNonce === battleNonce) {
       console.debug(
-        '[Gen 3 OU Tools] Skipping sync due to matching battleNonce for this battle:', battleId,
+        '[Gen 3 OU Tools] Skipping sync due to matching nonce for this battle:', battleId,
         '\nbattleNonce:', battleNonce,
         '\nbattle:', battle,
         '\nbattleState:', this.battleState,
@@ -79,7 +64,7 @@ export function syncBattle(battle, request) {
   }
 
   // update the battle's active state, but only allow it to go from true -> false
-  if (this.toolsState.active && typeof ended === 'boolean' && ended) {
+  if (this.battleState.active && typeof ended === 'boolean' && ended) {
     this.toolsState.active = false;
   }
 
@@ -144,11 +129,11 @@ export function syncBattle(battle, request) {
   this.toolsState.authPlayerKey = detectAuthPlayerKeyFromBattle();
 
   // 
-  const detectedPlayerKey = this.toolsState.authPlayerKey;
+  const detectedPlayerKey = this.battleState.authPlayerKey;
   
   if (detectedPlayerKey) {
     this.toolsState.playerKey = detectedPlayerKey;
-    this.toolsState.opponentKey = this.toolsState.playerKey === 'p2' ? 'p1' : 'p2';
+    this.toolsState.opponentKey = this.battleState.playerKey === 'p1' ? 'p2' : 'p1';
   }
 
   // update the sidesSwitched from the battle
@@ -198,10 +183,7 @@ export function syncBattle(battle, request) {
       weather,
     } = battle || {};
 
-    const pseudoWeatherMoveNames = pseudoWeather
-      ?.map((weatherState) => formatId(weatherState?.[0]))
-      .filter(Boolean)
-      ?? [];
+    const pseudoWeatherMoveNames = pseudoWeather?.map((weatherState) => formatId(weatherState?.[0])).filter(Boolean) ?? [];
 
     const [pseudoWeatherName] = pseudoWeatherMoveNames;
 
@@ -220,7 +202,7 @@ export function syncBattle(battle, request) {
     if (!nonEmptyObject(this.battleState?.field) || !battle?.p1) {
       console.warn(
         '[Gen 3 OU Tools] The field or battle is invalid.',
-        '\nbattleState.field:', this.battleState.field,
+        '\nfield:', this.battleState.field,
         '\nbattle:', battle,
       );
 
@@ -255,9 +237,9 @@ export function syncBattle(battle, request) {
 
   if (!syncedField) {
       console.warn(
-        '[Gen 3 OU Tools] Could not sync the field state for this battle:', battleId,
+        '[Gen 3 OU Tools] Could not sync the field for this battle:', battleId,
         '\nsyncedField:', syncedField,
-        '\nbattleState.field:', this.battleState.field,
+        '\nfield:', this.battleState.field,
         '\nbattle:', battle,
         '\nbattleState:', this.battleState,
       );
@@ -291,7 +273,7 @@ export function syncBattle(battle, request) {
     );
   };
 
-  // EDITINGNOTE: I am betting that ident and speciesforme is enough for gen 3 ou
+  // EDITINGNOTE: Is ident and speciesforme is enough for gen 3 ou? LEFTOFFPASSHERE
   const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
     ident: [
       playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
