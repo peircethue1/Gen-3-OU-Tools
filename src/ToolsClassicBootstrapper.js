@@ -126,7 +126,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       }
 
       console.debug(
-        '[Gen 3 OU Tools] Intercepting side.addPokemon for this player:', playerKey,
+        '[Gen 3 OU Tools] Intercepting side.addPokemon.',
+        '\nplayer:', playerKey,
         '\nbattleId:', this.battle.id,
       );
 
@@ -194,7 +195,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
         // 
         if (typeof forfeitPopup?.submit === 'function') {
-          console.debug('[Gen 3 OU Tools] Intercepting of forfeitPopup.submit for this battle:', this.battle.id);
+          console.debug('[Gen 3 OU Tools] Intercepting forfeitPopup.submit for this battle:', this.battle.id);
 
           // 
           const submitForfeit = forfeitPopup.submit.bind(forfeitPopup);
@@ -343,7 +344,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
     // 
     if (!this.battleId?.startsWith?.('battle-')) {
-      console.debug('[Gen 3 OU Tools] The bootstrap request was ignored for this battle with invalid battleId:', this.battleId);
+      console.debug('[Gen 3 OU Tools] The bootstrap request was ignored for the battle with this invalid battleId:', this.battleId);
 
       return;
     }
@@ -374,7 +375,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
       if (toolsRoomId in window.app.rooms) {
         console.debug(
-          '[Gen 3 OU Tools] Leaving with a destroyed battleState for this toolsRoom:', toolsRoomId,
+          '[Gen 3 OU Tools] Leaving with a destroyed battleState.',
+          '\ntoolsRoomId:', toolsRoomId,
           '\nbattleId:', this.battleId,
           '\nbattleState:', this.battleState,
         );
@@ -386,7 +388,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       }
 
       console.debug(
-        '[Gen 3 OU Tools] This battle was forcibly ended:', this.battleId,
+        '[Gen 3 OU Tools] The battle was forcibly ended.',
+        '\nbattleId:', this.battleId,
         '\nbattle:', this.battle,
         '\nbattleRoom:', this.battleRoom,
         '\nbattleState:', this.battleState,
@@ -398,7 +401,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     // 
     if (this.initDisabled) {
       console.debug(
-        '[Gen 3 OU Tools] The bootstrap request was ignored because this battle was marked as nonexistent:', this.battleId,
+        '[Gen 3 OU Tools] The bootstrap request was ignored because the battle was marked as nonexistent.',
+        '\nbattleId:', this.battleId,
         '\nstep:', this.battle.stepQueue.find((step) => step?.startsWith('|noinit|nonexistent|')),
         '\nbattle:', this.battle,
       );
@@ -407,7 +411,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     }
 
     if (typeof this.battle?.subscribe !== 'function') {
-      console.warn('[Gen 3 OU Tools] battle.subscribe has an invalid type:', typeof this.battle?.subscribe);
+      console.warn('[Gen 3 OU Tools] battle.subscribe has this invalid type:', typeof this.battle?.subscribe);
 
       return;
     }
@@ -415,7 +419,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     // delaying initialization if the battle hasn't instantiated all the players yet (which we can quickly determine by the existence of '|player|' steps in the stepQueue)
     if (!this.battle.stepQueue?.length || !this.battle.stepQueue.some((step) => step?.startsWith('|player|'))) {
       console.debug(
-        '[Gen 3 OU Tools] Tools was not initialized due to uninitialized players in the battle',
+        '[Gen 3 OU Tools] Initialization failed due to uninitialized players in the battle',
         '\nstepQueue:', this.battle.stepQueue,
         '\nbattleId:', this.battle.id,
         '\nbattle:', this.battle,
@@ -470,7 +474,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     this.renderTools(toolsElement);
 
     console.debug(
-      '[Gen 3 OU Tools] Intercepting client data via battle.subscribe for this battle:', this.battleId,
+      '[Gen 3 OU Tools] Intercepting client data via battle.subscribe.',
+      '\nbattleId:', this.battleId,
       '\nbattle.subscription:', typeof this.battle.subscription,
       '\nbattle:', this.battle,
     );

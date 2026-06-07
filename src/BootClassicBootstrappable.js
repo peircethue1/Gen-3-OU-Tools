@@ -22,7 +22,8 @@ export class BootClassicBootstrappable extends BootBootstrappable {
     // Checks if the client function to add a room is valid
     if (typeof window.app?._addRoom !== 'function') {
       console.error(
-        '[Gen 3 OU Tools] Cannot create a', options?.side ? 'sideroom' : 'room', 'because window.app._addRoom is not valid.',
+        '[Gen 3 OU Tools] Cannot create a room because window.app._addRoom is invalid.',
+        '\nroom type:', options?.side ? 'sideroom' : 'room',
         '\nwindow.app._addRoom:', typeof window.app?._addRoom,
       );
 

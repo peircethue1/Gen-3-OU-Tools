@@ -22,12 +22,15 @@ export function syncBattle(battle, request) {
 
 
 
- // EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE FOR ALL DEFINITIONS IN THIS CHUNK, CALCDEX WITH TOOLS
- // EDITINGNOTE: search terms: settings
- // EDITINGNOTE: check for import dependencies, check continues
- // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey? I also need to detect the format since I only want to support gen 3 ou
+// EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE FOR ALL DEFINITIONS IN THIS CHUNK, CALCDEX WITH TOOLS
+// EDITINGNOTE: search terms: settings
+// EDITINGNOTE: check for import dependencies, check continues
+// EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey? I also need to detect the format since I only want to support gen 3 ou
+// EDITINGNOTE: Consider moving variables to the next line of error messages for multi-variable error messages
+// EDITINGNOTE: Make initialized and synced variables consistent, and check waht variables I actually need throughout
+// EDITINGNOTE: need sanitizePokemon, sanitizeVolatiles, syncPokemon
 
- // EDITINGNOTE: do i need each of these? make initialized and synced variables consistent
+ // 
   const {
     id: battleId,
     nonce: battleNonce,
@@ -49,7 +52,8 @@ export function syncBattle(battle, request) {
   // 
   if (this.battleState.battleNonce && this.battleState.battleNonce === battleNonce) {
       console.debug(
-        '[Gen 3 OU Tools] Skipping sync due to matching nonce for this battle:', battleId,
+        '[Gen 3 OU Tools] Skipping sync due to matching nonce.',
+        '\nbattleId:', battleId,
         '\nbattleNonce:', battleNonce,
         '\nbattle:', battle,
         '\nbattleState:', this.battleState,
@@ -202,7 +206,7 @@ export function syncBattle(battle, request) {
     if (!nonEmptyObject(this.battleState?.field) || !battle?.p1) {
       console.warn(
         '[Gen 3 OU Tools] The field or battle is invalid.',
-        '\nfield:', this.battleState.field,
+        '\nbattleState.field:', this.battleState.field,
         '\nbattle:', battle,
       );
 
@@ -237,9 +241,10 @@ export function syncBattle(battle, request) {
 
   if (!syncedField) {
       console.warn(
-        '[Gen 3 OU Tools] Could not sync the field for this battle:', battleId,
+        '[Gen 3 OU Tools] Could not sync the field.',
+        '\nbattleId:', battleId,
         '\nsyncedField:', syncedField,
-        '\nfield:', this.battleState.field,
+        '\nbattleState.field:', this.battleState.field,
         '\nbattle:', battle,
         '\nbattleState:', this.battleState,
       );
@@ -273,7 +278,7 @@ export function syncBattle(battle, request) {
     );
   };
 
-  // EDITINGNOTE: Is ident and speciesforme is enough for gen 3 ou? LEFTOFFPASSHERE
+  // 
   const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
     ident: [
       playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
@@ -307,10 +312,7 @@ export function syncBattle(battle, request) {
   // 
   const getDexForFormat = (format) => {
     if (typeof Dex === 'undefined') {
-      console.warn(
-        '[Gen 3 OU Tools] The global Dex object is not available.',
-        '\nformat:', format,
-      );
+      console.warn('[Gen 3 OU Tools] The global Dex is not available for this format:', format);
 
       return null;
     }
@@ -447,13 +449,14 @@ export function syncBattle(battle, request) {
 
     if ((!isMyPokemonSide || !hasMyPokemon) && (!Array.isArray(player.pokemon) || !player.pokemon.length)) {
         console.debug(
-          '[Gen 3 OU Tools] Skipping Pokemon sync because no Pokemon were found for this player:', playerKey,
+          '[Gen 3 OU Tools] Skipping Pokemon sync because no Pokemon were found.',
+          '\nplayer:', playerKey,
           ...(isMyPokemonSide ? ['\nmyPokemon:', myPokemon] : []),
           '\nbattle.pokemon:', player.pokemon,
           '\nbattleState.pokemon:', playerState.pokemon,
           '\nbattleId:', battleId,
           '\nbattle:', battle,
-          '\nbattleState', battleState,
+          '\nbattleState:', battleState,
         );
 
       continue;
@@ -489,11 +492,12 @@ export function syncBattle(battle, request) {
         ) || calcPokemonToolsId(pokemon, playerKey);
 
         console.debug(
-          '[Gen 3 OU Tools] Assigned toolsId for this player:', playerKey,
+          '[Gen 3 OU Tools] Assigned toolsId.',
+          '\nsource:', clientSourced ? 'client' : 'server',
           '\nspeciesForme:', pokemon.speciesForme,
+          '\nplayer:', playerKey,
           '\nisMyPokemonSide:', isMyPokemonSide,
           '\nhasMyPokemon:', hasMyPokemon,
-          '\nsourced:', clientSourced ? 'client' : 'server',
           '\ntoolsId:', pokemon.toolsId,
           '\npokemon:', pokemon,
           '\nbattleId:', battleId,
@@ -562,9 +566,10 @@ export function syncBattle(battle, request) {
     }
 
     console.debug(
-      '[Gen 3 OU Tools] Preparing to process Pokemon for this player:', playerKey,
-      '\npokemon:', playerPokemon.length,
+      '[Gen 3 OU Tools] Preparing to sync Pokemon.',
+      '\npokemon.length:', playerPokemon.length,
       '\nmaxPokemon:', maxPokemon,
+      '\nplayer:', playerKey,
       '\nisMyPokemonSide:', isMyPokemonSide,
       '\nhasMyPokemon:', hasMyPokemon,
       '\npokemonOrder:', playerState.pokemonOrder,
@@ -572,10 +577,10 @@ export function syncBattle(battle, request) {
       '\npokemon (battle):', player.pokemon,
       '\nbattleId:', battleId,
       '\nbattle:', battle,
-      '\nbattleState', this.battleState,
+      '\nbattleState:', this.battleState,
     );
 
-    // update each pokemon (note that the index `i` should be relatively consistent between turns) EDITINGNOTE: LEFT OFF HERE
+    // update each pokemon (note that the index `i` should be relatively consistent between turns)
     for (let index = 0; index < playerPokemon.length; index++) {
 
       // 
@@ -583,9 +588,10 @@ export function syncBattle(battle, request) {
 
       if (!clientPokemon?.toolsId) {
         console.debug(
-          '[Gen 3 OU Tools] Skipping Pokemon without toolsId for this player:', playerKey,
-          '\nindex:', index,
+          '[Gen 3 OU Tools] Skipping Pokemon without toolsId.',
           '\npokemon:', clientPokemon?.ident || clientPokemon?.speciesForme,
+          '\nindex:', index,
+          '\nplayer:', playerKey,
           '\nclientPokemon.toolsId:', clientPokemon?.toolsId,
           '\nclientPokemon:', clientPokemon,
           '\norder:', playerState.pokemonOrder,
@@ -602,41 +608,28 @@ export function syncBattle(battle, request) {
       // 
       const serverPokemon = (isMyPokemonSide && hasMyPokemon && myPokemon.find((pokemon) => pokemon.toolsId === clientPokemon.toolsId)) || null;
 
+      // 
       const matchedPokemonIndex = playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === clientPokemon.toolsId);
       const matchedPokemon = playerState.pokemon[matchedPokemonIndex] || null;
 
-      // this is our starting point for the current clientPokemon editingnote: LEFT OFF HERE
+      // this is our starting point for the current clientPokemon
       const basePokemon = matchedPokemon || sanitizePokemon(
         clientPokemon,
-        battleState.format,
+        this.battleState.format,
       );
-
-      const settingsPlayerKey = battleState.authPlayerKey === playerKey && hasMyPokemon ? 'auth' : playerKey;
-
-      if (!matchedPokemon) {
-        basePokemon.autoPreset = settings?.defaultAutoPreset?.[settingsPlayerKey];
-      }
 
       // in case the volatiles aren't sanitized yet lol
       if ('transform' in basePokemon.volatiles && typeof basePokemon.volatiles.transform[1] !== 'string') {
         basePokemon.volatiles = sanitizeVolatiles(basePokemon);
       }
 
-      // and then from here on out, we just directly modify syncedPokemon
-      // (serverPokemon and dex are optional, which will add additional known properties)
-      // update (2023/10/13): syncPokemon() still handles server field populations like serverMoves[],
-      // but the teambuilderPresets & serverStats guessing routines have been moved to useCalcdexPresets()
+      // and then from here on out, we just directly modify syncedPokemon (serverPokemon and dex are optional, which will add additional known properties)
       const syncedPokemon = syncPokemon(basePokemon, {
-        format: battleState.format,
+        format: this.battleState.format,
         clientPokemon: clientPokemon,
         serverPokemon,
         weather: syncedField.weather,
         terrain: syncedField.terrain,
-        autoMoves: (!isMyPokemonSide || !hasMyPokemon)
-          // update (2023/02/03): defaultAutoMoves.auth is always false since we'd normally have myPokemon[],
-          // but in cases of old replays, myPokemon[] won't be available, so we'd want to respect the user's setting
-          // using the playerKey instead of 'auth'
-          && settings?.defaultAutoMoves?.[settingsPlayerKey],
       });
 
       // update (2023/10/18): not really using `slot` at all, so yolo ?
@@ -649,39 +642,44 @@ export function syncBattle(battle, request) {
 
       // if the Pokemon is transformed, see which one it's transformed as
       if (syncedPokemon.transformedForme && clientPokemon?.volatiles?.transform?.length) {
+
         // since we sanitized the volatiles earlier, we actually need the pointer to the target Pokemon from the original Showdown.Pokemon (i.e., the clientPokemon) to retrieve its ident
         const targetClientPokemon = clientPokemon.volatiles.transform[1];
-
-        const targetPlayerKey = (
-          !!targetClientPokemon?.ident
-            && detectPlayerKeyFromPokemon(targetClientPokemon)
-        ) || null;
-
+        const targetPlayerKey = (!!targetClientPokemon?.ident && detectPlayerKeyFromPokemon(targetClientPokemon)) || null;
         const mutations = {
-          calcdexId: targetClientPokemon.calcdexId, // may not exist
-          ident: targetClientPokemon.ident, // using this as a fallback
+          toolsId: targetClientPokemon.toolsId,
+          ident: targetClientPokemon.ident,
         };
 
         // if the Pokemon is also server-sourced, we can apply some known info as revealed info of the target Pokemon
         if (syncedPokemon.source === 'server' && ['p1', 'p2'].includes(targetPlayerKey)) {
             console.debug(
-              'Adding revealed info to', targetClientPokemon.ident || targetClientPokemon.speciesForme, 'of player', targetPlayerKey,
-              'from transformed', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', index, 'of player', playerKey,
-              '\n', 'target', targetClientPokemon.calcdexId, targetClientPokemon,
-              '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,
-              '\n', 'battle', battleId, battle,
-              '\n', 'state', battleState,
+              '[Gen 3 OU Tools] Syncing information revealed by transformation.',
+              '\ntargetpokemon:', targetClientPokemon.ident || targetClientPokemon.speciesForme,
+              '\ntarget player:', targetPlayerKey,
+              '\npokemon:', syncedPokemon.ident || syncedPokemon.speciesForme,
+              '\nindex:', index,
+              '\nplayer:', playerKey,
+              '\ntarget:', targetClientPokemon.toolsId, targetClientPokemon,
+              '\nsyncedPokemon.toolsId:', syncedPokemon.toolsId,
+              '\nsyncedPokemon:', syncedPokemon,
+              '\nbattleId:', battleId,
+              '\nbattle:', battle,
+              '\nbattleState:', this.battleState,
             );
 
+          // 
           if (syncedPokemon.ability) {
             mutations.ability = syncedPokemon.ability;
           }
 
+          // 
           if (syncedPokemon.transformedMoves.length) {
             mutations.revealedMoves = [...syncedPokemon.transformedMoves];
           }
         }
 
+        // EDITINGNOTE: LEFTOFFHERE
         // if the target Pokemon has any presets[], copy them over to the transformed Pokemon
         // (this would typically only apply to 'sheet'/'import'-sourced presets)
         // (also note: this doesn't affect futureMutations at all, pretty much hijacking this if-statement,

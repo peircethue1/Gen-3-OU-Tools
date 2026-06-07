@@ -19,10 +19,11 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   // 
   battleSubscription = (state) => {
     console.debug(
-      '[Gen 3 OU Tools] Received an event from battle.subscribe():', state,
+      '[Gen 3 OU Tools] Received an event from battle.subscribe().',
+      '\nstate:', state,
       '\nbattleId:', this.battle?.id || this.battleId,
       '\nbattle:', this.battle,
-      '\nbattleRequest:', this.battleRequest,
+      '\nrequest:', this.battleRequest,
     );
 
     // 
@@ -143,7 +144,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // Checks if the battle has already been initialized
     if (battleInstance.toolsStateInit) {
       console.debug(
-        '[Gen 3 OU Tools] Tools has already been initialized for this battle:', battleId,
+        '[Gen 3 OU Tools] The battle has already been initialized.',
+        '\nbattleId:', battleId,
         '\ntoolsStateInit:', battleInstance.toolsStateInit,
         '\nbattle:', battleInstance,
         '\ntoolsState:', this.toolsState,
@@ -156,7 +158,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     const initNonce = uuidnil;
 
     console.debug(
-      '[Gen 3 OU Tools] Initializing Tools for this battle:', battleId,
+      '[Gen 3 OU Tools] Initializing the battle.',
+      '\nbattleId:', battleId,
       '\ninitNonce:', initNonce,
       '\nbattle:', battleInstance,
     );
@@ -234,7 +237,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // Checks if Tools has been destroyed
     if (battleInstance.toolsDestroyed) {
       console.debug(
-        '[Gen 3 OU Tools] Tools has been destroyed for this battle:', battleInstance.id,
+        '[Gen 3 OU Tools] The battle has been destroyed.',
+        '\nbattleId:', battleInstance.id,
         '\ntoolsDestroyed:', battleInstance.toolsDestroyed,
         '\nbattle:', battleInstance,
       );
@@ -245,7 +249,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // Checks if the battle is missing players
     if (['p1', 'p2'].every((playerKey) => !battleInstance[playerKey]?.id)) {
       console.debug(
-        '[Gen 3 OU Tools] Not all players exist in this battle:', battleInstance.id,
+        '[Gen 3 OU Tools] Not all players exist in the battle.',
+        '\nbattleId:', battleInstance.id,
         '\nplayers:', ['p1', 'p2'].map((playerKey) => battleInstance[playerKey]?.id),
         '\nstepQueue:', battleInstance.stepQueue,
       );
@@ -277,7 +282,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // make sure the battle was active on the previous sync, but now has ended
     if (this.battleState?.active && battleInstance.ended) {
       console.debug(
-        '[Gen 3 OU Tools] Updating active state for this finished battle:', battleInstance.id,
+        '[Gen 3 OU Tools] Updating active state for the battle.',
+        '\nbattleId:', battleInstance.id,
         '\ntoolsRoomId:', battleInstance.toolsRoomId,
         '\nbattle:', battleInstance,
       );
@@ -307,12 +313,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     console.debug(
-      '[Gen 3 OU Tools] Syncing this battle:', battleInstance.id,
-      '\nnonce (prev):', this.battleState.battleNonce,
-      '\nnonce (cur):', battleInstance.nonce,
-      '\nbattleRequest:', this.battleRequest,
+      '[Gen 3 OU Tools] Syncing the battle.',
+      '\nbattleId:', battleInstance.id,
+      '\nprevious nonce:', this.battleState.battleNonce,
+      '\nnew nonce:', battleInstance.nonce,
+      '\nrequest:', this.battleRequest,
       '\nbattle:', battleInstance,
-      '\nbattleState (prev):', this.battleState,
+      '\nbattleState:', this.battleState,
     );
 
     // 
@@ -322,10 +329,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   // 
   static getDexForFormat (format) {
     if (typeof Dex === 'undefined') {
-      console.warn(
-        '[Gen 3 OU Tools] The global Dex object is not available.',
-        '\nformat:', format,
-      );
+      console.warn('[Gen 3 OU Tools] The global Dex is not available for this format:', format);
 
       return null;
     }
@@ -480,10 +484,11 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     newPokemon.toolsId = prevPokemon.toolsId;
 
     console.debug(
-      '[Gen 3 OU Tools] Restored client toolsId:', newPokemon.toolsId,
+      '[Gen 3 OU Tools] Restored toolsId.',
+      '\ntoolsId:', newPokemon.toolsId,
+      '\nprevious Pokemon:', prevPokemon,
+      '\nnew Pokemon:', newPokemon,
       '\nplayer:', side.sideid,
-      '\nprevPokemon:', prevPokemon,
-      '\nnewPokemon:', newPokemon,
     );
 
     return newPokemon;
@@ -510,9 +515,10 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     console.debug(
-      '[Gen 3 OU Tools] Syncing server team data for this battle:', this.battle,
-      '\nmyPokemon (prev):', this.battle.myPokemon,
-      '\nmyPokemon (cur):', myPokemon,
+      '[Gen 3 OU Tools] Syncing team data from the server.',
+      '\nbattle:', this.battle,
+      '\nprevious myPokemon:', myPokemon,
+      '\nnew myPokemon', this.battle.myPokemon,
     );
 
     // 
@@ -565,11 +571,11 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     this.battle.nonce = ToolsBootstrappable.calcBattleToolsNonce(this.battle, this.battleRequest);
 
     console.debug(
-      '[Gen 3 OU Tools] Restored server toolsIds.',
-      '\nnonce (prev):', prevNonce,
-      '\nnonce (cur):', this.battle.nonce,
-      '\nmyPokemon (prev):', myPokemon,
-      '\nmyPokemon (cur)', this.battle.myPokemon,
+      '[Gen 3 OU Tools] Restored toolsId to data from the server.',
+      '\nprevious nonce:', prevNonce,
+      '\nnew nonce:', this.battle.nonce,
+      '\nprevious myPokemon:', myPokemon,
+      '\nnew myPokemon:', this.battle.myPokemon,
     );
 
     // 

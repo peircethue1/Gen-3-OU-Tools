@@ -5,7 +5,7 @@
 import { BootClassicAdapter } from './BootClassicAdapter.js';
 import { ToolsClassicBootstrapper } from './ToolsClassicBootstrapper.js';
 
-console.log('[Gen 3 OU Tools] Starting the initialization engine.');
+console.debug('[Gen 3 OU Tools] Starting for chrome with extensionId:', chrome.runtime.id);
 
 // Checks if execution occured on an unsupported webpage or before the webpage finished loading
 if (
@@ -14,19 +14,22 @@ if (
   typeof window.app?.receive !== 'function'
 ) {
   console.error(
-    '[Gen 3 OU Tools] Initialization failed: Executed on an unsupported webpage or before the webpage finished loading.',
+    '[Gen 3 OU Tools] Executed on an unsupported webpage or before the webpage finished loading.',
     '\nwindow.Dex:', typeof window?.Dex,
-    '\nwindow.app:', typeof window?.app
+    '\nwindow.app:', typeof window?.app,
   );
-  throw new Error('Gen 3 OU Tools attempted to start in an unsupported webpage.');
+  throw new Error('Attempted to start in an unsupported webpage.');
 }
 
 // Checks if execution occured twice on the same webpage
 if (window.__GEN_3_OU_TOOLS_INIT) {
-  console.error('[Gen 3 OU Tools] Initialization failed: An instance of Gen 3 OU Tools was already active on this webpage.',
-    '\n__GEN_3_OU_TOOLS_INIT:', window.__GEN_3_OU_TOOLS_INIT
+  console.error(
+    '[Gen 3 OU Tools] An instance was already active on this webpage.',
+    '\n__GEN_3_OU_TOOLS_INIT:', window.__GEN_3_OU_TOOLS_INIT,
+    '\n__GEN_3_OU_TOOLS_HOST:', window.__GEN_3_OU_TOOLS_HOST,
+    '\nextensionId:', chrome.runtime.id,
   );
-  throw new Error('Another instance of Gen 3 OU Tools tried to start when one was already active.');
+  throw new Error('Another instance tried to start when one was already active.');
 }
 
 // Defines the initialization lock and host environment
@@ -42,14 +45,18 @@ window.__GEN_3_OU_TOOLS_HOST = typeof window.app?.receive === 'function' ? 'clas
 
     // Initializes the adapter
     await BootClassicAdapter.run();
-
   } else {
     console.error(
-      '[Gen 3 OU Tools] Initialization failed: Could not determine the host environment.',
-      '\n__GEN_3_OU_TOOLS_HOST:', window.__GEN_3_OU_TOOLS_HOST
+      '[Gen 3 OU Tools] Could not determine the host environment.',
+      '\n__GEN_3_OU_TOOLS_HOST:', window.__GEN_3_OU_TOOLS_HOST,
+      '\n__GEN_3_OU_TOOLS_INIT:', window.__GEN_3_OU_TOOLS_INIT,
     );
-    throw new Error('Gen 3 OU Tools attempted to run with an unsupported host.');
+    throw new Error('Attempted to run with an unsupported host.');
   }
 
-  console.log('[Gen 3 OU Tools] Adapter initialized successfully.');
+  console.debug(
+    '[Gen 3 OU Tools] Initialized successfully.',
+    '\n__GEN_3_OU_TOOLS_INIT:', window.__GEN_3_OU_TOOLS_INIT,
+    '\n__GEN_3_OU_TOOLS_HOST:', window.__GEN_3_OU_TOOLS_HOST,
+  );
 })();

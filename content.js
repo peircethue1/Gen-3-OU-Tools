@@ -6,7 +6,7 @@ const runtime = chrome.runtime;
 
 // Checks the webpage and extension context
 if (typeof document === 'undefined' || !runtime?.id) {
-  console.error('[Gen 3 OU Tools] Execution failed: Missing webpage or extension context.');
+  console.error('[Gen 3 OU Tools] Missing webpage or extension context.');
 
   throw new Error('Missing webpage or extension context.');
 }
@@ -27,9 +27,7 @@ const injectables = [
   },
 ];
 
-console.info('[Gen 3 OU Tools] Starting for chrome.',
-  '\nextensionId:', extensionId,
-);
+console.info('[Gen 3 OU Tools] Starting for chrome with extensionId:', extensionId);
 
 console.debug('[Gen 3 OU Tools] Injecting injectables:', injectables);
 

@@ -28,7 +28,9 @@ export class BootManager {
     this.__bootstrappers[name] = Bootstrapper;
 
     console.debug(
-      '[Gen 3 OU Tools] Registered', Bootstrapper.name, 'as the', name, 'bootstrapper.',
+      '[Gen 3 OU Tools] Registered the bootstrapper.',
+      '\nBootstrapper.name:', Bootstrapper.name,
+      '\nname:', name,
       '\nregistry:', this.registry,
     );
   }
@@ -44,8 +46,10 @@ export class BootManager {
 
     if (!this.registered(name)) {
       console.error(
-        '[Gen 3 OU Tools] The', name, 'bootstrapper is not registered.',
-        '\nbootstrapper:', Bootstrapper.name, Bootstrapper,
+        '[Gen 3 OU Tools] The bootstrapper is not registered.',
+        '\nname:', name,
+        '\nBootstrapper.name:', Bootstrapper.name,
+        '\nBootstrapper:', Bootstrapper,
       );
 
       throw new Error('The', name, 'bootstrapper could not be found.');

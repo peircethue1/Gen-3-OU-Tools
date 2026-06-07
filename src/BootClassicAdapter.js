@@ -44,7 +44,8 @@ export class BootClassicAdapter extends BootAdapter {
         ] = data.split('|');
 
         console.debug(
-          '[Gen 3 OU Tools] Logged in as', namedCode === '1' ? 'registered' : 'guest', 'user.',
+          '[Gen 3 OU Tools] User logged in.',
+          '\nuser type:', namedCode === '1' ? 'registered' : 'guest',
           '\nusername:', username?.trim(),
           '\ndata:', data,
         );
@@ -63,7 +64,8 @@ export class BootClassicAdapter extends BootAdapter {
         const roomId = data.slice(1, data.indexOf('\n'));
 
         console.debug(
-          '[Gen 3 OU Tools] window.app.receive data for battle room:', roomId,
+          '[Gen 3 OU Tools] Received client data via window.app.receive.',
+          '\nbattle room:', roomId,
           '\ndata:', data,
         );
 
