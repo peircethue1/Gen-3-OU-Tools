@@ -1,6 +1,5 @@
 /**
  * 
- * EDITINGNOTE: Building...
  */
 
 import { ToolsDomRenderer } from './ToolsRenderer.js';
@@ -22,13 +21,11 @@ export function syncBattle(battle, request) {
 
 
 
-// EDITINGNOTE: MAKE SURE TO SWAP OUT BATTLESTATE WITH TOOLSSTATE FOR ALL DEFINITIONS IN THIS CHUNK, CALCDEX WITH TOOLS
-// EDITINGNOTE: search terms: settings
-// EDITINGNOTE: check for import dependencies, check continues
+// EDITINGNOTE: MAKE SURE BATTLESTATE AND TOOLSSTATE ARE APPLIED CORRECTLY
 // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey? I also need to detect the format since I only want to support gen 3 ou
-// EDITINGNOTE: Consider moving variables to the next line of error messages for multi-variable error messages
 // EDITINGNOTE: Make initialized and synced variables consistent, and check waht variables I actually need throughout
-// EDITINGNOTE: need sanitizePokemon, sanitizeVolatiles, syncPokemon
+// EDITINGNOTE: need sanitizePokemon, sanitizeVolatiles, syncPokemon, mergeRevealedMoves, mapAutoBoosts
+// EDITINGNOTE: may take out request from the argument, depending on whether helper functions need it
 
  // 
   const {
@@ -132,7 +129,7 @@ export function syncBattle(battle, request) {
   // update the authPlayerKey (if any)
   this.toolsState.authPlayerKey = detectAuthPlayerKeyFromBattle();
 
-  // 
+  // EDITINGNOTE: this originally had detectPlayerKeyFromBattle(battle);, why do we get rid of, because we're not supporting replays?
   const detectedPlayerKey = this.battleState.authPlayerKey;
   
   if (detectedPlayerKey) {
@@ -181,19 +178,19 @@ export function syncBattle(battle, request) {
     .toLowerCase();
 
   // 
+  const WEATHER_MAP = {
+    raindance: 'Rain',
+    sandstorm: 'Sand',
+    sunnyday: 'Sun',
+    hail: 'Hail',
+  };
+
+  // 
   const sanitizeField = () => {
-    const {
-      pseudoWeather,
-      weather,
-    } = battle || {};
-
-    const pseudoWeatherMoveNames = pseudoWeather?.map((weatherState) => formatId(weatherState?.[0])).filter(Boolean) ?? [];
-
-    const [pseudoWeatherName] = pseudoWeatherMoveNames;
+    const { weather } = battle || {};
 
     const sanitizedField = {
-      weather: WeatherMap[weather] || null,
-      terrain: PseudoWeatherMap[pseudoWeatherName] || null,
+      weather: WEATHER_MAP[weather] || null,
       attackerSide: null,
       defenderSide: null,
     };
@@ -417,6 +414,92 @@ export function syncBattle(battle, request) {
     ];
   };
 
+
+
+
+
+
+
+
+
+
+  // EDITINGNOTE: REVISE THIS
+  const sanitizeVolatiles = (pokemon) => {
+    Object.entries(pokemon?.volatiles || {}).reduce((
+      volatiles,
+      [id, volatile],
+    ) => {
+      const [
+        ,
+        value,
+        ...rest
+      ] = volatile || [];
+
+      const transformed = formatId(id) === 'transform' && typeof value?.speciesForme === 'string';
+
+      if (transformed || !value || ['string', 'number'].includes(typeof value)) {
+        volatiles[id] = transformed ? [
+          id,
+          value.speciesForme,
+          ...rest,
+        ] : volatile;
+      }
+
+      return volatiles;
+    }, {});
+  }
+
+
+
+
+
+
+
+
+
+
+  // 
+  const clonePlayerSideConditions = (conditions) => {
+    Object.entries(conditions || {}).reduce((prev, [key, value]) => {
+      prev[key] = Array.isArray(value) ? [...value] : value;
+      return prev;
+    }, {});
+  }
+
+  // 
+  const sanitizePlayerSide = (player, battleSide) => {
+    const {
+      selectionIndex,
+      pokemon: playerPokemon,
+      side,
+    } = player || {};
+
+    const currentPokemon = playerPokemon?.length && selectionIndex > -1 ? playerPokemon[selectionIndex] : null;
+
+    const sideConditions = battleSide?.sideConditions || side?.conditions || {};
+
+    // Creates an array of sanitized side conditions
+    const sideConditionNames = Object.keys(sideConditions)
+      .map((condition) => ToolsBootstrappable.formatId(condition))
+      .filter(Boolean);
+
+    // Creates an array of sanitized volatiles
+    const volatileNames = Object.keys(currentPokemon?.volatiles || {})
+      .map((volatile) => ToolsBootstrappable.formatId(volatile))
+      .filter(Boolean);
+
+    // Creates a state object
+    return {
+      spikes: (sideConditionNames.includes('spikes') && sideConditions.spikes?.[1]) || 0,
+      isReflect: sideConditionNames.includes('reflect'),
+      isLightScreen: sideConditionNames.includes('lightscreen'),
+      isProtected: volatileNames.includes('protect'),
+      isSeeded: volatileNames.includes('leechseed'),
+      isForesight: volatileNames.includes('foresight'),
+      isSwitching: currentPokemon?.active ? 'out' : 'in',
+    };
+  }
+
   // 
   for (const playerKey of ['p1', 'p2']) {
 
@@ -456,7 +539,7 @@ export function syncBattle(battle, request) {
           '\nbattleState.pokemon:', playerState.pokemon,
           '\nbattleId:', battleId,
           '\nbattle:', battle,
-          '\nbattleState:', battleState,
+          '\nbattleState:', this.battleState,
         );
 
       continue;
@@ -502,7 +585,7 @@ export function syncBattle(battle, request) {
           '\npokemon:', pokemon,
           '\nbattleId:', battleId,
           '\nbattle:', battle,
-          '\nbattleState:', battleState,
+          '\nbattleState:', this.battleState,
         );
       }
 
@@ -599,7 +682,7 @@ export function syncBattle(battle, request) {
           '\npokemon (battle):', player.pokemon,
           '\nbattleId:', battleId,
           '\nbattle:', battle,
-          '\nbattleState', battleState,
+          '\nbattleState', this.battleState,
         );
 
         continue;
@@ -629,7 +712,6 @@ export function syncBattle(battle, request) {
         clientPokemon: clientPokemon,
         serverPokemon,
         weather: syncedField.weather,
-        terrain: syncedField.terrain,
       });
 
       // update (2023/10/18): not really using `slot` at all, so yolo ?
@@ -679,68 +761,29 @@ export function syncBattle(battle, request) {
           }
         }
 
-        // EDITINGNOTE: LEFTOFFHERE
-        // if the target Pokemon has any presets[], copy them over to the transformed Pokemon
-        // (this would typically only apply to 'sheet'/'import'-sourced presets)
-        // (also note: this doesn't affect futureMutations at all, pretty much hijacking this if-statement,
-        // which makes you a bad programmer for increasing the code's spaghetti... or a badass one for optimizing hehehe)
-        const syncedPokemonPresetIds = syncedPokemon.presets.map((p) => p.calcdexId);
-        const targetPokemonPresets = !!mutations.calcdexId
-          && battleState[targetPlayerKey]?.pokemon?.find((p) => p.calcdexId === mutations.calcdexId)?.presets
-            ?.filter((p) => !syncedPokemonPresetIds.includes(p.calcdexId));
-
-        if (targetPokemonPresets?.length) {
-          syncedPokemon.presets.push(...targetPokemonPresets);
-        }
-
-        // the `2` includes the initial calcdexId & ident properties earlier
-        // (so if we only have 2 still, then we know there aren't any mutations to add to futureMutations)
+        // the `2` includes the initial calcdexId & ident properties earlier (so if we only have 2 still, then we know there aren't any mutations to add to futureMutations)
         if (Object.keys(mutations).length > 2) {
           futureMutations[targetPlayerKey].push(mutations);
         }
-      } // end syncedPokemon.transformedForme && ...
-
-      // if the Pokemon isn't transformed, yeet any of its presets[] that don't belong to it
-      // (possibly added from when it was transformed)
-      const checkTransformedPresets = !!syncedPokemon.presets.length
-        && !syncedPokemon.transformedForme
-        && (
-          syncedPokemon.ability === 'Imposter' || syncedPokemon.moves.includes('Transform')
-        );
-
-      if (checkTransformedPresets) {
-        const validFormes = getPresetFormes(syncedPokemon.speciesForme, {
-          format: battleState.format,
-          source: 'server', // this is to get presets of all of the possible formes for the speciesForme
-        });
-
-        syncedPokemon.presets = syncedPokemon.presets.filter((p) => (
-          validFormes.includes(p.speciesForme)
-            && (!p.playerName || formatId(p.playerName) === formatId(playerState.name))
-        ));
       }
 
       // apply any applicable futureMutations
-      const pendingMutations = futureMutations[playerKey]?.filter((m) => (
-        (!!m?.calcdexId && syncedPokemon.calcdexId === m.calcdexId)
-          || (!!m?.ident && syncedPokemon.ident === m.ident)
+      const pendingMutations = futureMutations[playerKey]?.filter((mutation) => (
+        (!!mutation?.toolsId && syncedPokemon.toolsId === mutation.toolsId)
+          || (!!mutation?.ident && syncedPokemon.ident === mutation.ident)
       )).map(({
-        // we're removing calcdexId & ident since we know they're for this Pokemon at this point
-        calcdexId, // removed
-        ident, // removed
+        toolsId,
+        ident,
         ...mutations
       }) => ({ ...mutations }));
 
+      // 
       if (pendingMutations?.length) {
         pendingMutations.forEach((mutation) => Object.entries(mutation).forEach(([
           key,
           value,
         ]) => {
           syncedPokemon[key] = value;
-
-          if (key === 'ability') {
-            syncedPokemon.dirtyAbility = null;
-          }
 
           if (key === 'revealedMoves') {
             syncedPokemon.moves = mergeRevealedMoves(syncedPokemon);
@@ -750,366 +793,156 @@ export function syncBattle(battle, request) {
 
       // add the pokemon to the player's Calcdex state (if not maxed already)
       if (!matchedPokemon) {
-        // first check if we got Zoroark'd (i.e., Illusion)
-        // (this typically only applies for opponent Pokemon in Randoms, where the Pokemon are revealed as they're switched-in;
-        // duplicate mimicked Pokemon don't exist for myPokemon and formats like OU, where the entire team is already revealed)
-        // see: https://github.com/smogon/pokemon-showdown-client/blob/4e5002411cc80ff8044fd586bd0db2f80979b8f6/src/battle.ts#L747-L808
-        if (playerState.pokemon.length >= playerState.maxPokemon || speciesClause) {
-          const existingTable = {};
-          let removalId = null;
-
-          // note: purposefully ignoring level here
-          // update (2023/10/18): doing so might be yeeting
-          const syncedId = detectPokemonDetails(syncedPokemon, {
-            format: battleState.format,
-            normalizeForme: true,
-          });
-
-          for (let j = 0; j < player.pokemon.length; j++) {
-            const pokemonA = player.pokemon[j];
-
-            const idA = detectPokemonDetails(pokemonA, {
-              format: battleState.format,
-              normalizeForme: true,
-              // ignoreLevel: true,
-            });
-
-            if (!idA || !(idA in existingTable)) {
-              if (idA) {
-                existingTable[idA] = j;
-              }
-
-              continue;
-            }
-
-            const indexB = existingTable[idA];
-            const pokemonB = player.pokemon[indexB];
-
-            const idB = detectPokemonDetails(pokemonB, {
-              format: battleState.format,
-              normalizeForme: true,
-              // ignoreLevel: true,
-            });
-
-            if (!idB) {
-              continue;
-            }
-
-            // check if we should remove pokemonB
-            const targetB = syncedId === idA
-              || player.active.includes(pokemonA)
-              || (!pokemonA.hp && (pokemonB.hp || 0) > 0);
-
-            removalId = targetB ? idB : idA;
-
-            break;
-          }
-
-          // note: unlike in addPokemon() of Showdown.Side, we don't care about updating the Illusion Pokemon,
-          // only removing it so that the real Pokemon can be tracked in the Calcdex
-          const removalIndex = playerState.pokemon.findIndex((p) => detectPokemonDetails(p, {
-            format: battleState.format,
-            normalizeForme: true,
-            ignoreLevel: true,
-          }) === removalId);
-
-          const removalPokemon = playerState.pokemon[removalIndex];
-
-          if (removalPokemon?.speciesForme) {
-            playerState.pokemon.splice(removalIndex, 1);
-
-            if (__DEV__) {
-              l.debug(
-                'Removed Illusory', removalPokemon.ident || removalPokemon.speciesForme, 'from player', playerKey,
-                '\n', 'length', '(prev)', playerState.pokemon.length + 1,
-                '(now)', playerState.pokemon.length,
-                '(max)', playerState.maxPokemon,
-                '\n', 'removalIndex', removalIndex, 'removalId', removalId,
-                '\n', 'removal', removalPokemon.calcdexId, removalPokemon,
-                '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,
-                '\n', 'client', clientPokemon.calcdexId, clientPokemon,
-                '\n', 'server', serverPokemon?.calcdexId, serverPokemon,
-                '\n', 'pokemon[]', '(battle)', player.pokemon,
-                '\n', 'pokemon[]', '(state)', playerState.pokemon,
-                '\n', 'battle', battleId, battle,
-                '\n', 'state', battleState,
-              );
-            }
-          }
-        }
-
         if (playerState.pokemon.length >= playerState.maxPokemon) {
-            console.warn(
-              'Ignoring', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', index, 'for player', playerKey,
-              'since they have the max number of Pokemon',
-              '\n', 'length', '(now)', playerState.pokemon.length, '(max)', playerState.maxPokemon,
-              '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,
-              '\n', 'client', clientPokemon.calcdexId, clientPokemon,
-              '\n', 'server', serverPokemon?.calcdexId, serverPokemon,
-              '\n', 'pokemon[]', '(battle)', player.pokemon,
-              '\n', 'pokemon[]', '(state)', playerState.pokemon,
-              '\n', 'battle', battleId, battle,
-              '\n', 'state', battleState,
-            );
-          }
+          console.warn(
+            '[Gen 3 OU Tools] Skipping Pokemon sync because the player already has the maximum number of Pokemon.',
+            '\npokemon:', syncedPokemon.ident || syncedPokemon.speciesForme,
+            '\nindex:', index,
+            '\nplayer:', playerKey,
+            '\npokemon.length:', playerState.pokemon.length,
+            '\nmaxPokemon:', playerState.maxPokemon,
+            '\nsyncedPokemon.toolsId:', syncedPokemon.toolsId,
+            '\nsyncedPokemon:', syncedPokemon,
+            '\nclientPokemon.toolsId:', clientPokemon.toolsId,
+            '\nclientPokemon:', clientPokemon,
+            '\nserverPokemon.toolsId:', serverPokemon?.toolsId,
+            '\nserverPokemon:', serverPokemon,
+            '\npokemon (battle):', player.pokemon,
+            '\nbattleState.pokemon:', playerState.pokemon,
+            '\nbattleId:', battleId,
+            '\nbattle:', battle,
+            '\nbattleState:', this.battleState,
+          );
 
           continue;
         }
 
-        // note: this won't do anything if the Pokemon has no spreads available
-        syncedPokemon.showPresetSpreads = settings?.showSpreadsFirst || false;
-
-        // set the initial showGenetics value from the settings if this is server-sourced
-        const geneticsKey = playerKey === battleState.authPlayerKey ? 'auth' : playerKey;
-        const showBaseStats = settings?.showBaseStats === 'always'
-          || (settings?.showBaseStats === 'meta' && !legalLockedFormat(battleState.format));
-
-        // handles 3 cases:
-        // (1) user selected all stats, so we should set this to true to initially show all rows, then allow them to be hidden
-        // (2) user selected only some stats, so this becomes initially false so PokeStats can show the rows they've selected
-        // (3) user selected no stats, so this becomes initially false, then allow them to all be shown
-        // (note: hydrator may rehydrate an empty array as `false`, hence why we're checking if the value is an array first!)
-        syncedPokemon.showGenetics = Array.isArray(settings?.lockGeneticsVisibility?.[geneticsKey]) && [
-          showBaseStats && 'base',
-          'iv',
-          !detectLegacyGen(battleState.gen) && 'ev',
-        ].filter(Boolean).every((
-          k,
-        ) => settings.lockGeneticsVisibility[geneticsKey].includes(k));
-
         const size = playerState.pokemon.push(syncedPokemon);
 
-          console.debug(
-            'Added', syncedPokemon.ident || syncedPokemon.speciesForme, 'to index', size - 1, 'for player', playerKey,
-            '\n', 'length', '(now)', playerState.pokemon.length, '(max)', playerState.maxPokemon,
-            '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,
-            '\n', 'client', clientPokemon.calcdexId, clientPokemon,
-            ...(clientIllusionPokemon?.calcdexId ? ['\n', 'illusion', clientIllusionPokemon.calcdexId, clientIllusionPokemon] : []),
-            '\n', 'server', serverPokemon?.calcdexId, serverPokemon,
-            '\n', 'pokemon[]', '(battle)', player.pokemon,
-            '\n', 'pokemon[]', '(state)', playerState.pokemon,
-            '\n', 'battle', battleId, battle,
-            '\n', 'state', battleState,
-          );
+        console.debug(
+          '[Gen 3 OU Tools] Added Pokemon.',
+          '\npokemon:', syncedPokemon.ident || syncedPokemon.speciesForme,
+          '\nindex:', size - 1,
+          '\nplayer:', playerKey,
+          '\npokemon.length:', playerState.pokemon.length,
+          '\nmaxPokemon:', playerState.maxPokemon,
+          '\nsyncedPokemon.toolsId:', syncedPokemon.toolsId,
+          '\nsyncedPokemon:', syncedPokemon,
+          '\nclientPokemon.toolsId:', clientPokemon.toolsId,
+          '\nclientPokemon:', clientPokemon,
+          '\nserverPokemon.toolsId:', serverPokemon?.toolsId,
+          '\nserverPokemon:', serverPokemon,
+          '\npokemon (battle):', player.pokemon,
+          '\nbattleState.pokemon:', playerState.pokemon,
+          '\nbattleId:', battleId,
+          '\nbattle:', battle,
+          '\nbattleState:', this.battleState,
+        );
       } else {
         playerState.pokemon[matchedPokemonIndex] = syncedPokemon;
 
-          console.debug(
-            'Updated', syncedPokemon.ident || syncedPokemon.speciesForme, 'at index', matchedPokemonIndex, 'for player', playerKey,
-            '\n', 'synced', syncedPokemon.calcdexId, syncedPokemon,
-            '\n', 'client', clientPokemon.calcdexId, clientPokemon,
-            ...(clientIllusionPokemon?.calcdexId ? ['\n', 'illusion', clientIllusionPokemon.calcdexId, clientIllusionPokemon] : []),
-            '\n', 'server', serverPokemon?.calcdexId, serverPokemon,
-            '\n', 'pokemon[]', '(battle)', player.pokemon,
-            '\n', 'pokemon[]', '(state)', playerState.pokemon,
-            '\n', 'battle', battleId, battle,
-            '\n', 'state', battleState,
-          );
+        console.debug(
+          '[Gen 3 OU Tools] Synced Pokemon.',
+          '\npokemon:', syncedPokemon.ident || syncedPokemon.speciesForme,
+          '\nindex:', matchedPokemonIndex,
+          '\nplayer:', playerKey,
+          '\nsyncedPokemon.toolsId:', syncedPokemon.toolsId,
+          '\nsyncedPokemon:', syncedPokemon,
+          '\nclientPokemon.toolsId:', clientPokemon.toolsId,
+          '\nclientPokemon:', clientPokemon,
+          '\nserverPokemon.toolsId:', serverPokemon?.toolsId,
+          '\nserverPokemon:', serverPokemon,
+          '\npokemon (battle):', player.pokemon,
+          '\nbattleState.pokemon:', playerState.pokemon,
+          '\nbattleId:', battleId,
+          '\nbattle:', battle,
+          '\nbattleState:', this.battleState,
+        );
       }
     }
 
-    // keep track of which calcdexId's we've added so far (for myPokemon in Doubles)
-    const processedIds = [];
-
+    // 
     playerState.activeIndices = (player.active || []).map((activePokemon) => {
+
       // particularly in FFA, there may be a Pokemon belonging to another player in active[]
       if (!activePokemon?.details || detectPlayerKeyFromPokemon(activePokemon) !== playerKey) {
         return null;
       }
 
-      // checking myPokemon first (if it's available) for Illusion/Zoroark
-      let activeId = (
-        isMyPokemonSide
-          && hasMyPokemon
-          // update (2023/07/26): had to update this logic for Supreme Overlord in Doubles;
-          // without checking the calcdexId (& solely checking `p.active`), the resulting activeIndices
-          // may only include the first active Pokemon in myPokemon[] for this specific case
-          // (also, while active[] in Showdown.Side will set the Showdown.Pokemon to `null` if dead, e.g.,
-          // [null, { speciesForme: 'Kingambit', ... }], the dead Showdown.ServerPokemon in myPokemon[]
-          // will still be `active` !!)
-          && myPokemon.find((p) => (
-            p?.active
-              && p.hp > 0
-              && (
-                (!p.calcdexId && !activePokemon.calcdexId)
-                  // update (2023/10/09): you know who it is baby
-                  || formatId(p.ability || p.baseAbility) === 'illusion'
-                  || p.calcdexId === activePokemon.calcdexId
-              )
-              && !processedIds.includes(p?.calcdexId)
-          ))?.calcdexId
-      )
-        || activePokemon?.calcdexId
-        || player.pokemon.find((p) => p === activePokemon)?.calcdexId;
+      // 
+      let activeId = activePokemon?.toolsId || player.pokemon.find((pokemon) => pokemon === activePokemon)?.toolsId;
 
       // note: leave as `let` for those dank console logs
       let activeIndex = -1;
 
+      // 
       if (activeId) {
-        activeIndex = playerState.pokemon.findIndex((p) => p.calcdexId === activeId);
+        activeIndex = playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === activeId);
       }
 
-      if (activeIndex > -1 && !processedIds.includes(activeId)) {
-        processedIds.push(activeId);
-
+      // 
+      if (activeIndex > -1) {
         return activeIndex;
       }
 
+      // 
       if (activePokemon) {
         console.warn(
-          ...(activeId && processedIds.includes(activeId) ? [
-            'Attempted to add existing activeId', activeId, 'for player', playerKey,
-            '\n', 'processedIds', processedIds,
-          ] : [
-            'Could not find activeIndex with activeId', activeId, 'for player', playerKey,
-          ]),
-          '\n', 'active', '(client)', activePokemon,
-          '\n', 'player', '(battle)', player,
-          '\n', 'player', '(state)', playerState.pokemon,
-          '\n', 'order[]', playerState.pokemonOrder,
-          '\n', 'battle', battleId, battle,
-          '\n', 'state', battleState,
+          '[Gen 3 OU Tools] Attempted to add existing activeId.',
+          '\nactiveId:', activeId,
+          '\nplayer:', playerKey,
+          '\nactivePokemon:', activePokemon,
+          '\nbattle player', player,
+          '\nstate player', '(state)', playerState.pokemon,
+          '\norder"', playerState.pokemonOrder,
+          '\nbattleId:', battleId,
+          '\nbattle:', battle,
+          '\nbattleState', this.battleState,
         );
       }
 
       return null;
-    }).filter((n) => typeof n === 'number' && n > -1);
+    }).filter((number) => typeof number === 'number' && number > -1);
 
+    // 
     // repopulate the active property of each pokemon now that we have the actual indices
-    playerState.pokemon.forEach((pokemon, i) => {
-      pokemon.active = playerState.activeIndices.includes(i);
+    playerState.pokemon.forEach((pokemon, index) => {
+      pokemon.active = playerState.activeIndices.includes(index);
     });
 
-    if (playerState.activeIndices.length) {
-      // surprisingly encountered a race-condition with player.faintCounter not being the most up-to-date value,
-      // so we'll just count it ourselves LOL
-      const faintCounter = playerState.pokemon.filter((p) => !p.hp).length;
-
-      // update the faintCounter from the player side if not active on the field & not fainted
-      // OR the Pokemon's current faintCounter is 0 when the battle is inactive (probably from a page reload)
-      if (faintCounter > 0) {
-        const pendingPokemon = playerState.pokemon.filter((p) => (
-          // note: Pokemon can have a `/^fallen\d$/` volatile (e.g., `'fallen1'`), which is the server reporting
-          // the actual faintCounter essentially, so if present, we'll assume syncPokemon() has already applied it
-          !Object.keys(p.volatiles || {}).some((k) => k?.startsWith('fallen'))
-        ) && (
-          // update (2023/10/07): apparently the "only-update-the-faintCounter-when-switched-out" mechanic only
-          // applies to Supreme Overlord, so everything else (like Last Respects on Houndstone) should always sync
-          // (as long as the Pokemon isn't dedge, of course) ... LOL ty gam frek
-          (((p.dirtyAbility || p.ability) !== 'Supreme Overlord' as AbilityName || !p.active) && p.hp > 0)
-            || (!battleState.active && !p.faintCounter)
-        ));
-
-        pendingPokemon.forEach((pokemon) => {
-          // if the current `pokemon` is dedge & its faintCounter is 0, remove 1 to not include itself
-          const reloadOffset = !pokemon.hp && !pokemon.faintCounter ? 1 : 0;
-
-          pokemon.faintCounter = clamp(0, faintCounter - reloadOffset, maxPokemon);
-
-          // auto-clear the dirtyFaintCounter if the user previously set one
-          if (typeof pokemon.dirtyFaintCounter === 'number') {
-            pokemon.dirtyFaintCounter = null;
-          }
-        });
-      }
-
-      if (playerState.autoSelect) {
-        if (!playerState.activeIndices.includes(playerState.selectionIndex)) {
-          // update (2023/01/30): only update the selectionIndex if it's not one of the activeIndices
-          [playerState.selectionIndex] = playerState.activeIndices;
-        }
-      }
-    }
-
-    // update abilityToggled for all of the player's pokemon now that they're all synced up
-    if (!battleState.legacy) {
-      playerState.pokemon.forEach((p, i) => {
-        // pretty much used for Stakeout ya lol
-        const opponentState = battleState[battleState.opponentKey];
-        const opponentIndex = opponentState?.selectionIndex;
-        const opponentPokemon = opponentState?.pokemon?.[opponentIndex];
-
-        /**
-         * @todo there's an edge case where if you're p1 w/ a Stakeout Pokemon, since you sync first, the active state
-         * of p2 isn't available yet, so Stakeout could potentially remain active, but I reeaaallly don't feel like
-         * addressing that atm :o (Stakeout was a lot more work an initially anticipated lol)
-         */
-        p.abilityToggled = detectToggledAbility(p, {
-          format: battleState.format,
-          gameType: battleState.gameType,
-          pokemonIndex: i,
-          opponentPokemon,
-          selectionIndex: playerState.selectionIndex,
-          activeIndices: playerState.activeIndices,
-          weather: battleState.field.weather,
-          terrain: battleState.field.terrain,
-        });
-      });
-    }
+    // EDITINGNOTE: here we've encountered the user's active selection for pokemon... we will need to decide whether to keep this logic here or move it elsewhere
 
     // sync player side
     if (playerState.active) {
-      // sync the sideConditions from the battle
-      // (this is first so that it'll be available in sanitizePlayerSide(), just in case)
-      // update (2023/07/18): structuredClone() is slow af, so removing it from the codebase
-      // playerState.side.conditions = structuredClone(player.sideConditions || {});
+      // sync the sideConditions from the battle (this is first so that it'll be available in sanitizePlayerSide(), just in case)
       playerState.side.conditions = clonePlayerSideConditions(player.sideConditions);
 
       playerState.side = {
         conditions: playerState.side.conditions,
-        ...sanitizePlayerSide(
-          battleState.gen,
-          playerState,
-          battle[playerKey],
-        ),
+        ...sanitizePlayerSide(playerState, battle[playerKey]),
       };
     }
   }
 
-  // now that all players were processed, recount the number of players
-  // (typically required for FFA, when players 3 & 4 need to be invited, so the playerCount never updates)
-  battleState.playerCount = countActivePlayers(battleState);
-
   // also now is the perfect time to populate each Pokemon's autoBoostMap of each player
-  AllPlayerKeys.forEach((playerKey) => {
-    if (!battleState[playerKey]?.pokemon?.length) {
+  ['p1', 'p2'].forEach((playerKey) => {
+    if (!this.battleState[playerKey]?.pokemon?.length) {
       return;
     }
 
-    battleState[playerKey].pokemon.forEach((pokemon) => {
+    this.toolsState[playerKey].pokemon.forEach((pokemon) => {
       pokemon.autoBoostMap = mapAutoBoosts(pokemon, battle.stepQueue, {
-        format: battleState.format,
-        players: battleState,
-        field: battleState.field,
+        format: this.battleState.format,
+        players: this.battleState,
+        field: this.battleState.field,
       });
     });
   });
 
-  // this is important, otherwise we can't ignore re-renders of the same battle state
-  // (which may result in reaching React's maximum update depth)
+  // this is important, otherwise we can't ignore re-renders of the same battle state (which may result in reaching React's maximum update depth)
   if (battleNonce) {
-    battleState.battleNonce = battleNonce;
+    this.toolsState.battleNonce = battleNonce;
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

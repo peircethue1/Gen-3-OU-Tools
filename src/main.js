@@ -5,7 +5,7 @@
 import { BootClassicAdapter } from './BootClassicAdapter.js';
 import { ToolsClassicBootstrapper } from './ToolsClassicBootstrapper.js';
 
-console.debug('[Gen 3 OU Tools] Starting for chrome with extensionId:', chrome.runtime.id);
+console.debug('[Gen 3 OU Tools] Starting for chrome.');
 
 // Checks if execution occured on an unsupported webpage or before the webpage finished loading
 if (
@@ -27,7 +27,6 @@ if (window.__GEN_3_OU_TOOLS_INIT) {
     '[Gen 3 OU Tools] An instance was already active on this webpage.',
     '\n__GEN_3_OU_TOOLS_INIT:', window.__GEN_3_OU_TOOLS_INIT,
     '\n__GEN_3_OU_TOOLS_HOST:', window.__GEN_3_OU_TOOLS_HOST,
-    '\nextensionId:', chrome.runtime.id,
   );
   throw new Error('Another instance tried to start when one was already active.');
 }

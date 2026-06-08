@@ -59,6 +59,36 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     return (this.battle?.stepQueue || []).some((step) => step?.startsWith('|noinit|nonexistent|'));
   }
 
+  // Creates a valid generation number
+  static detectGenFromFormat(format, defaultGen = null) {
+    if (typeof format === 'number') {
+      return Math.max(format, 0);
+    }
+
+    const genFormatRegex = /^gen(10|\d)/i;
+
+    if (!genFormatRegex.test(format)) {
+      return defaultGen;
+    }
+
+    const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
+
+    if (gen < 1) {
+      return defaultGen;
+    }
+
+    return gen;
+  }
+
+  // 
+  static sanitizeField() {
+    return {
+      weather: null,
+      attackerSide: null,
+      defenderSide: null,
+    };
+  }
+
   // Creates a clone of the side conditions
   static clonePlayerSideConditions(conditions) {
     return Object.entries(conditions || {}).reduce((prev, [key, value]) => {
@@ -110,27 +140,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     };
   }
 
-  // Creates a valid generation number
-  static detectGenFromFormat (format, defaultGen = null) {
-    if (typeof format === 'number') {
-      return Math.max(format, 0);
-    }
-
-    const genFormatRegex = /^gen(10|\d)/i;
-
-    if (!genFormatRegex.test(format)) {
-      return defaultGen;
-    }
-
-    const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
-
-    if (gen < 1) {
-      return defaultGen;
-    }
-
-    return gen;
-  }
-
   // Creates the initial battle state
   initToolsState() {
     const battleInstance = this.battle;
@@ -174,22 +183,38 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       turn: Math.max((battleInstance.turn || 0), 0),
       active: !battleInstance.ended,
       paused: false,
+      playerKey: null,
+      authPlayerKey: null,
+      opponentKey: null,
       switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
+      field: ToolsBootstrappable.sanitizeField(),
       p1: {
+        sideid: null,
         active: false,
         name: null,
         rating: null,
+        activeIndices: [],
+        selectionIndex: 0,
+        maxPokemon: 0,
         side: {
           conditions: {},
         },
+        pokemonOrder: [],
+        pokemon: [],
       },
       p2: {
+        sideid: null,
         active: false,
         name: null,
         rating: null,
+        activeIndices: [],
+        selectionIndex: 0,
+        maxPokemon: 0,
         side: {
           conditions: {},
         },
+        pokemonOrder: [],
+        pokemon: [],
       },
     };
 
@@ -198,12 +223,18 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       const player = battleInstance[playerKey];
 
       this.toolsState[playerKey] = {
+        sideid: playerKey,
         active: !!player?.id,
         name: player?.name || null,
         rating: player?.rating || null,
+        activeIndices: [],
+        selectionIndex: 0,
+        maxPokemon: 0,
         side: {
           conditions: ToolsBootstrappable.clonePlayerSideConditions(player?.sideConditions),
         },
+        pokemonOrder: [],
+        pokemon: [],
       };
 
       // Populates the player side conditions with sanitized data

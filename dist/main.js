@@ -71,9 +71,9 @@
             namedCode
           ] = data.split("|");
           console.debug(
-            "[Gen 3 OU Tools] Logged in as",
+            "[Gen 3 OU Tools] User logged in.",
+            "\nuser type:",
             namedCode === "1" ? "registered" : "guest",
-            "user.",
             "\nusername:",
             username?.trim(),
             "\ndata:",
@@ -87,7 +87,8 @@
         if (data.startsWith(">battle-")) {
           const roomId = data.slice(1, data.indexOf("\n"));
           console.debug(
-            "[Gen 3 OU Tools] window.app.receive data for battle room:",
+            "[Gen 3 OU Tools] Received client data via window.app.receive.",
+            "\nbattle room:",
             roomId,
             "\ndata:",
             data
@@ -159,6 +160,187 @@
     }
   };
 
+  // node_modules/uuid/dist/nil.js
+  var nil_default = "00000000-0000-0000-0000-000000000000";
+
+  // node_modules/uuid/dist/regex.js
+  var regex_default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+  // node_modules/uuid/dist/validate.js
+  function validate(uuid) {
+    return typeof uuid === "string" && regex_default.test(uuid);
+  }
+  var validate_default = validate;
+
+  // node_modules/uuid/dist/parse.js
+  function parse(uuid) {
+    if (!validate_default(uuid)) {
+      throw TypeError("Invalid UUID");
+    }
+    let v;
+    return Uint8Array.of((v = parseInt(uuid.slice(0, 8), 16)) >>> 24, v >>> 16 & 255, v >>> 8 & 255, v & 255, (v = parseInt(uuid.slice(9, 13), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(14, 18), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(19, 23), 16)) >>> 8, v & 255, (v = parseInt(uuid.slice(24, 36), 16)) / 1099511627776 & 255, v / 4294967296 & 255, v >>> 24 & 255, v >>> 16 & 255, v >>> 8 & 255, v & 255);
+  }
+  var parse_default = parse;
+
+  // node_modules/uuid/dist/stringify.js
+  var byteToHex = [];
+  for (let i = 0; i < 256; ++i) {
+    byteToHex.push((i + 256).toString(16).slice(1));
+  }
+  function unsafeStringify(arr, offset = 0) {
+    return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+  }
+
+  // node_modules/uuid/dist/rng.js
+  var rnds8 = new Uint8Array(16);
+  function rng() {
+    return crypto.getRandomValues(rnds8);
+  }
+
+  // node_modules/uuid/dist/v35.js
+  function stringToBytes(str) {
+    str = unescape(encodeURIComponent(str));
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; ++i) {
+      bytes[i] = str.charCodeAt(i);
+    }
+    return bytes;
+  }
+  var DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
+  var URL = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
+  function v35(version, hash, value, namespace, buf, offset) {
+    const valueBytes = typeof value === "string" ? stringToBytes(value) : value;
+    const namespaceBytes = typeof namespace === "string" ? parse_default(namespace) : namespace;
+    if (typeof namespace === "string") {
+      namespace = parse_default(namespace);
+    }
+    if (namespace?.length !== 16) {
+      throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)");
+    }
+    let bytes = new Uint8Array(16 + valueBytes.length);
+    bytes.set(namespaceBytes);
+    bytes.set(valueBytes, namespaceBytes.length);
+    bytes = hash(bytes);
+    bytes[6] = bytes[6] & 15 | version;
+    bytes[8] = bytes[8] & 63 | 128;
+    if (buf) {
+      offset ??= 0;
+      if (offset < 0 || offset + 16 > buf.length) {
+        throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+      }
+      for (let i = 0; i < 16; ++i) {
+        buf[offset + i] = bytes[i];
+      }
+      return buf;
+    }
+    return unsafeStringify(bytes);
+  }
+
+  // node_modules/uuid/dist/v4.js
+  function v4(options, buf, offset) {
+    if (!buf && !options && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return _v4(options, buf, offset);
+  }
+  function _v4(options, buf, offset) {
+    options = options || {};
+    const rnds = options.random ?? options.rng?.() ?? rng();
+    if (rnds.length < 16) {
+      throw new Error("Random bytes length must be >= 16");
+    }
+    rnds[6] = rnds[6] & 15 | 64;
+    rnds[8] = rnds[8] & 63 | 128;
+    if (buf) {
+      offset = offset || 0;
+      if (offset < 0 || offset + 16 > buf.length) {
+        throw new RangeError(`UUID byte range ${offset}:${offset + 15} is out of buffer bounds`);
+      }
+      for (let i = 0; i < 16; ++i) {
+        buf[offset + i] = rnds[i];
+      }
+      return buf;
+    }
+    return unsafeStringify(rnds);
+  }
+  var v4_default = v4;
+
+  // node_modules/uuid/dist/sha1.js
+  function f(s, x, y, z) {
+    switch (s) {
+      case 0:
+        return x & y ^ ~x & z;
+      case 1:
+        return x ^ y ^ z;
+      case 2:
+        return x & y ^ x & z ^ y & z;
+      case 3:
+        return x ^ y ^ z;
+    }
+  }
+  function ROTL(x, n) {
+    return x << n | x >>> 32 - n;
+  }
+  function sha1(bytes) {
+    const K = [1518500249, 1859775393, 2400959708, 3395469782];
+    const H = [1732584193, 4023233417, 2562383102, 271733878, 3285377520];
+    const newBytes = new Uint8Array(bytes.length + 1);
+    newBytes.set(bytes);
+    newBytes[bytes.length] = 128;
+    bytes = newBytes;
+    const l = bytes.length / 4 + 2;
+    const N = Math.ceil(l / 16);
+    const M = new Array(N);
+    for (let i = 0; i < N; ++i) {
+      const arr = new Uint32Array(16);
+      for (let j = 0; j < 16; ++j) {
+        arr[j] = bytes[i * 64 + j * 4] << 24 | bytes[i * 64 + j * 4 + 1] << 16 | bytes[i * 64 + j * 4 + 2] << 8 | bytes[i * 64 + j * 4 + 3];
+      }
+      M[i] = arr;
+    }
+    M[N - 1][14] = (bytes.length - 1) * 8 / 2 ** 32;
+    M[N - 1][14] = Math.floor(M[N - 1][14]);
+    M[N - 1][15] = (bytes.length - 1) * 8 & 4294967295;
+    for (let i = 0; i < N; ++i) {
+      const W = new Uint32Array(80);
+      for (let t = 0; t < 16; ++t) {
+        W[t] = M[i][t];
+      }
+      for (let t = 16; t < 80; ++t) {
+        W[t] = ROTL(W[t - 3] ^ W[t - 8] ^ W[t - 14] ^ W[t - 16], 1);
+      }
+      let a = H[0];
+      let b = H[1];
+      let c = H[2];
+      let d = H[3];
+      let e = H[4];
+      for (let t = 0; t < 80; ++t) {
+        const s = Math.floor(t / 20);
+        const T = ROTL(a, 5) + f(s, b, c, d) + e + K[s] + W[t] >>> 0;
+        e = d;
+        d = c;
+        c = ROTL(b, 30) >>> 0;
+        b = a;
+        a = T;
+      }
+      H[0] = H[0] + a >>> 0;
+      H[1] = H[1] + b >>> 0;
+      H[2] = H[2] + c >>> 0;
+      H[3] = H[3] + d >>> 0;
+      H[4] = H[4] + e >>> 0;
+    }
+    return Uint8Array.of(H[0] >> 24, H[0] >> 16, H[0] >> 8, H[0], H[1] >> 24, H[1] >> 16, H[1] >> 8, H[1], H[2] >> 24, H[2] >> 16, H[2] >> 8, H[2], H[3] >> 24, H[3] >> 16, H[3] >> 8, H[3], H[4] >> 24, H[4] >> 16, H[4] >> 8, H[4]);
+  }
+  var sha1_default = sha1;
+
+  // node_modules/uuid/dist/v5.js
+  function v5(value, namespace, buf, offset) {
+    return v35(80, sha1_default, value, namespace, buf, offset);
+  }
+  v5.DNS = DNS;
+  v5.URL = URL;
+  var v5_default = v5;
+
   // src/ToolsRenderer.js
   var ToolsDomRenderer = (element, props) => {
     if (!element || !props?.state) {
@@ -174,11 +356,744 @@
 
   // src/syncBattle.js
   function syncBattle(battle, request) {
-    if (!this.toolsState || !battle) {
+    if (!battle || !this.battleState) {
       return;
     }
-    this.toolsState.battleNonce = battle.nonce;
-    this.toolsState.turn = Math.max(battle.turn || 0, 0);
+    const {
+      id: battleId,
+      nonce: battleNonce,
+      gen,
+      gameType,
+      turn,
+      paused,
+      ended,
+      myPokemon,
+      speciesClause,
+      stepQueue
+    } = battle || {};
+    if (!battleId) {
+      throw new Error("Attempted to sync a battle instance with an invalid battleId.");
+    }
+    if (this.battleState.battleNonce && this.battleState.battleNonce === battleNonce) {
+      console.debug(
+        "[Gen 3 OU Tools] Skipping sync due to matching nonce.",
+        "\nbattleId:",
+        battleId,
+        "\nbattleNonce:",
+        battleNonce,
+        "\nbattle:",
+        battle,
+        "\nbattleState:",
+        this.battleState
+      );
+      return;
+    }
+    if (typeof gen === "number" && gen > 0) {
+      this.toolsState.gen = gen;
+    }
+    if (this.battleState.active && typeof ended === "boolean" && ended) {
+      this.toolsState.active = false;
+    }
+    if (typeof paused === "boolean" || typeof ended === "boolean") {
+      this.toolsState.paused = paused || ended;
+    }
+    this.toolsState.gameType = gameType === "singles" ? "singles" : "doubles";
+    this.toolsState.turn = Math.max(turn || 0, 0);
+    const detectPokemonIdent = (pokemon) => [
+      "side" in (pokemon || {}) && pokemon.side?.sideid || pokemon?.searchid?.split?.(":")[0] || pokemon?.ident?.split?.(":")[0],
+      pokemon?.speciesForme || pokemon?.details?.split?.(", ")?.[0] || pokemon?.searchid?.split?.("|")[1] || pokemon?.ident?.split?.(": ")[1] || pokemon?.name
+    ].filter(Boolean).join(": ") || pokemon?.ident || pokemon?.searchid?.split?.("|")[0] || null;
+    const detectPlayerKeyFromPokemon = (pokemon) => {
+      if (pokemon?.playerKey) {
+        return pokemon.playerKey;
+      }
+      const ident = detectPokemonIdent(pokemon);
+      if (!ident) {
+        return null;
+      }
+      return /^(p\d)[a-z]?:/.exec(ident)?.[1];
+    };
+    const getAuthUsername = () => window.app.user?.attributes?.name || null;
+    const detectAuthPlayerKeyFromBattle = () => {
+      const detectedPlayerKey2 = detectPlayerKeyFromPokemon(battle?.myPokemon?.[0]);
+      if (detectedPlayerKey2) {
+        return detectedPlayerKey2;
+      }
+      const authName = getAuthUsername();
+      if (!authName) {
+        return null;
+      }
+      return battle?.sides?.find?.((side) => "name" in (side || {}) && [
+        side.id,
+        side.name
+      ].filter(Boolean).includes(authName))?.sideid || null;
+    };
+    this.toolsState.authPlayerKey = detectAuthPlayerKeyFromBattle();
+    const detectedPlayerKey = this.battleState.authPlayerKey;
+    if (detectedPlayerKey) {
+      this.toolsState.playerKey = detectedPlayerKey;
+      this.toolsState.opponentKey = this.battleState.playerKey === "p1" ? "p2" : "p1";
+    }
+    this.toolsState.switchPlayers = battle.viewpointSwitched ?? battle.sidesSwitched;
+    const nonEmptyObject = (obj) => {
+      if (typeof obj !== "object") {
+        return false;
+      }
+      if (Array.isArray(obj)) {
+        return !!obj.length;
+      }
+      return !!Object.keys(obj || {}).length;
+    };
+    const cloneField = (field) => {
+      const output = {
+        ...field
+      };
+      if ("attackerSide" in output) {
+        delete output.attackerSide;
+      }
+      if ("defenderSide" in output) {
+        delete output.defenderSide;
+      }
+      return output;
+    };
+    const formatId = (value) => value?.toString?.().normalize("NFD").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    const WEATHER_MAP = {
+      raindance: "Rain",
+      sandstorm: "Sand",
+      sunnyday: "Sun",
+      hail: "Hail"
+    };
+    const sanitizeField = () => {
+      const { weather } = battle || {};
+      const sanitizedField = {
+        weather: WEATHER_MAP[weather] || null,
+        attackerSide: null,
+        defenderSide: null
+      };
+      return sanitizedField;
+    };
+    const syncField = () => {
+      if (!nonEmptyObject(this.battleState?.field) || !battle?.p1) {
+        console.warn(
+          "[Gen 3 OU Tools] The field or battle is invalid.",
+          "\nbattleState.field:",
+          this.battleState.field,
+          "\nbattle:",
+          battle
+        );
+        return this.battleState?.field;
+      }
+      const newField = cloneField(this.battleState.field);
+      const updatedField = sanitizeField();
+      Object.keys(updatedField).forEach((key) => {
+        if (["attackerSide", "defenderSide"].includes(key)) {
+          return;
+        }
+        const value = updatedField?.[key];
+        const originalValue = this.battleState.field?.[key];
+        if (JSON.stringify(value) === JSON.stringify(originalValue)) {
+          return;
+        }
+        newField[key] = value;
+      });
+      newField.autoWeather = null;
+      return newField;
+    };
+    const syncedField = syncField();
+    if (!syncedField) {
+      console.warn(
+        "[Gen 3 OU Tools] Could not sync the field.",
+        "\nbattleId:",
+        battleId,
+        "\nsyncedField:",
+        syncedField,
+        "\nbattleState.field:",
+        this.battleState.field,
+        "\nbattle:",
+        battle,
+        "\nbattleState:",
+        this.battleState
+      );
+    } else {
+      this.toolsState.field = syncedField;
+    }
+    const futureMutations = {
+      p1: [],
+      p2: []
+    };
+    const serializePayload = (payload) => Object.entries(payload || {}).map(([key, value]) => `${key}:${(typeof value === "object" ? JSON.stringify(value) : String(value)) ?? "???"}`).join("|");
+    const calcToolsId = (payload) => {
+      const serialized = nonEmptyObject(payload) ? serializePayload(payload) : ["string", "number", "boolean"].includes(typeof payload) ? String(payload) : null;
+      if (!serialized) {
+        return null;
+      }
+      return v5_default(
+        serialized?.replace(/[^A-Z0-9\x20~`!@#$%^&*()+\-_=\[\]{}<>\|:;,\.'"\/\\]/gi, ""),
+        nil_default
+      );
+    };
+    const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
+      ident: [
+        playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
+        v4_default()
+      ].filter(Boolean).join(": "),
+      speciesForme: pokemon?.speciesForme
+    });
+    const detectGenFromFormat = (format, defaultGen = null) => {
+      if (typeof format === "number") {
+        return Math.max(format, 0);
+      }
+      const genFormatRegex = /^gen(10|\d)/i;
+      if (!genFormatRegex.test(format)) {
+        return defaultGen;
+      }
+      const gen2 = parseInt(format.match(genFormatRegex)[1], 10) || 0;
+      if (gen2 < 1) {
+        return defaultGen;
+      }
+      return gen2;
+    };
+    const getDexForFormat = (format) => {
+      if (typeof Dex === "undefined") {
+        console.warn("[Gen 3 OU Tools] The global Dex is not available for this format:", format);
+        return null;
+      }
+      if (!format) {
+        return Dex;
+      }
+      if (typeof format === "number") {
+        return format > 0 ? Dex.forGen(format) : Dex;
+      }
+      const formatAsId = formatId(format);
+      const gen2 = detectGenFromFormat(formatAsId);
+      if (typeof gen2 !== "number" || gen2 < 1) {
+        return Dex;
+      }
+      return Dex.forGen(gen2);
+    };
+    const parsePokemonDetails = (details) => {
+      if (!details) {
+        return null;
+      }
+      const [speciesForme] = details.split(", ");
+      if (!speciesForme) {
+        return null;
+      }
+      return { speciesForme };
+    };
+    const similarPokemon = (pokemonA, pokemonB, config) => {
+      if (!pokemonA?.details || !pokemonB?.details) {
+        return false;
+      }
+      const { details: detailsA } = pokemonA;
+      const { details: detailsB } = pokemonB;
+      const { format } = config || {};
+      const dex = getDexForFormat(format);
+      const { speciesForme: speciesA } = parsePokemonDetails(detailsA);
+      const dexA = dex.species.get(speciesA);
+      const formeA = dexA?.exists && dexA.baseSpecies || null;
+      if (!formeA) {
+        return false;
+      }
+      const { speciesForme: speciesB } = parsePokemonDetails(detailsB);
+      const dexB = dex.species.get(speciesB);
+      const formeB = dexB?.exists && dexB.baseSpecies || null;
+      if (!formeB) {
+        return false;
+      }
+      return formeA === formeB;
+    };
+    const diffArrays = (arrayA, arrayB, serialize) => {
+      if (!Array.isArray(arrayA) || !Array.isArray(arrayB)) {
+        return null;
+      }
+      if (!arrayA.length && !arrayB.length) {
+        return [];
+      }
+      if (arrayA.length && !arrayB.length) {
+        return [...arrayA];
+      }
+      if (!arrayA.length && arrayB.length) {
+        return [...arrayB];
+      }
+      const parse2 = (value) => serialize ? JSON.stringify(value) : value;
+      const parsedA = serialize ? arrayA.map((value) => parse2(value)) : arrayA;
+      const parsedB = serialize ? arrayB.map((value) => parse2(value)) : arrayB;
+      const diffIndexFilter = (source, target) => (sourceIndex) => !(serialize ? target.includes(source[sourceIndex]) : target.some((value) => value === source[sourceIndex]));
+      const diffIndicesA = parsedA.map((_, index) => index).filter(diffIndexFilter(parsedA, parsedB));
+      const diffIndicesB = parsedB.map((_, index) => index).filter(diffIndexFilter(parsedB, parsedA));
+      return [
+        ...diffIndicesA.map((index) => arrayA[index]),
+        ...diffIndicesB.map((index) => arrayB[index])
+      ];
+    };
+    const sanitizeVolatiles = (pokemon) => {
+      Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
+        const [
+          ,
+          value,
+          ...rest
+        ] = volatile || [];
+        const transformed = formatId(id) === "transform" && typeof value?.speciesForme === "string";
+        if (transformed || !value || ["string", "number"].includes(typeof value)) {
+          volatiles[id] = transformed ? [
+            id,
+            value.speciesForme,
+            ...rest
+          ] : volatile;
+        }
+        return volatiles;
+      }, {});
+    };
+    const clonePlayerSideConditions = (conditions) => {
+      Object.entries(conditions || {}).reduce((prev, [key, value]) => {
+        prev[key] = Array.isArray(value) ? [...value] : value;
+        return prev;
+      }, {});
+    };
+    const sanitizePlayerSide = (player, battleSide) => {
+      const {
+        selectionIndex,
+        pokemon: playerPokemon,
+        side
+      } = player || {};
+      const currentPokemon = playerPokemon?.length && selectionIndex > -1 ? playerPokemon[selectionIndex] : null;
+      const sideConditions = battleSide?.sideConditions || side?.conditions || {};
+      const sideConditionNames = Object.keys(sideConditions).map((condition) => ToolsBootstrappable.formatId(condition)).filter(Boolean);
+      const volatileNames = Object.keys(currentPokemon?.volatiles || {}).map((volatile) => ToolsBootstrappable.formatId(volatile)).filter(Boolean);
+      return {
+        spikes: sideConditionNames.includes("spikes") && sideConditions.spikes?.[1] || 0,
+        isReflect: sideConditionNames.includes("reflect"),
+        isLightScreen: sideConditionNames.includes("lightscreen"),
+        isProtected: volatileNames.includes("protect"),
+        isSeeded: volatileNames.includes("leechseed"),
+        isForesight: volatileNames.includes("foresight"),
+        isSwitching: currentPokemon?.active ? "out" : "in"
+      };
+    };
+    for (const playerKey of ["p1", "p2"]) {
+      if (!(playerKey in battle) || battle[playerKey]?.sideid !== playerKey) {
+        continue;
+      }
+      const player = battle[playerKey];
+      const playerState = this.toolsState[playerKey];
+      if (player.name && playerState.name !== player.name) {
+        playerState.name = player.name;
+      }
+      if (player.rating && playerState.rating !== player.rating) {
+        playerState.rating = player.rating;
+      }
+      if (!playerState.active) {
+        playerState.active = true;
+      }
+      const isMyPokemonSide = !!this.battleState.playerKey && playerKey === this.battleState.playerKey;
+      const hasMyPokemon = !!myPokemon?.length;
+      if ((!isMyPokemonSide || !hasMyPokemon) && (!Array.isArray(player.pokemon) || !player.pokemon.length)) {
+        console.debug(
+          "[Gen 3 OU Tools] Skipping Pokemon sync because no Pokemon were found.",
+          "\nplayer:",
+          playerKey,
+          ...isMyPokemonSide ? ["\nmyPokemon:", myPokemon] : [],
+          "\nbattle.pokemon:",
+          player.pokemon,
+          "\nbattleState.pokemon:",
+          playerState.pokemon,
+          "\nbattleId:",
+          battleId,
+          "\nbattle:",
+          battle,
+          "\nbattleState:",
+          this.battleState
+        );
+        continue;
+      }
+      const maxPokemon = Math.max(player?.totalPokemon || 0, 6);
+      if (playerState.maxPokemon !== maxPokemon) {
+        playerState.maxPokemon = maxPokemon;
+      }
+      const initialPokemon = (this.battleState.active && isMyPokemonSide && this.battleState.authPlayerKey === playerKey ? myPokemon : player.pokemon) || [];
+      const currentOrder = initialPokemon.map((pokemon) => {
+        const clientSourced = "getIdent" in pokemon;
+        if (!pokemon.toolsId) {
+          pokemon.toolsId = isMyPokemonSide && !!pokemon.details && [
+            ...myPokemon || [],
+            ...player.pokemon || [],
+            ...playerState.pokemon || []
+          ].find((existingPokemon) => !!existingPokemon?.toolsId && !!existingPokemon.details && similarPokemon(pokemon, existingPokemon, {
+            format: this.battleState.format
+          }))?.toolsId || calcPokemonToolsId(pokemon, playerKey);
+          console.debug(
+            "[Gen 3 OU Tools] Assigned toolsId.",
+            "\nsource:",
+            clientSourced ? "client" : "server",
+            "\nspeciesForme:",
+            pokemon.speciesForme,
+            "\nplayer:",
+            playerKey,
+            "\nisMyPokemonSide:",
+            isMyPokemonSide,
+            "\nhasMyPokemon:",
+            hasMyPokemon,
+            "\ntoolsId:",
+            pokemon.toolsId,
+            "\npokemon:",
+            pokemon,
+            "\nbattleId:",
+            battleId,
+            "\nbattle:",
+            battle,
+            "\nbattleState:",
+            this.battleState
+          );
+        }
+        if (isMyPokemonSide && hasMyPokemon && !clientSourced) {
+          const clientPokemon = player.pokemon.find((clientPokemon2) => !clientPokemon2.toolsId && !!clientPokemon2.details && similarPokemon(pokemon, clientPokemon2, {
+            format: this.battleState.format
+          }));
+          if (clientPokemon) {
+            clientPokemon.toolsId = pokemon.toolsId;
+          }
+        }
+        return pokemon.toolsId;
+      });
+      const playerPokemon = currentOrder.map((toolsId) => {
+        const clientPokemonIndex = player.pokemon.findIndex((pokemon) => pokemon.toolsId === toolsId);
+        if (clientPokemonIndex > -1) {
+          return player.pokemon[clientPokemonIndex];
+        }
+        const serverPokemon = isMyPokemonSide && hasMyPokemon && myPokemon.find((pokemon) => pokemon.toolsId === toolsId) || null;
+        if (!serverPokemon?.details) {
+          return null;
+        }
+        if (!serverPokemon.toolsId) {
+          serverPokemon.toolsId = toolsId;
+        }
+        return {
+          toolsId: serverPokemon.toolsId,
+          ident: serverPokemon.ident,
+          searchid: serverPokemon.searchid,
+          name: serverPokemon.name,
+          speciesForme: serverPokemon.speciesForme,
+          details: serverPokemon.details,
+          gender: serverPokemon.gender,
+          level: serverPokemon.level,
+          hp: serverPokemon.hp,
+          maxhp: serverPokemon.maxhp
+        };
+      });
+      if (diffArrays(currentOrder, playerState.pokemonOrder || []).length) {
+        playerState.pokemonOrder = currentOrder;
+      }
+      console.debug(
+        "[Gen 3 OU Tools] Preparing to sync Pokemon.",
+        "\npokemon.length:",
+        playerPokemon.length,
+        "\nmaxPokemon:",
+        maxPokemon,
+        "\nplayer:",
+        playerKey,
+        "\nisMyPokemonSide:",
+        isMyPokemonSide,
+        "\nhasMyPokemon:",
+        hasMyPokemon,
+        "\npokemonOrder:",
+        playerState.pokemonOrder,
+        "\npokemon (assembled):",
+        playerPokemon,
+        "\npokemon (battle):",
+        player.pokemon,
+        "\nbattleId:",
+        battleId,
+        "\nbattle:",
+        battle,
+        "\nbattleState:",
+        this.battleState
+      );
+      for (let index = 0; index < playerPokemon.length; index++) {
+        const clientPokemon = playerPokemon[index];
+        if (!clientPokemon?.toolsId) {
+          console.debug(
+            "[Gen 3 OU Tools] Skipping Pokemon without toolsId.",
+            "\npokemon:",
+            clientPokemon?.ident || clientPokemon?.speciesForme,
+            "\nindex:",
+            index,
+            "\nplayer:",
+            playerKey,
+            "\nclientPokemon.toolsId:",
+            clientPokemon?.toolsId,
+            "\nclientPokemon:",
+            clientPokemon,
+            "\norder:",
+            playerState.pokemonOrder,
+            "\npokemon (assembled):",
+            playerPokemon,
+            "\npokemon (battle):",
+            player.pokemon,
+            "\nbattleId:",
+            battleId,
+            "\nbattle:",
+            battle,
+            "\nbattleState",
+            this.battleState
+          );
+          continue;
+        }
+        const serverPokemon = isMyPokemonSide && hasMyPokemon && myPokemon.find((pokemon) => pokemon.toolsId === clientPokemon.toolsId) || null;
+        const matchedPokemonIndex = playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === clientPokemon.toolsId);
+        const matchedPokemon = playerState.pokemon[matchedPokemonIndex] || null;
+        const basePokemon = matchedPokemon || sanitizePokemon(
+          clientPokemon,
+          this.battleState.format
+        );
+        if ("transform" in basePokemon.volatiles && typeof basePokemon.volatiles.transform[1] !== "string") {
+          basePokemon.volatiles = sanitizeVolatiles(basePokemon);
+        }
+        const syncedPokemon = syncPokemon(basePokemon, {
+          format: this.battleState.format,
+          clientPokemon,
+          serverPokemon,
+          weather: syncedField.weather
+        });
+        syncedPokemon.slot = index;
+        if (!syncedPokemon.playerKey || syncedPokemon.playerKey !== playerKey) {
+          syncedPokemon.playerKey = playerKey;
+        }
+        if (syncedPokemon.transformedForme && clientPokemon?.volatiles?.transform?.length) {
+          const targetClientPokemon = clientPokemon.volatiles.transform[1];
+          const targetPlayerKey = !!targetClientPokemon?.ident && detectPlayerKeyFromPokemon(targetClientPokemon) || null;
+          const mutations = {
+            toolsId: targetClientPokemon.toolsId,
+            ident: targetClientPokemon.ident
+          };
+          if (syncedPokemon.source === "server" && ["p1", "p2"].includes(targetPlayerKey)) {
+            console.debug(
+              "[Gen 3 OU Tools] Syncing information revealed by transformation.",
+              "\ntargetpokemon:",
+              targetClientPokemon.ident || targetClientPokemon.speciesForme,
+              "\ntarget player:",
+              targetPlayerKey,
+              "\npokemon:",
+              syncedPokemon.ident || syncedPokemon.speciesForme,
+              "\nindex:",
+              index,
+              "\nplayer:",
+              playerKey,
+              "\ntarget:",
+              targetClientPokemon.toolsId,
+              targetClientPokemon,
+              "\nsyncedPokemon.toolsId:",
+              syncedPokemon.toolsId,
+              "\nsyncedPokemon:",
+              syncedPokemon,
+              "\nbattleId:",
+              battleId,
+              "\nbattle:",
+              battle,
+              "\nbattleState:",
+              this.battleState
+            );
+            if (syncedPokemon.ability) {
+              mutations.ability = syncedPokemon.ability;
+            }
+            if (syncedPokemon.transformedMoves.length) {
+              mutations.revealedMoves = [...syncedPokemon.transformedMoves];
+            }
+          }
+          if (Object.keys(mutations).length > 2) {
+            futureMutations[targetPlayerKey].push(mutations);
+          }
+        }
+        const pendingMutations = futureMutations[playerKey]?.filter((mutation) => !!mutation?.toolsId && syncedPokemon.toolsId === mutation.toolsId || !!mutation?.ident && syncedPokemon.ident === mutation.ident).map(({
+          toolsId,
+          ident,
+          ...mutations
+        }) => ({ ...mutations }));
+        if (pendingMutations?.length) {
+          pendingMutations.forEach((mutation) => Object.entries(mutation).forEach(([
+            key,
+            value
+          ]) => {
+            syncedPokemon[key] = value;
+            if (key === "revealedMoves") {
+              syncedPokemon.moves = mergeRevealedMoves(syncedPokemon);
+            }
+          }));
+        }
+        if (!matchedPokemon) {
+          if (playerState.pokemon.length >= playerState.maxPokemon) {
+            console.warn(
+              "[Gen 3 OU Tools] Skipping Pokemon sync because the player already has the maximum number of Pokemon.",
+              "\npokemon:",
+              syncedPokemon.ident || syncedPokemon.speciesForme,
+              "\nindex:",
+              index,
+              "\nplayer:",
+              playerKey,
+              "\npokemon.length:",
+              playerState.pokemon.length,
+              "\nmaxPokemon:",
+              playerState.maxPokemon,
+              "\nsyncedPokemon.toolsId:",
+              syncedPokemon.toolsId,
+              "\nsyncedPokemon:",
+              syncedPokemon,
+              "\nclientPokemon.toolsId:",
+              clientPokemon.toolsId,
+              "\nclientPokemon:",
+              clientPokemon,
+              "\nserverPokemon.toolsId:",
+              serverPokemon?.toolsId,
+              "\nserverPokemon:",
+              serverPokemon,
+              "\npokemon (battle):",
+              player.pokemon,
+              "\nbattleState.pokemon:",
+              playerState.pokemon,
+              "\nbattleId:",
+              battleId,
+              "\nbattle:",
+              battle,
+              "\nbattleState:",
+              this.battleState
+            );
+            continue;
+          }
+          const size = playerState.pokemon.push(syncedPokemon);
+          console.debug(
+            "[Gen 3 OU Tools] Added Pokemon.",
+            "\npokemon:",
+            syncedPokemon.ident || syncedPokemon.speciesForme,
+            "\nindex:",
+            size - 1,
+            "\nplayer:",
+            playerKey,
+            "\npokemon.length:",
+            playerState.pokemon.length,
+            "\nmaxPokemon:",
+            playerState.maxPokemon,
+            "\nsyncedPokemon.toolsId:",
+            syncedPokemon.toolsId,
+            "\nsyncedPokemon:",
+            syncedPokemon,
+            "\nclientPokemon.toolsId:",
+            clientPokemon.toolsId,
+            "\nclientPokemon:",
+            clientPokemon,
+            "\nserverPokemon.toolsId:",
+            serverPokemon?.toolsId,
+            "\nserverPokemon:",
+            serverPokemon,
+            "\npokemon (battle):",
+            player.pokemon,
+            "\nbattleState.pokemon:",
+            playerState.pokemon,
+            "\nbattleId:",
+            battleId,
+            "\nbattle:",
+            battle,
+            "\nbattleState:",
+            this.battleState
+          );
+        } else {
+          playerState.pokemon[matchedPokemonIndex] = syncedPokemon;
+          console.debug(
+            "[Gen 3 OU Tools] Synced Pokemon.",
+            "\npokemon:",
+            syncedPokemon.ident || syncedPokemon.speciesForme,
+            "\nindex:",
+            matchedPokemonIndex,
+            "\nplayer:",
+            playerKey,
+            "\nsyncedPokemon.toolsId:",
+            syncedPokemon.toolsId,
+            "\nsyncedPokemon:",
+            syncedPokemon,
+            "\nclientPokemon.toolsId:",
+            clientPokemon.toolsId,
+            "\nclientPokemon:",
+            clientPokemon,
+            "\nserverPokemon.toolsId:",
+            serverPokemon?.toolsId,
+            "\nserverPokemon:",
+            serverPokemon,
+            "\npokemon (battle):",
+            player.pokemon,
+            "\nbattleState.pokemon:",
+            playerState.pokemon,
+            "\nbattleId:",
+            battleId,
+            "\nbattle:",
+            battle,
+            "\nbattleState:",
+            this.battleState
+          );
+        }
+      }
+      playerState.activeIndices = (player.active || []).map((activePokemon) => {
+        if (!activePokemon?.details || detectPlayerKeyFromPokemon(activePokemon) !== playerKey) {
+          return null;
+        }
+        let activeId = activePokemon?.toolsId || player.pokemon.find((pokemon) => pokemon === activePokemon)?.toolsId;
+        let activeIndex = -1;
+        if (activeId) {
+          activeIndex = playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === activeId);
+        }
+        if (activeIndex > -1) {
+          return activeIndex;
+        }
+        if (activePokemon) {
+          console.warn(
+            "[Gen 3 OU Tools] Attempted to add existing activeId.",
+            "\nactiveId:",
+            activeId,
+            "\nplayer:",
+            playerKey,
+            "\nactivePokemon:",
+            activePokemon,
+            "\nbattle player",
+            player,
+            "\nstate player",
+            "(state)",
+            playerState.pokemon,
+            '\norder"',
+            playerState.pokemonOrder,
+            "\nbattleId:",
+            battleId,
+            "\nbattle:",
+            battle,
+            "\nbattleState",
+            this.battleState
+          );
+        }
+        return null;
+      }).filter((number) => typeof number === "number" && number > -1);
+      playerState.pokemon.forEach((pokemon, index) => {
+        pokemon.active = playerState.activeIndices.includes(index);
+      });
+      if (playerState.active) {
+        playerState.side.conditions = clonePlayerSideConditions(player.sideConditions);
+        playerState.side = {
+          conditions: playerState.side.conditions,
+          ...sanitizePlayerSide(playerState, battle[playerKey])
+        };
+      }
+    }
+    ["p1", "p2"].forEach((playerKey) => {
+      if (!this.battleState[playerKey]?.pokemon?.length) {
+        return;
+      }
+      this.toolsState[playerKey].pokemon.forEach((pokemon) => {
+        pokemon.autoBoostMap = mapAutoBoosts(pokemon, battle.stepQueue, {
+          format: this.battleState.format,
+          players: this.battleState,
+          field: this.battleState.field
+        });
+      });
+    });
+    if (battleNonce) {
+      this.toolsState.battleNonce = battleNonce;
+    }
     const toolsElement = battle.toolsHtmlRoom?.el;
     if (!toolsElement) {
       console.warn("[Gen 3 OU Tools] syncBattle completed, but the room element was not found for this battle:", battle.id);
@@ -206,11 +1121,11 @@
       }
       this.__bootstrappers[name] = Bootstrapper;
       console.debug(
-        "[Gen 3 OU Tools] Registered",
+        "[Gen 3 OU Tools] Registered the bootstrapper.",
+        "\nBootstrapper.name:",
         Bootstrapper.name,
-        "as the",
+        "\nname:",
         name,
-        "bootstrapper.",
         "\nregistry:",
         this.registry
       );
@@ -224,11 +1139,12 @@
       const Bootstrapper = this.__bootstrappers[name];
       if (!this.registered(name)) {
         console.error(
-          "[Gen 3 OU Tools] The",
+          "[Gen 3 OU Tools] The bootstrapper is not registered.",
+          "\nname:",
           name,
-          "bootstrapper is not registered.",
-          "\nbootstrapper:",
+          "\nBootstrapper.name:",
           Bootstrapper.name,
+          "\nBootstrapper:",
           Bootstrapper
         );
         throw new Error("The", name, "bootstrapper could not be found.");
@@ -297,9 +1213,9 @@
     static createHtmlRoom(roomId, title, options) {
       if (typeof window.app?._addRoom !== "function") {
         console.error(
-          "[Gen 3 OU Tools] Cannot create a",
+          "[Gen 3 OU Tools] Cannot create a room because window.app._addRoom is invalid.",
+          "\nroom type:",
           options?.side ? "sideroom" : "room",
-          "because window.app._addRoom is not valid.",
           "\nwindow.app._addRoom:",
           typeof window.app?._addRoom
         );
@@ -343,7 +1259,7 @@
   };
 
   // src/ToolsBootstrappable.js
-  var ToolsBootstrappable = class _ToolsBootstrappable extends BootClassicBootstrappable {
+  var ToolsBootstrappable2 = class _ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     prevBattleSubscription = null;
     // 
@@ -351,13 +1267,14 @@
     // 
     battleSubscription = (state) => {
       console.debug(
-        "[Gen 3 OU Tools] Received an event from battle.subscribe():",
+        "[Gen 3 OU Tools] Received an event from battle.subscribe().",
+        "\nstate:",
         state,
         "\nbattleId:",
         this.battle?.id || this.battleId,
         "\nbattle:",
         this.battle,
-        "\nbattleRequest:",
+        "\nrequest:",
         this.battleRequest
       );
       this.prevBattleSubscription?.(state);
@@ -382,6 +1299,29 @@
     // Checks if initialization is disabled for the battle
     get initDisabled() {
       return (this.battle?.stepQueue || []).some((step) => step?.startsWith("|noinit|nonexistent|"));
+    }
+    // Creates a valid generation number
+    static detectGenFromFormat(format, defaultGen = null) {
+      if (typeof format === "number") {
+        return Math.max(format, 0);
+      }
+      const genFormatRegex = /^gen(10|\d)/i;
+      if (!genFormatRegex.test(format)) {
+        return defaultGen;
+      }
+      const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
+      if (gen < 1) {
+        return defaultGen;
+      }
+      return gen;
+    }
+    // 
+    static sanitizeField() {
+      return {
+        weather: null,
+        attackerSide: null,
+        defenderSide: null
+      };
     }
     // Creates a clone of the side conditions
     static clonePlayerSideConditions(conditions) {
@@ -415,21 +1355,6 @@
         isSwitching: currentPokemon?.active ? "out" : "in"
       };
     }
-    // Creates a valid generation number
-    static detectGenFromFormat(format, defaultGen = null) {
-      if (typeof format === "number") {
-        return Math.max(format, 0);
-      }
-      const genFormatRegex = /^gen(10|\d)/i;
-      if (!genFormatRegex.test(format)) {
-        return defaultGen;
-      }
-      const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
-      if (gen < 1) {
-        return defaultGen;
-      }
-      return gen;
-    }
     // Creates the initial battle state
     initToolsState() {
       const battleInstance = this.battle;
@@ -439,7 +1364,8 @@
       }
       if (battleInstance.toolsStateInit) {
         console.debug(
-          "[Gen 3 OU Tools] Tools has already been initialized for this battle:",
+          "[Gen 3 OU Tools] The battle has already been initialized.",
+          "\nbattleId:",
           battleId,
           "\ntoolsStateInit:",
           battleInstance.toolsStateInit,
@@ -450,9 +1376,10 @@
         );
         return;
       }
-      const initNonce = "00000000-0000-0000-0000-000000000000";
+      const initNonce = nil_default;
       console.debug(
-        "[Gen 3 OU Tools] Initializing Tools for this battle:",
+        "[Gen 3 OU Tools] Initializing the battle.",
+        "\nbattleId:",
         battleId,
         "\ninitNonce:",
         initNonce,
@@ -468,33 +1395,55 @@
         turn: Math.max(battleInstance.turn || 0, 0),
         active: !battleInstance.ended,
         paused: false,
+        playerKey: null,
+        authPlayerKey: null,
+        opponentKey: null,
         switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
+        field: _ToolsBootstrappable.sanitizeField(),
         p1: {
+          sideid: null,
           active: false,
           name: null,
           rating: null,
+          activeIndices: [],
+          selectionIndex: 0,
+          maxPokemon: 0,
           side: {
             conditions: {}
-          }
+          },
+          pokemonOrder: [],
+          pokemon: []
         },
         p2: {
+          sideid: null,
           active: false,
           name: null,
           rating: null,
+          activeIndices: [],
+          selectionIndex: 0,
+          maxPokemon: 0,
           side: {
             conditions: {}
-          }
+          },
+          pokemonOrder: [],
+          pokemon: []
         }
       };
       ["p1", "p2"].forEach((playerKey) => {
         const player = battleInstance[playerKey];
         this.toolsState[playerKey] = {
+          sideid: playerKey,
           active: !!player?.id,
           name: player?.name || null,
           rating: player?.rating || null,
+          activeIndices: [],
+          selectionIndex: 0,
+          maxPokemon: 0,
           side: {
             conditions: _ToolsBootstrappable.clonePlayerSideConditions(player?.sideConditions)
-          }
+          },
+          pokemonOrder: [],
+          pokemon: []
         };
         this.toolsState[playerKey].side = {
           conditions: this.toolsState[playerKey].side.conditions,
@@ -517,7 +1466,8 @@
       }
       if (battleInstance.toolsDestroyed) {
         console.debug(
-          "[Gen 3 OU Tools] Tools has been destroyed for this battle:",
+          "[Gen 3 OU Tools] The battle has been destroyed.",
+          "\nbattleId:",
           battleInstance.id,
           "\ntoolsDestroyed:",
           battleInstance.toolsDestroyed,
@@ -528,7 +1478,8 @@
       }
       if (["p1", "p2"].every((playerKey) => !battleInstance[playerKey]?.id)) {
         console.debug(
-          "[Gen 3 OU Tools] Not all players exist in this battle:",
+          "[Gen 3 OU Tools] Not all players exist in the battle.",
+          "\nbattleId:",
           battleInstance.id,
           "\nplayers:",
           ["p1", "p2"].map((playerKey) => battleInstance[playerKey]?.id),
@@ -550,7 +1501,8 @@
       }
       if (this.battleState?.active && battleInstance.ended) {
         console.debug(
-          "[Gen 3 OU Tools] Updating active state for this finished battle:",
+          "[Gen 3 OU Tools] Updating active state for the battle.",
+          "\nbattleId:",
           battleInstance.id,
           "\ntoolsRoomId:",
           battleInstance.toolsRoomId,
@@ -573,29 +1525,26 @@
         return;
       }
       console.debug(
-        "[Gen 3 OU Tools] Syncing this battle:",
+        "[Gen 3 OU Tools] Syncing the battle.",
+        "\nbattleId:",
         battleInstance.id,
-        "\nnonce (prev):",
+        "\nprevious nonce:",
         this.battleState.battleNonce,
-        "\nnonce (cur):",
+        "\nnew nonce:",
         battleInstance.nonce,
-        "\nbattleRequest:",
+        "\nrequest:",
         this.battleRequest,
         "\nbattle:",
         battleInstance,
-        "\nbattleState (prev):",
+        "\nbattleState:",
         this.battleState
       );
-      this.syncBattle(this.battle, this.battleRequest);
+      this.syncBattle(battleInstance, this.battleRequest);
     }
     // 
     static getDexForFormat(format) {
       if (typeof Dex === "undefined") {
-        console.warn(
-          "[Gen 3 OU Tools] The global Dex object is not available.",
-          "\nformat:",
-          format
-        );
+        console.warn("[Gen 3 OU Tools] The global Dex is not available for this format:", format);
         return null;
       }
       if (!format) {
@@ -629,18 +1578,17 @@
       }
       const { details: detailsA } = pokemonA;
       const { details: detailsB } = pokemonB;
-      const { format, normalizeFormes } = config || {};
-      const shouldNormalizeFormes = normalizeFormes === "wildcard" && [detailsA, detailsB].some((details) => details.includes("-*"));
+      const { format } = config || {};
       const dex = _ToolsBootstrappable.getDexForFormat(format);
       const { speciesForme: speciesA } = _ToolsBootstrappable.parsePokemonDetails(detailsA);
       const dexA = dex.species.get(speciesA);
-      const formeA = dexA?.exists && (shouldNormalizeFormes ? dexA.baseSpecies : dexA.name) || null;
+      const formeA = dexA?.exists && dexA.baseSpecies || null;
       if (!formeA) {
         return false;
       }
       const { speciesForme: speciesB } = _ToolsBootstrappable.parsePokemonDetails(detailsB);
       const dexB = dex.species.get(speciesB);
-      const formeB = dexB?.exists && (shouldNormalizeFormes ? dexB.baseSpecies : dexB.name) || null;
+      const formeB = dexB?.exists && dexB.baseSpecies || null;
       if (!formeB) {
         return false;
       }
@@ -686,10 +1634,7 @@
       const prevPokemon = replaceSlot >= 0 && pokemonSearchList[replaceSlot] || pokemonSearchList.filter((pokemon) => !!pokemon.toolsId).find((pokemon) => (!ident || (!!pokemon?.ident && pokemon.ident === ident || !!pokemon?.searchid?.includes("|") && pokemon.searchid.split("|")[0] === ident)) && _ToolsBootstrappable.similarPokemon(
         { details },
         pokemon,
-        {
-          format: this.battleState.format,
-          normalizeFormes: "wildcard"
-        }
+        { format: this.battleState.format }
       ));
       const newPokemon = execAddPokemon();
       if (!newPokemon?.speciesForme) {
@@ -700,14 +1645,15 @@
       }
       newPokemon.toolsId = prevPokemon.toolsId;
       console.debug(
-        "[Gen 3 OU Tools] Restored client toolsId:",
+        "[Gen 3 OU Tools] Restored toolsId.",
+        "\ntoolsId:",
         newPokemon.toolsId,
-        "\nplayer:",
-        side.sideid,
-        "\nprevPokemon:",
+        "\nprevious Pokemon:",
         prevPokemon,
-        "\nnewPokemon:",
-        newPokemon
+        "\nnew Pokemon:",
+        newPokemon,
+        "\nplayer:",
+        side.sideid
       );
       return newPokemon;
     }
@@ -724,12 +1670,13 @@
         return;
       }
       console.debug(
-        "[Gen 3 OU Tools] Syncing server team data for this battle:",
+        "[Gen 3 OU Tools] Syncing team data from the server.",
+        "\nbattle:",
         this.battle,
-        "\nmyPokemon (prev):",
-        this.battle.myPokemon,
-        "\nmyPokemon (cur):",
-        myPokemon
+        "\nprevious myPokemon:",
+        myPokemon,
+        "\nnew myPokemon",
+        this.battle.myPokemon
       );
       if (!Array.isArray(this.battle.myPokemon)) {
         return;
@@ -742,10 +1689,7 @@
         const prevMyPokemon = myPokemon.find((prev) => !!prev?.ident && (prev.ident === pokemon.ident || prev.speciesForme === pokemon.speciesForme || prev.details === pokemon.details || _ToolsBootstrappable.similarPokemon(
           pokemon,
           prev,
-          {
-            format,
-            normalizeFormes: "wildcard"
-          }
+          { format }
         )));
         if (!prevMyPokemon?.toolsId) {
           return;
@@ -759,14 +1703,14 @@
       const { nonce: prevNonce } = this.battle;
       this.battle.nonce = _ToolsBootstrappable.calcBattleToolsNonce(this.battle, this.battleRequest);
       console.debug(
-        "[Gen 3 OU Tools] Restored server toolsIds.",
-        "\nnonce (prev):",
+        "[Gen 3 OU Tools] Restored toolsId to data from the server.",
+        "\nprevious nonce:",
         prevNonce,
-        "\nnonce (cur):",
+        "\nnew nonce:",
         this.battle.nonce,
-        "\nmyPokemon (prev):",
+        "\nprevious myPokemon:",
         myPokemon,
-        "\nmyPokemon (cur)",
+        "\nnew myPokemon:",
         this.battle.myPokemon
       );
       this.battle.subscription("callback");
@@ -790,10 +1734,10 @@
   var tools_default = '<div id="tools-container" class="tools-panel" style="font-size: 9px">\r\n    <h3>Gen 3 OU Tools</h3>\r\n    <p>loading...</p>\r\n</div>';
 
   // src/ToolsClassicBootstrapper.js
-  var ToolsClassicBootstrapper = class _ToolsClassicBootstrapper extends ToolsBootstrappable {
+  var ToolsClassicBootstrapper = class _ToolsClassicBootstrapper extends ToolsBootstrappable2 {
     // 
     static getToolsRoomId(battleId) {
-      return `view-tools-${ToolsBootstrappable.formatId(battleId)}`;
+      return `view-tools-${ToolsBootstrappable2.formatId(battleId)}`;
     }
     // 
     static createToolsRoom(battleId, focus) {
@@ -868,7 +1812,8 @@
           return;
         }
         console.debug(
-          "[Gen 3 OU Tools] Intercepting side.addPokemon for this player:",
+          "[Gen 3 OU Tools] Intercepting side.addPokemon.",
+          "\nplayer:",
           playerKey,
           "\nbattleId:",
           this.battle.id
@@ -904,7 +1849,7 @@
         if (!shouldLeave) {
           const forfeitPopup = window.app.popups.find((popup) => popup.room === this.battleRoom);
           if (typeof forfeitPopup?.submit === "function") {
-            console.debug("[Gen 3 OU Tools] Intercepting of forfeitPopup.submit for this battle:", this.battle.id);
+            console.debug("[Gen 3 OU Tools] Intercepting forfeitPopup.submit for this battle:", this.battle.id);
             const submitForfeit = forfeitPopup.submit.bind(forfeitPopup);
             forfeitPopup.submit = (...args) => {
               const toolsRoomId = getToolsRoomId(this.battleId);
@@ -984,7 +1929,7 @@
     run() {
       console.debug("[Gen 3 OU Tools] The bootstrapper run() method was called for this battle:", this.battleId);
       if (!this.battleId?.startsWith?.("battle-")) {
-        console.debug("[Gen 3 OU Tools] The bootstrap request was ignored for this battle with invalid battleId:", this.battleId);
+        console.debug("[Gen 3 OU Tools] The bootstrap request was ignored for the battle with this invalid battleId:", this.battleId);
         return;
       }
       const { getToolsRoomId } = _ToolsClassicBootstrapper;
@@ -1002,7 +1947,8 @@
         const toolsRoomId = getToolsRoomId(this.battleId);
         if (toolsRoomId in window.app.rooms) {
           console.debug(
-            "[Gen 3 OU Tools] Leaving with a destroyed battleState for this toolsRoom:",
+            "[Gen 3 OU Tools] Leaving with a destroyed battleState.",
+            "\ntoolsRoomId:",
             toolsRoomId,
             "\nbattleId:",
             this.battleId,
@@ -1013,7 +1959,8 @@
           return;
         }
         console.debug(
-          "[Gen 3 OU Tools] This battle was forcibly ended:",
+          "[Gen 3 OU Tools] The battle was forcibly ended.",
+          "\nbattleId:",
           this.battleId,
           "\nbattle:",
           this.battle,
@@ -1026,7 +1973,8 @@
       }
       if (this.initDisabled) {
         console.debug(
-          "[Gen 3 OU Tools] The bootstrap request was ignored because this battle was marked as nonexistent:",
+          "[Gen 3 OU Tools] The bootstrap request was ignored because the battle was marked as nonexistent.",
+          "\nbattleId:",
           this.battleId,
           "\nstep:",
           this.battle.stepQueue.find((step) => step?.startsWith("|noinit|nonexistent|")),
@@ -1036,12 +1984,12 @@
         return;
       }
       if (typeof this.battle?.subscribe !== "function") {
-        console.warn("[Gen 3 OU Tools] battle.subscribe has an invalid type:", typeof this.battle?.subscribe);
+        console.warn("[Gen 3 OU Tools] battle.subscribe has this invalid type:", typeof this.battle?.subscribe);
         return;
       }
       if (!this.battle.stepQueue?.length || !this.battle.stepQueue.some((step) => step?.startsWith("|player|"))) {
         console.debug(
-          "[Gen 3 OU Tools] Tools was not initialized due to uninitialized players in the battle",
+          "[Gen 3 OU Tools] Initialization failed due to uninitialized players in the battle",
           "\nstepQueue:",
           this.battle.stepQueue,
           "\nbattleId:",
@@ -1086,7 +2034,8 @@
       this.patchToolsIdentifier();
       this.renderTools(toolsElement);
       console.debug(
-        "[Gen 3 OU Tools] Intercepting client data via battle.subscribe for this battle:",
+        "[Gen 3 OU Tools] Intercepting client data via battle.subscribe.",
+        "\nbattleId:",
         this.battleId,
         "\nbattle.subscription:",
         typeof this.battle.subscription,
@@ -1103,24 +2052,26 @@
   };
 
   // src/main.js
-  console.log("[Gen 3 OU Tools] Starting the initialization engine.");
+  console.debug("[Gen 3 OU Tools] Starting for chrome.");
   if (typeof window?.Dex?.gen !== "number" || typeof window.Dex.forGen !== "function" || typeof window.app?.receive !== "function") {
     console.error(
-      "[Gen 3 OU Tools] Initialization failed: Executed on an unsupported webpage or before the webpage finished loading.",
+      "[Gen 3 OU Tools] Executed on an unsupported webpage or before the webpage finished loading.",
       "\nwindow.Dex:",
       typeof window?.Dex,
       "\nwindow.app:",
       typeof window?.app
     );
-    throw new Error("Gen 3 OU Tools attempted to start in an unsupported webpage.");
+    throw new Error("Attempted to start in an unsupported webpage.");
   }
   if (window.__GEN_3_OU_TOOLS_INIT) {
     console.error(
-      "[Gen 3 OU Tools] Initialization failed: An instance of Gen 3 OU Tools was already active on this webpage.",
+      "[Gen 3 OU Tools] An instance was already active on this webpage.",
       "\n__GEN_3_OU_TOOLS_INIT:",
-      window.__GEN_3_OU_TOOLS_INIT
+      window.__GEN_3_OU_TOOLS_INIT,
+      "\n__GEN_3_OU_TOOLS_HOST:",
+      window.__GEN_3_OU_TOOLS_HOST
     );
-    throw new Error("Another instance of Gen 3 OU Tools tried to start when one was already active.");
+    throw new Error("Another instance tried to start when one was already active.");
   }
   window.__GEN_3_OU_TOOLS_INIT = "gen-3-ou-tools";
   window.__GEN_3_OU_TOOLS_HOST = typeof window.app?.receive === "function" ? "classic" : null;
@@ -1130,13 +2081,21 @@
       await BootClassicAdapter.run();
     } else {
       console.error(
-        "[Gen 3 OU Tools] Initialization failed: Could not determine the host environment.",
+        "[Gen 3 OU Tools] Could not determine the host environment.",
         "\n__GEN_3_OU_TOOLS_HOST:",
-        window.__GEN_3_OU_TOOLS_HOST
+        window.__GEN_3_OU_TOOLS_HOST,
+        "\n__GEN_3_OU_TOOLS_INIT:",
+        window.__GEN_3_OU_TOOLS_INIT
       );
-      throw new Error("Gen 3 OU Tools attempted to run with an unsupported host.");
+      throw new Error("Attempted to run with an unsupported host.");
     }
-    console.log("[Gen 3 OU Tools] Adapter initialized successfully.");
+    console.debug(
+      "[Gen 3 OU Tools] Initialized successfully.",
+      "\n__GEN_3_OU_TOOLS_INIT:",
+      window.__GEN_3_OU_TOOLS_INIT,
+      "\n__GEN_3_OU_TOOLS_HOST:",
+      window.__GEN_3_OU_TOOLS_HOST
+    );
   })();
 })();
 //# sourceMappingURL=main.js.map
