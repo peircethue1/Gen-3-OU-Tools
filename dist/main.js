@@ -356,9 +356,6 @@
 
   // src/syncBattle.js
   function syncBattle(battle, request) {
-    if (!battle || !this.battleState) {
-      return;
-    }
     const {
       id: battleId,
       nonce: battleNonce,
@@ -627,23 +624,543 @@
         ...diffIndicesB.map((index) => arrayB[index])
       ];
     };
-    const sanitizeVolatiles = (pokemon) => {
-      Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
-        const [
-          ,
-          value,
+    const sanitizeVolatiles = (pokemon) => Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
+      const [, value, ...rest] = volatile || [];
+      const transformed = formatId(id) === "transform" && typeof value?.speciesForme === "string";
+      if (transformed || !value || ["string", "number"].includes(typeof value)) {
+        volatiles[id] = transformed ? [
+          id,
+          value.speciesForme,
           ...rest
-        ] = volatile || [];
-        const transformed = formatId(id) === "transform" && typeof value?.speciesForme === "string";
-        if (transformed || !value || ["string", "number"].includes(typeof value)) {
-          volatiles[id] = transformed ? [
-            id,
-            value.speciesForme,
-            ...rest
-          ] : volatile;
-        }
-        return volatiles;
+        ] : volatile;
+      }
+      return volatiles;
+    }, {});
+    const detectSpeciesForme = (pokemon) => pokemon?.speciesForme || pokemon?.details?.split?.(", ")[0] || pokemon?.searchid?.split?.("|")[1] || pokemon?.ident?.split?.(": ")[1];
+    const populateStatsTable = (stats, config) => {
+      const { spread } = config || {};
+      const output = ["hp", "atk", "def", "spa", "spd", "spe"].reduce((prev, stat) => {
+        prev[stat] = null;
+        return prev;
       }, {});
+      if (!nonEmptyObject(stats)) {
+        return output;
+      }
+      const max = spread === "ev" ? 252 : 31;
+      Object.entries(stats).forEach(([
+        stat,
+        rawValue
+      ]) => {
+        const value = typeof rawValue === "number" ? rawValue : Number(rawValue);
+        if (Number.isNaN(value)) {
+          return;
+        }
+        output[stat] = Math.max(Math.min(value, max ?? value), 0);
+      });
+      return output;
+    };
+    const getDexMoveTrack = (dex, moveTrack, transformed) => moveTrack?.filter((track) => Array.isArray(track) && typeof track[0] === "string" && !!track[0] && (transformed ? track[0].startsWith("*") : !track[0].startsWith("*"))).map(([moveName, ppUsed]) => [
+      dex.moves.get(moveName?.replace("*", "")),
+      ppUsed || 0
+    ]).filter(([move]) => move?.exists && !!move.name);
+    const sanitizeMoveTrack = (pokemon, format) => {
+      const dex = getDexForFormat(format);
+      const output = {
+        moveTrack: [],
+        revealedMoves: [],
+        transformedMoves: []
+      };
+      if (!dex || !pokemon?.moveTrack?.length) {
+        return output;
+      }
+      const { moveTrack } = pokemon;
+      const dexMoveTrack = getDexMoveTrack(dex, moveTrack, false);
+      const dexTransformedMoveTrack = getDexMoveTrack(dex, moveTrack, true);
+      if (!dexMoveTrack.length && !dexTransformedMoveTrack.length) {
+        return output;
+      }
+      output.moveTrack = dexMoveTrack.map(([move, ppUsed]) => [
+        move.name,
+        ppUsed
+      ]);
+      output.transformedMoves = dexTransformedMoveTrack.map(([move]) => move.name);
+      output.revealedMoves = dexMoveTrack.map(([move]) => move.name);
+      return output;
+    };
+    const sanitizePokemon = (pokemon, format) => {
+      const dex = getDexForFormat(format);
+      const gen2 = detectGenFromFormat(format);
+      const typeChanged = !!pokemon?.volatiles?.typechange?.[1];
+      const transformed = !!pokemon?.volatiles?.transform?.[1];
+      const sanitizedPokemon = {
+        toolsId: pokemon?.toolsId || null,
+        source: pokemon?.source || null,
+        playerKey: pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
+        slot: pokemon?.slot ?? null,
+        ident: detectPokemonIdent(pokemon),
+        name: pokemon?.name || null,
+        details: pokemon?.details || null,
+        searchid: pokemon?.searchid || null,
+        active: pokemon?.active || false,
+        speciesForme: detectSpeciesForme(pokemon)?.replace("-*", "") || null,
+        transformedForme: (transformed ? typeof pokemon.volatiles.transform[1] === "object" ? pokemon.volatiles.transform[1]?.speciesForme : pokemon.volatiles.transform[1] : null) || null,
+        level: pokemon?.level || 0,
+        transformedLevel: pokemon?.transformedLevel || null,
+        gender: pokemon?.gender || "N",
+        shiny: pokemon?.shiny || false,
+        types: (typeChanged ? pokemon.volatiles.typechange[1].split("/") : pokemon?.types) || [],
+        hp: pokemon?.hp ?? 100,
+        maxhp: pokemon?.maxhp || 100,
+        fainted: !pokemon?.hp,
+        baseAbility: pokemon?.baseAbility?.replace(/no\s?ability/i, ""),
+        ability: pokemon?.ability || null,
+        abilityToggled: pokemon?.abilityToggled || false,
+        abilities: pokemon?.abilities || [],
+        transformedAbilities: pokemon?.transformedAbilities || [],
+        item: !!pokemon?.item && dex.items.get(pokemon.item.replace("(exists)", ""))?.name || null,
+        itemEffect: pokemon?.itemEffect || null,
+        prevItem: pokemon?.prevItem || null,
+        prevItemEffect: pokemon?.prevItemEffect || null,
+        nature: pokemon?.nature || null,
+        ivs: populateStatsTable(pokemon?.ivs, { spread: "iv", format }),
+        evs: populateStatsTable(pokemon?.evs, { spread: "ev", format }),
+        boosts: ["atk", "def", "spa", "spd", "spe"].reduce((table, stat) => {
+          const boosts = pokemon?.boosts;
+          const raw = boosts?.[stat] ?? 0;
+          table[stat] = Math.max(Math.min(raw, 6), -6);
+          return table;
+        }, {}),
+        // I've gotten rid of Autoboostmap here
+        transformedBaseStats: pokemon?.transformedBaseStats || null,
+        serverStats: pokemon?.serverStats || null,
+        status: !!pokemon?.hp && pokemon?.status || null,
+        turnstatuses: Object.entries(pokemon?.turnstatuses || {}).reduce((prev, [effectId, effectState]) => ({
+          ...prev,
+          ...Array.isArray(effectState) && { [effectId]: [...effectState] }
+        }), {}),
+        chainMove: pokemon?.chainMove || null,
+        chainCounter: pokemon?.chainCounter || 0,
+        sleepCounter: pokemon?.sleepCounter || pokemon?.statusData?.sleepTurns || 0,
+        toxicCounter: pokemon?.toxicCounter || pokemon?.statusData?.toxicTurns || 0,
+        hitCounter: pokemon?.hitCounter || pokemon?.timesAttacked || 0,
+        faintCounter: pokemon?.faintCounter || 0,
+        criticalHit: pokemon?.criticalHit || false,
+        lastMove: pokemon?.lastMove || null,
+        moves: [...pokemon?.moves || []],
+        serverMoves: pokemon?.serverMoves || [],
+        transformedMoves: pokemon?.transformedMoves || [],
+        ...sanitizeMoveTrack(pokemon, format),
+        volatiles: sanitizeVolatiles(pokemon)
+      };
+      const species = dex.species.get(sanitizedPokemon.speciesForme);
+      sanitizedPokemon.baseStats = { ...species?.baseStats };
+      const transformedSpecies = sanitizedPokemon.transformedForme ? dex.species.get(sanitizedPokemon.transformedForme) : null;
+      if (nonEmptyObject(transformedSpecies?.baseStats)) {
+        sanitizedPokemon.transformedBaseStats = { ...transformedSpecies.baseStats };
+        if ("hp" in sanitizedPokemon.transformedBaseStats) {
+          delete sanitizedPokemon.transformedBaseStats.hp;
+        }
+      }
+      const speciesTypes = (transformedSpecies || species)?.types;
+      if (!typeChanged && speciesTypes?.length) {
+        sanitizedPokemon.types = [...speciesTypes];
+      }
+      sanitizedPokemon.abilities = [...Object.values(species?.abilities || {})].filter((ability) => !!ability && formatId(ability) !== "noability");
+      sanitizedPokemon.transformedAbilities = [...Object.values(transformedSpecies?.abilities || {})].filter((ability) => !!ability && formatId(ability) !== "noability");
+      const abilitiesSource = sanitizedPokemon.transformedAbilities.length ? sanitizedPokemon.transformedAbilities : sanitizedPokemon.abilities;
+      if (!sanitizedPokemon?.toolsId) {
+        sanitizedPokemon.toolsId = calcPokemonToolsId(sanitizedPokemon);
+      }
+      return sanitizedPokemon;
+    };
+    const clonePokemon = (pokemon) => {
+      const output = { ...pokemon };
+      if (Array.isArray(output.types)) {
+        output.types = [...output.types];
+      }
+      if (Array.isArray(output.abilities)) {
+        output.abilities = [...output.abilities];
+      }
+      if (Array.isArray(output.transformedAbilities)) {
+        output.transformedAbilities = [...output.transformedAbilities];
+      }
+      if (nonEmptyObject(output.ivs)) {
+        output.ivs = { ...output.ivs };
+      }
+      if (nonEmptyObject(output.evs)) {
+        output.evs = { ...output.evs };
+      }
+      if (Array.isArray(output.moves)) {
+        output.moves = [...output.moves];
+      }
+      if (Array.isArray(output.serverMoves)) {
+        output.serverMoves = [...output.serverMoves];
+      }
+      if (Array.isArray(output.transformedMoves)) {
+        output.transformedMoves = [...output.transformedMoves];
+      }
+      if (Array.isArray(output.moveTrack)) {
+        output.moveTrack = output.moveTrack.map((track) => [...track]);
+      }
+      if (Array.isArray(output.revealedMoves)) {
+        output.revealedMoves = [...output.revealedMoves];
+      }
+      if (nonEmptyObject(output.boosts)) {
+        output.boosts = { ...output.boosts };
+      }
+      if (nonEmptyObject(output.baseStats)) {
+        output.baseStats = { ...output.baseStats };
+      }
+      if (nonEmptyObject(output.transformedBaseStats)) {
+        output.transformedBaseStats = { ...output.transformedBaseStats };
+      }
+      if (nonEmptyObject(output.serverStats)) {
+        output.serverStats = { ...output.serverStats };
+      }
+      if (nonEmptyObject(output.spreadStats)) {
+        output.spreadStats = { ...output.spreadStats };
+      }
+      return output;
+    };
+    const similarArrays = (...args) => {
+      if (args.length < 2) {
+        return false;
+      }
+      const diff = diffArrays(...args);
+      if (!Array.isArray(diff)) {
+        return false;
+      }
+      return !diff.length;
+    };
+    const tr = (num, bits = 0) => bits ? (num >>> 0) % 2 ** bits : num >>> 0;
+    const Pokemon_Nature_Boosts = {
+      Adamant: ["atk", "spa"],
+      Bashful: [],
+      Bold: ["def", "atk"],
+      Brave: ["atk", "spe"],
+      Calm: ["spd", "atk"],
+      Careful: ["spd", "spa"],
+      Docile: [],
+      Gentle: ["spd", "def"],
+      Hardy: [],
+      Hasty: ["spe", "def"],
+      Impish: ["def", "spa"],
+      Jolly: ["spe", "spa"],
+      Lax: ["def", "spd"],
+      Lonely: ["atk", "def"],
+      Mild: ["spa", "def"],
+      Modest: ["spa", "atk"],
+      Naive: ["spe", "spd"],
+      Naughty: ["atk", "spd"],
+      Quiet: ["spa", "spe"],
+      Quirky: [],
+      Rash: ["spa", "spd"],
+      Relaxed: ["def", "spe"],
+      Sassy: ["spd", "spe"],
+      Serious: [],
+      Timid: ["spe", "atk"]
+    };
+    const calcPokemonStat = (format, stat, base, iv, ev, level, nature) => {
+      const gen2 = typeof format === "string" ? detectGenFromFormat(format) : format;
+      const actualIv = Math.max(iv, 0);
+      const actualEv = Math.max(ev, 0);
+      const actualLevel = Math.max(Math.min(level, 100), 0);
+      if (stat === "hp") {
+        if (base === 1) {
+          return base;
+        }
+        return tr((2 * base + actualIv + tr(actualEv / 4)) * actualLevel / 100) + actualLevel + 10;
+      }
+      const value = tr((2 * base + actualIv + tr(actualEv / 4)) * actualLevel / 100) + 5;
+      if (nature && nature in Pokemon_Nature_Boosts) {
+        const [
+          plus,
+          minus
+        ] = Pokemon_Nature_Boosts[nature];
+        if (plus && stat === plus) {
+          return tr(tr(value * 110, 16) / 100);
+        }
+        if (minus && stat === minus) {
+          return tr(tr(value * 90, 16) / 100);
+        }
+      }
+      return value;
+    };
+    const calcPokemonSpreadStats = (format, pokemon) => {
+      if (!nonEmptyObject(pokemon?.baseStats)) {
+        return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+      }
+      return ["hp", "atk", "def", "spa", "spd", "spe"].reduce((prev, stat) => {
+        const baseStat = (pokemon.transformedForme && stat !== "hp" ? pokemon.transformedBaseStats : pokemon.baseStats)?.[stat];
+        prev[stat] = calcPokemonStat(
+          format,
+          stat,
+          baseStat,
+          pokemon.ivs?.[stat],
+          pokemon.evs?.[stat],
+          stat !== "hp" && pokemon.transformedLevel || (pokemon.level ?? 100),
+          pokemon.nature
+        );
+        return prev;
+      }, { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
+    };
+    const syncPokemon = (pokemon, config) => {
+      const {
+        format,
+        clientPokemon,
+        serverPokemon
+      } = config || {};
+      const dex = getDexForFormat(format);
+      const gen2 = detectGenFromFormat(format);
+      const syncedPokemon = clonePokemon(pokemon);
+      if (!syncedPokemon.source && clientPokemon?.speciesForme) {
+        syncedPokemon.source = "client";
+      }
+      [
+        "name",
+        "speciesForme",
+        "hp",
+        "maxhp",
+        "status",
+        "statusData",
+        "timesAttacked",
+        "ability",
+        "baseAbility",
+        "item",
+        "itemEffect",
+        "prevItem",
+        "prevItemEffect",
+        "moves",
+        "lastMove",
+        "moveTrack",
+        "volatiles",
+        "turnstatuses",
+        "boosts"
+      ].forEach((key) => {
+        const prevValue = syncedPokemon[key];
+        let value = clientPokemon?.[key];
+        if (value === void 0) {
+          return;
+        }
+        switch (key) {
+          case "name": {
+            break;
+          }
+          case "speciesForme": {
+            value = value.replace("-*", "");
+            if (prevValue === value) {
+              return;
+            }
+            const updatedSpecies = dex.species.get(value);
+            syncedPokemon.types = [
+              ...updatedSpecies?.types || syncedPokemon.types || []
+            ];
+            if (nonEmptyObject(updatedSpecies?.abilities)) {
+              syncedPokemon.abilities = [
+                ...Object.values(updatedSpecies.abilities)
+              ];
+            }
+            break;
+          }
+          case "hp":
+          case "maxhp": {
+            if (typeof serverPokemon?.hp === "number" && typeof serverPokemon.maxhp === "number") {
+              return;
+            }
+            break;
+          }
+          case "status": {
+            if (!syncedPokemon.hp) {
+              value = null;
+            }
+            break;
+          }
+          case "statusData": {
+            const statusData = value;
+            if (typeof statusData?.sleepTurns === "number" && statusData.sleepTurns > -1) {
+              syncedPokemon.sleepCounter = statusData.sleepTurns;
+            }
+            if (typeof statusData?.toxicTurns === "number" && statusData.toxicTurns > -1) {
+              syncedPokemon.toxicCounter = statusData.toxicTurns;
+            }
+            return;
+          }
+          case "timesAttacked": {
+            if (typeof value === "number" && value > -1) {
+              syncedPokemon.hitCounter = value;
+            }
+            return;
+          }
+          case "ability": {
+            if (!value || /^\([\w\s]+\)$/.test(value) || formatId(value) === "noability") {
+              return;
+            }
+            break;
+          }
+          case "item": {
+            if ((!value || formatId(value) === "exists") && !clientPokemon?.prevItem) {
+              return;
+            }
+            value = dex?.items.get(value)?.name || value;
+            break;
+          }
+          case "prevItem": {
+            break;
+          }
+          case "boosts": {
+            value = ["atk", "def", "spa", "spd", "spe"].reduce((prev, stat) => {
+              const prevBoost = prev[stat];
+              const boost = clientPokemon?.boosts?.[stat] || 0;
+              if (boost !== prevBoost) {
+                prev[stat] = boost;
+              }
+              return prev;
+            }, {
+              atk: syncedPokemon.boosts?.atk || 0,
+              def: syncedPokemon.boosts?.def || 0,
+              spa: syncedPokemon.boosts?.spa || 0,
+              spd: syncedPokemon.boosts?.spd || 0,
+              spe: syncedPokemon.boosts?.spe || 0
+            });
+            break;
+          }
+          case "lastMove": {
+            if (!value) {
+              break;
+            }
+            const dexMove = dex.moves.get(value);
+            if (dexMove?.exists) {
+              value = dexMove.name;
+            }
+            break;
+          }
+          case "moveTrack": {
+            const {
+              moveTrack,
+              revealedMoves,
+              transformedMoves
+            } = sanitizeMoveTrack(clientPokemon, format);
+            value = moveTrack;
+            if (syncedPokemon.source === "server") {
+              break;
+            }
+            syncedPokemon.revealedMoves = revealedMoves;
+            syncedPokemon.transformedMoves = transformedMoves;
+            break;
+          }
+          case "volatiles": {
+            const volatiles = value;
+            const changedTypes = (
+              // e.g., 'Psychic/Ice' -> ['Psychic', 'Ice']
+              "typechange" in volatiles && volatiles.typechange[1]?.split?.("/") || []
+            );
+            if (changedTypes.length) {
+              syncedPokemon.types = [...changedTypes];
+            }
+            const resetTypes = "typechange" in syncedPokemon.volatiles && !changedTypes.length && dex.species.get(syncedPokemon.speciesForme)?.types || [];
+            if (resetTypes?.length) {
+              syncedPokemon.types = [...resetTypes];
+            }
+            const addedType = "typeadd" in volatiles && volatiles.typeadd?.[1] || null;
+            if (addedType && !syncedPokemon.types.includes(addedType)) {
+              syncedPokemon.types.push(addedType);
+            }
+            const transformedPokemon = "transform" in volatiles && volatiles.transform?.[1] || null;
+            const transformedForme2 = transformedPokemon?.speciesForme;
+            syncedPokemon.transformedForme = transformedForme2 || null;
+            syncedPokemon.transformedLevel = transformedPokemon?.level || null;
+            const formeChange = "formechange" in volatiles && volatiles.formechange?.[1] || null;
+            const dexForme = formeChange ? dex.species.get(formeChange) : null;
+            if (!transformedForme2 && formeChange) {
+              syncedPokemon.speciesForme = formeChange;
+              if (dexForme?.types?.length) {
+                syncedPokemon.types = [...dexForme.types];
+              }
+            }
+            value = sanitizeVolatiles(clientPokemon);
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+        const stringifiedValue = JSON.stringify(value);
+        if (stringifiedValue === JSON.stringify(prevValue)) {
+          return;
+        }
+        syncedPokemon[key] = typeof value === "object" ? JSON.parse(stringifiedValue) : value;
+      });
+      if (serverPokemon?.ident) {
+        syncedPokemon.source = "server";
+        if (typeof serverPokemon.hp === "number" && typeof serverPokemon.maxhp === "number") {
+          syncedPokemon.hp = serverPokemon.hp;
+          if (serverPokemon.hp || serverPokemon.maxhp !== 100) {
+            syncedPokemon.maxhp = serverPokemon.maxhp;
+          }
+        }
+        const serverAbility = serverPokemon.ability || serverPokemon.baseAbility;
+        if (serverAbility) {
+          const dexAbility = dex.abilities.get(serverAbility);
+          if (dexAbility?.name) {
+            syncedPokemon.ability = dexAbility.name;
+          }
+        }
+        if (serverPokemon.item) {
+          const dexItem = dex.items.get(serverPokemon.item);
+          if (dexItem?.exists && dexItem.name) {
+            syncedPokemon.item = dexItem.name;
+          }
+        }
+        if (!nonEmptyObject(syncedPokemon.serverStats) && nonEmptyObject(serverPokemon.stats)) {
+          syncedPokemon.serverStats = {
+            ...serverPokemon.stats,
+            hp: serverPokemon.maxhp
+          };
+          if (!serverPokemon.hp && serverPokemon.maxhp === 100) {
+            syncedPokemon.serverStats.hp = 0;
+          }
+        }
+        const serverMoves = serverPokemon.moves?.map((id) => dex.moves.get(id)?.name).filter(Boolean);
+        const shouldUpdateServerMoves = !!serverMoves?.length && !syncedPokemon.serverMoves?.length && !syncedPokemon.transformedForme;
+        if (shouldUpdateServerMoves) {
+          syncedPokemon.serverMoves = [...serverMoves];
+        }
+        syncedPokemon.transformedMoves = [...serverMoves?.length && syncedPokemon.transformedForme ? serverMoves : []];
+      }
+      if (syncedPokemon.item && formatId(syncedPokemon.itemEffect) === "knockedoff") {
+        syncedPokemon.prevItem = syncedPokemon.item;
+        syncedPokemon.prevItemEffect = syncedPokemon.itemEffect;
+        syncedPokemon.item = null;
+        syncedPokemon.itemEffect = null;
+      }
+      const {
+        transformedForme,
+        abilities,
+        transformedAbilities,
+        baseStats,
+        transformedBaseStats
+      } = sanitizePokemon(syncedPokemon, format);
+      const shouldUpdateAbilities = Array.isArray(abilities) && !similarArrays(abilities, syncedPokemon.abilities);
+      if (shouldUpdateAbilities) {
+        syncedPokemon.abilities = [...abilities];
+      }
+      const shouldUpdateTransformedAbilities = Array.isArray(transformedAbilities) && !similarArrays(transformedAbilities, syncedPokemon.transformedAbilities);
+      if (shouldUpdateTransformedAbilities) {
+        syncedPokemon.transformedAbilities = [...transformedAbilities];
+      }
+      if (nonEmptyObject(baseStats)) {
+        syncedPokemon.baseStats = { ...baseStats };
+      }
+      syncedPokemon.transformedBaseStats = transformedForme && nonEmptyObject(transformedBaseStats) && { ...transformedBaseStats } || null;
+      if (!transformedForme) {
+        syncedPokemon.transformedMoves = [];
+      }
+      if (syncedPokemon.transformedMoves?.length) {
+        syncedPokemon.moves = [...syncedPokemon.transformedMoves];
+      }
+      syncedPokemon.moves = [...syncedPokemon.moves];
+      syncedPokemon.spreadStats = calcPokemonSpreadStats(format, syncedPokemon);
+      return syncedPokemon;
     };
     const clonePlayerSideConditions = (conditions) => {
       Object.entries(conditions || {}).reduce((prev, [key, value]) => {
@@ -659,8 +1176,8 @@
       } = player || {};
       const currentPokemon = playerPokemon?.length && selectionIndex > -1 ? playerPokemon[selectionIndex] : null;
       const sideConditions = battleSide?.sideConditions || side?.conditions || {};
-      const sideConditionNames = Object.keys(sideConditions).map((condition) => ToolsBootstrappable.formatId(condition)).filter(Boolean);
-      const volatileNames = Object.keys(currentPokemon?.volatiles || {}).map((volatile) => ToolsBootstrappable.formatId(volatile)).filter(Boolean);
+      const sideConditionNames = Object.keys(sideConditions).map((condition) => formatId(condition)).filter(Boolean);
+      const volatileNames = Object.keys(currentPokemon?.volatiles || {}).map((volatile) => formatId(volatile)).filter(Boolean);
       return {
         spikes: sideConditionNames.includes("spikes") && sideConditions.spikes?.[1] || 0,
         isReflect: sideConditionNames.includes("reflect"),
@@ -916,7 +1433,7 @@
           ]) => {
             syncedPokemon[key] = value;
             if (key === "revealedMoves") {
-              syncedPokemon.moves = mergeRevealedMoves(syncedPokemon);
+              syncedPokemon.moves = [...value];
             }
           }));
         }
@@ -1079,18 +1596,6 @@
         };
       }
     }
-    ["p1", "p2"].forEach((playerKey) => {
-      if (!this.battleState[playerKey]?.pokemon?.length) {
-        return;
-      }
-      this.toolsState[playerKey].pokemon.forEach((pokemon) => {
-        pokemon.autoBoostMap = mapAutoBoosts(pokemon, battle.stepQueue, {
-          format: this.battleState.format,
-          players: this.battleState,
-          field: this.battleState.field
-        });
-      });
-    });
     if (battleNonce) {
       this.toolsState.battleNonce = battleNonce;
     }
@@ -1259,7 +1764,7 @@
   };
 
   // src/ToolsBootstrappable.js
-  var ToolsBootstrappable2 = class _ToolsBootstrappable extends BootClassicBootstrappable {
+  var ToolsBootstrappable = class _ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     prevBattleSubscription = null;
     // 
@@ -1734,10 +2239,10 @@
   var tools_default = '<div id="tools-container" class="tools-panel" style="font-size: 9px">\r\n    <h3>Gen 3 OU Tools</h3>\r\n    <p>loading...</p>\r\n</div>';
 
   // src/ToolsClassicBootstrapper.js
-  var ToolsClassicBootstrapper = class _ToolsClassicBootstrapper extends ToolsBootstrappable2 {
+  var ToolsClassicBootstrapper = class _ToolsClassicBootstrapper extends ToolsBootstrappable {
     // 
     static getToolsRoomId(battleId) {
-      return `view-tools-${ToolsBootstrappable2.formatId(battleId)}`;
+      return `view-tools-${ToolsBootstrappable.formatId(battleId)}`;
     }
     // 
     static createToolsRoom(battleId, focus) {
