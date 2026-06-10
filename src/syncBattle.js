@@ -6,8 +6,9 @@
  * // EDITINGNOTE: may take out request from the argument, depending on whether helper functions need it
  */
 
-import { ToolsDomRenderer } from './ToolsRenderer.js';
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
+import { syncPrediction } from './syncPrediction.js';
+import { ToolsDomRenderer } from './ToolsRenderer.js';
 
 export function syncBattle(battle, request) {
 
@@ -1678,6 +1679,9 @@ export function syncBattle(battle, request) {
   if (battleNonce) {
     this.toolsState.battleNonce = battleNonce;
   }
+
+  // 
+  this.syncPrediction();
 
   // Retrieve the HTML room container tied to this battle
   const toolsElement = battle.toolsHtmlRoom?.el;

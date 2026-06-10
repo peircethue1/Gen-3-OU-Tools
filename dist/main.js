@@ -1599,6 +1599,7 @@
     if (battleNonce) {
       this.toolsState.battleNonce = battleNonce;
     }
+    this.syncPrediction();
     const toolsElement = battle.toolsHtmlRoom?.el;
     if (!toolsElement) {
       console.warn("[Gen 3 OU Tools] syncBattle completed, but the room element was not found for this battle:", battle.id);
