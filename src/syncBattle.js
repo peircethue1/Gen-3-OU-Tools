@@ -1,13 +1,13 @@
 /**
  * 
- * // EDITINGNOTE: MAKE SURE BATTLESTATE AND TOOLSSTATE ARE APPLIED CORRECTLY
- * // EDITINGNOTE: I don't want to support replays, so do I just want to stop syncing when !this.toolsState.active? what about detecting the playerKey? I also need to detect the format since I only want to support gen 3 ou
- * // EDITINGNOTE: Make initialized and synced variables consistent, and check waht variables I actually need throughout
- * // EDITINGNOTE: may take out request from the argument, depending on whether helper functions need it
+ * EDITINGNOTE: Make sure battleState and toolsState are applied correctly
+ * EDITINGNOTE: I don't want to support replays, so do I want to stop syncing when !this.toolsState.active? Should I detect if the authPlayer is in the battle?
+ * EDITINGNOTE: I only want to support gen 3 ou, so how do I stop my tool from running in other contexts?
+ * EDITINGNOTE: Make initialized and synced variables consistent, and check what variables I actually need throughout
  */
 
+
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
-import { syncPrediction } from './syncPrediction.js';
 import { ToolsDomRenderer } from './ToolsRenderer.js';
 
 export function syncBattle(battle, request) {
@@ -1099,7 +1099,7 @@ export function syncBattle(battle, request) {
       if (typeof serverPokemon.hp === 'number' && typeof serverPokemon.maxhp === 'number') {
         syncedPokemon.hp = serverPokemon.hp;
 
-        // EDITINGNOTE: What the hell is this? make sure `maxhp` isn't a percentage (which is usually the case with dead Pokemon, i.e., 0% HP) (this isn't foolproof tho cause there could be instances where the `maxhp` is legit 100 lol)
+        // EDITINGNOTE: Figure out what to do here. make sure `maxhp` isn't a percentage (which is usually the case with dead Pokemon, i.e., 0% HP) (this isn't foolproof tho cause there could be instances where the `maxhp` is legit 100 lol)
         if (serverPokemon.hp || serverPokemon.maxhp !== 100) {
           syncedPokemon.maxhp = serverPokemon.maxhp;
         }
@@ -1659,7 +1659,7 @@ export function syncBattle(battle, request) {
       pokemon.active = playerState.activeIndices.includes(index);
     });
 
-    // EDITINGNOTE: here we've encountered the user's active selection for pokemon... we will need to decide whether to keep this logic here or move it elsewhere
+    // EDITINGNOTE: here we encounter the user's active selection for pokemon... we will need to decide whether to keep this logic here or move it elsewhere
 
     // sync player side
     if (playerState.active) {

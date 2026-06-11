@@ -1,6 +1,6 @@
 ﻿/**
  * 
- * EDITINGNOTE: This has been reviewed and blank comments have been inserted appropriately. Look over spacing, punctuation, and insert comments
+ * EDITINGNOTE: This has been reviewed and blank comments have been inserted appropriately. Review spacing, punctuation, and insert comments
  */
 
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';

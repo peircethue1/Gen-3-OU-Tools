@@ -349,6 +349,12 @@
     element.innerHTML = `
     <div id="tools-container" class="tools-panel" style="font-size: 9px">
       <h3>Gen 3 OU Tools</h3>
+      <pre>${props.state.opponentTeam}</pre>
+      <hr>
+      <pre>${JSON.stringify(props.state.smogonChaos, null, 2)}</pre>
+      <hr>
+      <pre>${props.state.smogonLeads}</pre>
+      <hr>
       <pre>${JSON.stringify(props.state, null, 2)}</pre>
     </div>
   `;
@@ -453,7 +459,7 @@
       }
       return output;
     };
-    const formatId = (value) => value?.toString?.().normalize("NFD").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    const formatId2 = (value) => value?.toString?.().normalize("NFD").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
     const WEATHER_MAP = {
       raindance: "Rain",
       sandstorm: "Sand",
@@ -561,7 +567,7 @@
       if (typeof format === "number") {
         return format > 0 ? Dex.forGen(format) : Dex;
       }
-      const formatAsId = formatId(format);
+      const formatAsId = formatId2(format);
       const gen2 = detectGenFromFormat(formatAsId);
       if (typeof gen2 !== "number" || gen2 < 1) {
         return Dex;
@@ -626,7 +632,7 @@
     };
     const sanitizeVolatiles = (pokemon) => Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
       const [, value, ...rest] = volatile || [];
-      const transformed = formatId(id) === "transform" && typeof value?.speciesForme === "string";
+      const transformed = formatId2(id) === "transform" && typeof value?.speciesForme === "string";
       if (transformed || !value || ["string", "number"].includes(typeof value)) {
         volatiles[id] = transformed ? [
           id,
@@ -765,8 +771,8 @@
       if (!typeChanged && speciesTypes?.length) {
         sanitizedPokemon.types = [...speciesTypes];
       }
-      sanitizedPokemon.abilities = [...Object.values(species?.abilities || {})].filter((ability) => !!ability && formatId(ability) !== "noability");
-      sanitizedPokemon.transformedAbilities = [...Object.values(transformedSpecies?.abilities || {})].filter((ability) => !!ability && formatId(ability) !== "noability");
+      sanitizedPokemon.abilities = [...Object.values(species?.abilities || {})].filter((ability) => !!ability && formatId2(ability) !== "noability");
+      sanitizedPokemon.transformedAbilities = [...Object.values(transformedSpecies?.abilities || {})].filter((ability) => !!ability && formatId2(ability) !== "noability");
       const abilitiesSource = sanitizedPokemon.transformedAbilities.length ? sanitizedPokemon.transformedAbilities : sanitizedPokemon.abilities;
       if (!sanitizedPokemon?.toolsId) {
         sanitizedPokemon.toolsId = calcPokemonToolsId(sanitizedPokemon);
@@ -992,13 +998,13 @@
             return;
           }
           case "ability": {
-            if (!value || /^\([\w\s]+\)$/.test(value) || formatId(value) === "noability") {
+            if (!value || /^\([\w\s]+\)$/.test(value) || formatId2(value) === "noability") {
               return;
             }
             break;
           }
           case "item": {
-            if ((!value || formatId(value) === "exists") && !clientPokemon?.prevItem) {
+            if ((!value || formatId2(value) === "exists") && !clientPokemon?.prevItem) {
               return;
             }
             value = dex?.items.get(value)?.name || value;
@@ -1127,7 +1133,7 @@
         }
         syncedPokemon.transformedMoves = [...serverMoves?.length && syncedPokemon.transformedForme ? serverMoves : []];
       }
-      if (syncedPokemon.item && formatId(syncedPokemon.itemEffect) === "knockedoff") {
+      if (syncedPokemon.item && formatId2(syncedPokemon.itemEffect) === "knockedoff") {
         syncedPokemon.prevItem = syncedPokemon.item;
         syncedPokemon.prevItemEffect = syncedPokemon.itemEffect;
         syncedPokemon.item = null;
@@ -1176,8 +1182,8 @@
       } = player || {};
       const currentPokemon = playerPokemon?.length && selectionIndex > -1 ? playerPokemon[selectionIndex] : null;
       const sideConditions = battleSide?.sideConditions || side?.conditions || {};
-      const sideConditionNames = Object.keys(sideConditions).map((condition) => formatId(condition)).filter(Boolean);
-      const volatileNames = Object.keys(currentPokemon?.volatiles || {}).map((volatile) => formatId(volatile)).filter(Boolean);
+      const sideConditionNames = Object.keys(sideConditions).map((condition) => formatId2(condition)).filter(Boolean);
+      const volatileNames = Object.keys(currentPokemon?.volatiles || {}).map((volatile) => formatId2(volatile)).filter(Boolean);
       return {
         spikes: sideConditionNames.includes("spikes") && sideConditions.spikes?.[1] || 0,
         isReflect: sideConditionNames.includes("reflect"),
@@ -1764,12 +1770,62 @@
     }
   };
 
+  // src/syncPrediction.js
+  function syncPrediction() {
+    const opponentKey = this.battleState.opponentKey;
+    if (!opponentKey) {
+      return;
+    }
+    const opponentState = this.battleState[opponentKey];
+    if (!opponentState || !Array.isArray(opponentState.pokemonOrder)) {
+      return;
+    }
+    const opponentTeamKey = opponentState.pokemonOrder.map((toolsId) => {
+      const pokemon = opponentState.pokemon?.find((pokemon2) => pokemon2.toolsId === toolsId);
+      return pokemon?.speciesForme;
+    }).filter(Boolean);
+    const opponentTeam = [...opponentTeamKey];
+    while (opponentTeam.length < opponentState.maxPokemon) {
+      opponentTeam.push("???");
+    }
+    this.toolsState.opponentTeam = opponentTeam.join(" | ");
+    const opponentRating = opponentState.rating;
+    let opponentBracket = "0";
+    if (opponentRating >= 1760) {
+      opponentBracket = "1760";
+    } else if (opponentRating >= 1630) {
+      opponentBracket = "1630";
+    } else if (opponentRating >= 1500) {
+      opponentBracket = "1500";
+    }
+    if (!this.battleState.smogonChaos || !this.battleState.smogonLeads) {
+      const handleSmogonResponse = (event) => {
+        if (!event.data || !event.data.type) {
+          return;
+        }
+        if (event.data.type === "SMOGON_DATA") {
+          window.removeEventListener("message", handleSmogonResponse);
+          this.toolsState.smogonChaos = event.data.data?.chaos;
+          this.toolsState.smogonLeads = event.data.data?.leads;
+          this.battle.subscription("callback");
+        }
+        if (event.data.type === "SMOGON_ERROR") {
+          console.error("[Gen 3 OU Tools] Failed to fetch Smogon data with this error:", event.data.error);
+          window.removeEventListener("message", handleSmogonResponse);
+        }
+      };
+      window.addEventListener("message", handleSmogonResponse);
+      window.postMessage({ type: "SMOGON_FETCH", opponentBracket }, "*");
+    }
+  }
+
   // src/ToolsBootstrappable.js
   var ToolsBootstrappable = class _ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     prevBattleSubscription = null;
     // 
     syncBattle = syncBattle;
+    syncPrediction = syncPrediction;
     // 
     battleSubscription = (state) => {
       console.debug(
@@ -1933,7 +1989,9 @@
           },
           pokemonOrder: [],
           pokemon: []
-        }
+        },
+        smogonChaos: null,
+        smogonLeads: null
       };
       ["p1", "p2"].forEach((playerKey) => {
         const player = battleInstance[playerKey];
@@ -1958,12 +2016,114 @@
       });
       battleInstance.toolsStateInit = true;
     }
-    // Creates a string that represents a unique battle state 
-    // EDITINGNOTE: This needs to be updated with the data that my tool actually uses to sync at the right times.
-    static calcBattleToolsNonce(battle, request) {
+    // 
+    static nonEmptyObject = (obj) => {
+      if (typeof obj !== "object") {
+        return false;
+      }
+      if (Array.isArray(obj)) {
+        return !!obj.length;
+      }
+      return !!Object.keys(obj || {}).length;
+    };
+    // 
+    static serializePayload = (payload) => Object.entries(payload || {}).map(([key, value]) => `${key}:${(typeof value === "object" ? JSON.stringify(value) : String(value)) ?? "???"}`).join("|");
+    // 
+    static calcToolsId = (payload) => {
+      const serialized = _ToolsBootstrappable.nonEmptyObject(payload) ? _ToolsBootstrappable.serializePayload(payload) : ["string", "number", "boolean"].includes(typeof payload) ? String(payload) : null;
+      if (!serialized) {
+        return null;
+      }
+      return v5_default(
+        serialized?.replace(/[^A-Z0-9\x20~`!@#$%^&*()+\-_=\[\]{}<>\|:;,\.'"\/\\]/gi, ""),
+        nil_default
+      );
+    };
+    // 
+    static sanitizeVolatiles = (pokemon) => Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
+      const [, value, ...rest] = volatile || [];
+      const transformed = formatId(id) === "transform" && typeof value?.speciesForme === "string";
+      if (transformed || !value || ["string", "number"].includes(typeof value)) {
+        volatiles[id] = transformed ? [
+          id,
+          value.speciesForme,
+          ...rest
+        ] : volatile;
+      }
+      return volatiles;
+    }, {});
+    // 
+    static calcPokemonToolsNonce = (pokemon) => _ToolsBootstrappable.calcToolsId({
+      ident: pokemon?.ident,
+      name: pokemon?.name,
+      speciesForme: pokemon?.speciesForme,
+      hp: pokemon?.hp?.toString(),
+      maxhp: pokemon?.maxhp?.toString(),
+      level: pokemon?.level?.toString(),
+      gender: pokemon?.gender,
+      ability: pokemon?.ability,
+      baseAbility: pokemon?.baseAbility,
+      nature: !!pokemon?.speciesForme && "nature" in pokemon && pokemon.nature || null,
+      types: !!pokemon?.speciesForme && "types" in pokemon && pokemon.types?.join("|") || null,
+      item: pokemon?.item,
+      itemEffect: pokemon?.itemEffect,
+      prevItem: pokemon?.prevItem,
+      prevItemEffect: pokemon?.prevItemEffect,
+      ivs: !!pokemon?.speciesForme && "ivs" in pokemon && _ToolsBootstrappable.calcToolsId(pokemon.ivs) || null,
+      evs: !!pokemon?.speciesForme && "evs" in pokemon && _ToolsBootstrappable.calcToolsId(pokemon.evs) || null,
+      status: pokemon?.status,
+      statusData: _ToolsBootstrappable.calcToolsId(pokemon?.statusData),
+      statusStage: pokemon?.statusStage?.toString(),
+      volatiles: _ToolsBootstrappable.calcToolsId(_ToolsBootstrappable.sanitizeVolatiles(pokemon)),
+      turnstatuses: _ToolsBootstrappable.calcToolsId(pokemon?.turnstatuses),
+      sleepCounter: !!pokemon?.speciesForme && "sleepCounter" in pokemon && pokemon.sleepCounter?.toString() || _ToolsBootstrappable.nonEmptyObject(pokemon?.statusData) && pokemon.statusData.sleepTurns?.toString() || null,
+      toxicCounter: !!pokemon?.speciesForme && "toxicCounter" in pokemon && pokemon.toxicCounter?.toString() || _ToolsBootstrappable.nonEmptyObject(pokemon?.statusData) && pokemon.statusData.toxicTurns?.toString() || null,
+      hitCounter: !!pokemon?.speciesForme && "hitCounter" in pokemon && pokemon.hitCounter?.toString() || !!pokemon?.speciesForme && "timesAttacked" in pokemon && pokemon.timesAttacked?.toString() || null,
+      faintCounter: !!pokemon?.speciesForme && "faintCounter" in pokemon && pokemon.faintCounter?.toString() || null,
+      moves: pokemon?.moves?.join(";"),
+      moveTrack: _ToolsBootstrappable.calcToolsId(pokemon?.moveTrack?.map((track) => track?.join(":"))?.join(";")),
+      revealedMoves: !!pokemon?.speciesForme && "revealedMoves" in pokemon && _ToolsBootstrappable.calcToolsId(pokemon.revealedMoves) || null,
+      boosts: _ToolsBootstrappable.calcToolsId(pokemon?.boosts),
+      baseStats: !!pokemon?.speciesForme && "baseStats" in pokemon && _ToolsBootstrappable.calcToolsId(pokemon.baseStats) || null,
+      spreadStats: !!pokemon?.speciesForme && "spreadStats" in pokemon && _ToolsBootstrappable.calcToolsId(pokemon.spreadStats) || null,
+      criticalHit: !!pokemon?.speciesForme && "criticalHit" in pokemon && pokemon.criticalHit?.toString() || null
+    });
+    // 
+    static calcSideToolsNonce = (side) => _ToolsBootstrappable.calcToolsId({
+      id: side?.id,
+      sideid: side?.sideid,
+      name: side?.name,
+      rating: side?.rating,
+      totalPokemon: side?.totalPokemon?.toString(),
+      active: side?.active?.map((mon) => _ToolsBootstrappable.calcPokemonToolsNonce(mon)).join(";"),
+      pokemon: side?.pokemon?.map((mon) => _ToolsBootstrappable.calcPokemonToolsNonce(mon)).join(";"),
+      sideConditions: Object.keys(side?.sideConditions || {}).join(";")
+    });
+    // Creates a string that represents a unique battle state
+    calcBattleToolsNonce = (battle, request) => {
       const stepQueue = battle?.stepQueue?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step)) || [];
-      return stepQueue.join(";");
-    }
+      return _ToolsBootstrappable.calcToolsId({
+        id: battle?.id,
+        gen: battle?.gen?.toString(),
+        tier: battle?.tier,
+        gameType: battle?.gameType,
+        paused: String(!!battle?.paused),
+        ended: String(!!battle?.ended),
+        myPokemon: battle?.myPokemon?.length ? _ToolsBootstrappable.calcToolsId(
+          battle.myPokemon.map((pokemon) => _ToolsBootstrappable.calcPokemonToolsNonce(pokemon)).join(";") || "empty"
+        ) : null,
+        mySide: _ToolsBootstrappable.calcSideToolsNonce(battle?.mySide),
+        nearSide: _ToolsBootstrappable.calcSideToolsNonce(battle?.nearSide),
+        p1: _ToolsBootstrappable.calcSideToolsNonce(battle?.p1),
+        p2: _ToolsBootstrappable.calcSideToolsNonce(battle?.p2),
+        stepQueue: _ToolsBootstrappable.calcToolsId(stepQueue.join(";")),
+        rqid: request?.rqid?.toString(),
+        requestType: request?.requestType,
+        side: request?.side?.id,
+        smogonChaos: !!this.battleState?.smogonChaos,
+        smogonLeads: !!this.battleState?.smogonLeads
+      });
+    };
     // 
     syncTools() {
       const battleInstance = this.battle;
@@ -2023,7 +2183,7 @@
         };
         return;
       }
-      battleInstance.nonce = _ToolsBootstrappable.calcBattleToolsNonce(battleInstance, this.battleRequest);
+      battleInstance.nonce = this.calcBattleToolsNonce(battleInstance, this.battleRequest);
       if (!this.battleState?.battleNonce) {
         return;
       }
@@ -2207,7 +2367,7 @@
         return;
       }
       const { nonce: prevNonce } = this.battle;
-      this.battle.nonce = _ToolsBootstrappable.calcBattleToolsNonce(this.battle, this.battleRequest);
+      this.battle.nonce = this.calcBattleToolsNonce(this.battle, this.battleRequest);
       console.debug(
         "[Gen 3 OU Tools] Restored toolsId to data from the server.",
         "\nprevious nonce:",

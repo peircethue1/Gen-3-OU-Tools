@@ -5,11 +5,19 @@
   "description": "Team prediction tool for Pokemon Showdown's Gen 3 OU format",
   "author": "",
 
+  "permissions": [
+    "storage"
+  ],
+
   "host_permissions": [
     "https://play.pokemonshowdown.com/*",
     "https://*.psim.us/*",
     "https://*.smogon.com/*"
   ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
 
   "content_scripts": [
     {

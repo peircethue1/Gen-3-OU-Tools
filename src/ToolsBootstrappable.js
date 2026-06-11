@@ -1,12 +1,13 @@
 ﻿/**
  * 
- * EDITINGNOTE: REVIEW THIS, THEN TOOLSCLASSICBOOTSTRAPPER, THEN SYNCBATTLE
- * EDITINGNOTE: Review comment content only
+ * EDITINGNOTE: REVIEW THIS, THEN TOOLSCLASSICBOOTSTRAPPER, THEN SYNCBATTLE, THEN SYNCPREDICTION
+ * EDITINGNOTE: Review comment content only, REVIEW NONCE CHUNK IN FULL
  */
 
-import { NIL as uuidnil } from 'uuid';
+import { NIL as uuidnil, v5 as uuidv5 } from 'uuid';
 import { syncBattle } from './syncBattle.js';
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
+import { syncPrediction } from './syncPrediction.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
 
@@ -15,6 +16,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
   // 
   syncBattle = syncBattle;
+  syncPrediction = syncPrediction;
 
   // 
   battleSubscription = (state) => {
@@ -216,6 +218,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         pokemonOrder: [],
         pokemon: [],
       },
+      smogonChaos: null,
+      smogonLeads: null,
     };
 
     // Populates the snapshot with player and side data
@@ -248,13 +252,158 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     battleInstance.toolsStateInit = true;
   }
 
-  // Creates a string that represents a unique battle state 
-  // EDITINGNOTE: This needs to be updated with the data that my tool actually uses to sync at the right times.
-  static calcBattleToolsNonce(battle, request) {
-    const stepQueue = battle?.stepQueue?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step)) || [];
 
-    return stepQueue.join(';');
+
+
+
+
+
+
+
+
+  // 
+  static nonEmptyObject = (obj) => {
+    if (typeof obj !== 'object') {
+      return false;
+    }
+
+    if (Array.isArray(obj)) {
+      return !!obj.length;
+    }
+
+    return !!Object.keys(obj || {}).length;
   }
+
+  // 
+  static serializePayload = (payload) => Object.entries(payload || {})
+    .map(([key, value]) => `${key}:${(typeof value === 'object' ? JSON.stringify(value) : String(value)) ?? '???'}`)
+    .join('|')
+
+  // 
+  static calcToolsId = (payload) => {
+    const serialized = ToolsBootstrappable.nonEmptyObject(payload) ? ToolsBootstrappable.serializePayload(payload) :
+      ['string', 'number', 'boolean'].includes(typeof payload) ? String(payload) : null;
+
+    if (!serialized) {
+      return null;
+    }
+
+    return uuidv5(
+      serialized?.replace(/[^A-Z0-9\x20~`!@#$%^&*()+\-_=\[\]{}<>\|:;,\.'"\/\\]/gi, ''),
+      uuidnil,
+    );
+  }
+
+  // 
+  static sanitizeVolatiles = (pokemon) =>
+  Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
+    const [, value, ...rest] = volatile || [];
+
+    const transformed = formatId(id) === 'transform' && typeof value?.speciesForme === 'string';
+
+    if (transformed || !value || ['string', 'number'].includes(typeof value)) {
+      volatiles[id] = transformed ? [
+        id,
+        value.speciesForme,
+        ...rest,
+      ] : volatile;
+    }
+
+    return volatiles;
+  }, {});
+
+  // 
+  static calcPokemonToolsNonce = (pokemon) => ToolsBootstrappable.calcToolsId({
+    ident: pokemon?.ident,
+    name: pokemon?.name,
+    speciesForme: pokemon?.speciesForme,
+    hp: pokemon?.hp?.toString(),
+    maxhp: pokemon?.maxhp?.toString(),
+    level: pokemon?.level?.toString(),
+    gender: pokemon?.gender,
+    ability: pokemon?.ability,
+    baseAbility: pokemon?.baseAbility,
+    nature: (!!pokemon?.speciesForme && 'nature' in pokemon && pokemon.nature) || null,
+    types: (!!pokemon?.speciesForme && 'types' in pokemon && pokemon.types?.join('|')) || null,
+    item: pokemon?.item,
+    itemEffect: pokemon?.itemEffect,
+    prevItem: pokemon?.prevItem,
+    prevItemEffect: pokemon?.prevItemEffect,
+    ivs: (!!pokemon?.speciesForme && 'ivs' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.ivs)) || null,
+    evs: (!!pokemon?.speciesForme && 'evs' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.evs)) || null,
+    status: pokemon?.status,
+    statusData: ToolsBootstrappable.calcToolsId(pokemon?.statusData),
+    statusStage: pokemon?.statusStage?.toString(),
+    volatiles: ToolsBootstrappable.calcToolsId(ToolsBootstrappable.sanitizeVolatiles(pokemon)),
+    turnstatuses: ToolsBootstrappable.calcToolsId(pokemon?.turnstatuses),
+    sleepCounter: (!!pokemon?.speciesForme && 'sleepCounter' in pokemon && pokemon.sleepCounter?.toString())
+      || (ToolsBootstrappable.nonEmptyObject(pokemon?.statusData) && pokemon.statusData.sleepTurns?.toString())
+      || null,
+    toxicCounter: (!!pokemon?.speciesForme && 'toxicCounter' in pokemon && pokemon.toxicCounter?.toString())
+      || (ToolsBootstrappable.nonEmptyObject(pokemon?.statusData) && pokemon.statusData.toxicTurns?.toString())
+      || null,
+    hitCounter: (!!pokemon?.speciesForme && 'hitCounter' in pokemon && pokemon.hitCounter?.toString())
+      || (!!pokemon?.speciesForme && 'timesAttacked' in pokemon && pokemon.timesAttacked?.toString())
+      || null,
+    faintCounter: (!!pokemon?.speciesForme && 'faintCounter' in pokemon && pokemon.faintCounter?.toString()) || null,
+    moves: pokemon?.moves?.join(';'),
+    moveTrack: ToolsBootstrappable.calcToolsId((pokemon?.moveTrack)?.map((track) => track?.join(':'))?.join(';')),
+    revealedMoves: (!!pokemon?.speciesForme && 'revealedMoves' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.revealedMoves)) || null,
+    boosts: ToolsBootstrappable.calcToolsId(pokemon?.boosts),
+    baseStats: (!!pokemon?.speciesForme && 'baseStats' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.baseStats)) || null,
+    spreadStats: (!!pokemon?.speciesForme && 'spreadStats' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.spreadStats)) || null,
+    criticalHit: (!!pokemon?.speciesForme && 'criticalHit' in pokemon && pokemon.criticalHit?.toString()) || null,
+  })
+
+  // 
+  static calcSideToolsNonce = (side) => ToolsBootstrappable.calcToolsId({
+    id: side?.id,
+    sideid: side?.sideid,
+    name: side?.name,
+    rating: side?.rating,
+    totalPokemon: side?.totalPokemon?.toString(),
+    active: side?.active?.map((mon) => ToolsBootstrappable.calcPokemonToolsNonce(mon)).join(';'),
+    pokemon: side?.pokemon?.map((mon) => ToolsBootstrappable.calcPokemonToolsNonce(mon)).join(';'),
+    sideConditions: Object.keys(side?.sideConditions || {}).join(';'),
+  })
+
+  // Creates a string that represents a unique battle state
+  calcBattleToolsNonce = (battle, request) => {
+    const stepQueue = battle?.stepQueue
+      ?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step))
+      || [];
+
+    return ToolsBootstrappable.calcToolsId({
+      id: battle?.id,
+      gen: battle?.gen?.toString(),
+      tier: battle?.tier,
+      gameType: battle?.gameType,
+      paused: String(!!battle?.paused),
+      ended: String(!!battle?.ended),
+      myPokemon: battle?.myPokemon?.length ? ToolsBootstrappable.calcToolsId(
+        battle.myPokemon.map((pokemon) => ToolsBootstrappable.calcPokemonToolsNonce(pokemon)).join(';') || 'empty',
+      ) : null,
+      mySide: ToolsBootstrappable.calcSideToolsNonce(battle?.mySide),
+      nearSide: ToolsBootstrappable.calcSideToolsNonce(battle?.nearSide),
+      p1: ToolsBootstrappable.calcSideToolsNonce(battle?.p1),
+      p2: ToolsBootstrappable.calcSideToolsNonce(battle?.p2),
+      stepQueue: ToolsBootstrappable.calcToolsId(stepQueue.join(';')),
+      rqid: request?.rqid?.toString(),
+      requestType: request?.requestType,
+      side: request?.side?.id,
+      smogonChaos: !!this.battleState?.smogonChaos,
+      smogonLeads: !!this.battleState?.smogonLeads,
+    });
+  }
+
+
+
+
+
+
+
+
+
 
   // 
   syncTools() {
@@ -331,7 +480,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // 
-    battleInstance.nonce = ToolsBootstrappable.calcBattleToolsNonce(battleInstance, this.battleRequest);
+    battleInstance.nonce = this.calcBattleToolsNonce(battleInstance, this.battleRequest);
 
     // 
     if (!this.battleState?.battleNonce) {
@@ -599,7 +748,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     const { nonce: prevNonce } = this.battle;
 
     // 
-    this.battle.nonce = ToolsBootstrappable.calcBattleToolsNonce(this.battle, this.battleRequest);
+    this.battle.nonce = this.calcBattleToolsNonce(this.battle, this.battleRequest);
 
     console.debug(
       '[Gen 3 OU Tools] Restored toolsId to data from the server.',
