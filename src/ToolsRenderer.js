@@ -8,9 +8,9 @@ export const ToolsDomRenderer = (element, props) => {
       <h3>Gen 3 OU Tools</h3>
       <pre>${props.state.opponentTeam}</pre>
       <hr>
-      <pre>${JSON.stringify(props.state.smogonChaos, null, 2)}</pre>
+      <pre>${JSON.stringify(props.state.smogonLeads, null, 2)}</pre>
       <hr>
-      <pre>${props.state.smogonLeads}</pre>
+      <pre>${JSON.stringify(props.state.smogonChaos, null, 2)}</pre>
       <hr>
       <pre>${JSON.stringify(props.state, null, 2)}</pre>
     </div>

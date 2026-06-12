@@ -11,22 +11,42 @@ if (typeof document === 'undefined' || !runtime?.id) {
   throw new Error('Missing webpage or extension context.');
 }
 
-// Listens for fetch requests
-window.addEventListener("message", async (event) => {
-  if (event.source !== window || event.data.type !== "SMOGON_FETCH") {
-    return;
+// Converts a Smogon leads text table into an object
+function parseSmogonLeads(text) {
+  const lines = text.split('\n');
+  let totalLeads = 0;
+  const leadsData = {};
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim();
+
+    if (line.startsWith("Total leads:")) {
+      totalLeads = parseInt(line.split(":")[1].trim(), 10);
+      continue;
+    }
+
+    if (!line || line.startsWith("+") || line.includes("| Rank")) {
+      continue;
+    }
+
+    const columns = line.split('|').map(column => column.trim()).filter(Boolean);
+
+    if (columns.length >= 5) {
+      const [rankStr, pokemonName, usagePctStr, rawCountStr] = columns;
+
+      leadsData[pokemonName] = {
+        rank: parseInt(rankStr, 10),
+        usagePercent: parseFloat(usagePctStr.replace('%', '')) / 100,
+        rawCount: parseInt(rawCountStr, 10),
+      };
+    }
   }
 
-  try {
-    const data = await getSmogonData();
-
-    window.postMessage({ type: "SMOGON_DATA", data: data }, "*");
-  } catch (error) {
-    console.error('[Gen 3 OU Tools] The Smogon fetch could not be processed with this error:', error);
-
-    window.postMessage({ type: "SMOGON_ERROR", error: error.message }, "*");
-  }
-});
+  return {
+    totalLeads: totalLeads,
+    data: leadsData
+  };
+}
 
 // Retrieves Smogon data from the cache or fetches Smogon data to the cache
 async function getSmogonData() {
@@ -92,19 +112,19 @@ async function getSmogonData() {
   const newData = {
     "0": {
       chaos:chaos0Data,
-      leads:leads0Data,
+      leads:parseSmogonLeads(leads0Data),
     },
     "1500": {
       chaos:chaos1500Data,
-      leads:leads1500Data,
+      leads:parseSmogonLeads(leads1500Data),
     },
     "1630": {
       chaos:chaos1630Data,
-      leads:leads1630Data,
+      leads:parseSmogonLeads(leads1630Data),
     },
     "1760": {
       chaos:chaos1760Data,
-      leads:leads1760Data,
+      leads:parseSmogonLeads(leads1760Data),
     },
   };
 
@@ -114,6 +134,23 @@ async function getSmogonData() {
 
   return newData;
 }
+
+// Listens for fetch requests
+window.addEventListener("message", async (event) => {
+  if (event.source !== window || event.data.type !== "SMOGON_FETCH") {
+    return;
+  }
+
+  try {
+    const data = await getSmogonData();
+
+    window.postMessage({ type: "SMOGON_DATA", data: data }, "*");
+  } catch (error) {
+    console.error('[Gen 3 OU Tools] The Smogon fetch could not be processed with this error:', error);
+
+    window.postMessage({ type: "SMOGON_ERROR", error: error.message }, "*");
+  }
+});
 
 // Defines the main script location and settings
 const mainUrl = runtime.getURL('dist/main.js');

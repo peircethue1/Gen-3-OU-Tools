@@ -351,9 +351,9 @@
       <h3>Gen 3 OU Tools</h3>
       <pre>${props.state.opponentTeam}</pre>
       <hr>
-      <pre>${JSON.stringify(props.state.smogonChaos, null, 2)}</pre>
+      <pre>${JSON.stringify(props.state.smogonLeads, null, 2)}</pre>
       <hr>
-      <pre>${props.state.smogonLeads}</pre>
+      <pre>${JSON.stringify(props.state.smogonChaos, null, 2)}</pre>
       <hr>
       <pre>${JSON.stringify(props.state, null, 2)}</pre>
     </div>
@@ -1805,8 +1805,8 @@
         }
         if (event.data.type === "SMOGON_DATA") {
           window.removeEventListener("message", handleSmogonResponse);
-          this.toolsState.smogonChaos = event.data.data?.chaos;
-          this.toolsState.smogonLeads = event.data.data?.leads;
+          this.toolsState.smogonChaos = event.data.data?.[opponentBracket]?.chaos;
+          this.toolsState.smogonLeads = event.data.data?.[opponentBracket]?.leads;
           this.battle.subscription("callback");
         }
         if (event.data.type === "SMOGON_ERROR") {

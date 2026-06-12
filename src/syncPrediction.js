@@ -53,8 +53,8 @@ export function syncPrediction() {
       if (event.data.type === "SMOGON_DATA") {
         window.removeEventListener("message", handleSmogonResponse);
 
-        this.toolsState.smogonChaos = event.data.data?.chaos;
-        this.toolsState.smogonLeads = event.data.data?.leads;
+        this.toolsState.smogonChaos = event.data.data?.[opponentBracket]?.chaos;
+        this.toolsState.smogonLeads = event.data.data?.[opponentBracket]?.leads;
 
         this.battle.subscription('callback');
       }

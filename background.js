@@ -2,7 +2,7 @@
  * Fetches Smogon data
  */
 
-chrome.runtime.onMessage.addListener((message, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "SMOGON_FETCH") {
     fetch(message.url)
       .then((response) => {
