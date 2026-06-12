@@ -9,6 +9,8 @@ export const ToolsDomRenderer = (element, props) => {
       <pre>${props.state.opponentTeam}</pre>
       <hr>
       <pre>${props.state.prediction}</pre>
+      <hr>
+      <pre>${JSON.stringify(props.state, null, 2)}</pre>
     </div>
   `;
 }
