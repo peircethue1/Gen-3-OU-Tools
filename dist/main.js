@@ -351,11 +351,7 @@
       <h3>Gen 3 OU Tools</h3>
       <pre>${props.state.opponentTeam}</pre>
       <hr>
-      <pre>${JSON.stringify(props.state.smogonLeads, null, 2)}</pre>
-      <hr>
-      <pre>${JSON.stringify(props.state.smogonChaos, null, 2)}</pre>
-      <hr>
-      <pre>${JSON.stringify(props.state, null, 2)}</pre>
+      <pre>${props.state.prediction}</pre>
     </div>
   `;
   };
@@ -1816,6 +1812,70 @@
       };
       window.addEventListener("message", handleSmogonResponse);
       window.postMessage({ type: "SMOGON_FETCH", opponentBracket }, "*");
+    }
+    let conditional = null;
+    for (let index = 0; index < opponentTeamKey.length; index++) {
+      const pokemon = opponentTeamKey[index];
+      const teammates = this.battleState.smogonChaos?.data?.[pokemon]?.Teammates;
+      if (!teammates) {
+        conditional = null;
+        break;
+      }
+      const teammatesTotal = Object.values(teammates).reduce((sum, value) => sum + value, 0);
+      if (!(teammatesTotal > 0)) {
+        conditional = null;
+        break;
+      }
+      const teammateFrequency = {};
+      for (const teammate in teammates) {
+        const teammateValue = teammates[teammate];
+        if (teammateValue > 0) {
+          teammateFrequency[teammate] = teammateValue / teammatesTotal;
+        }
+      }
+      if (index === 0) {
+        conditional = teammateFrequency;
+      } else {
+        const newConditional = {};
+        for (const teammate in conditional) {
+          if (teammateFrequency.hasOwnProperty(teammate)) {
+            newConditional[teammate] = conditional[teammate] * teammateFrequency[teammate];
+          }
+        }
+        conditional = newConditional;
+      }
+    }
+    let normalization = null;
+    if (conditional) {
+      normalization = {};
+      for (const teammate in conditional) {
+        const rawCount = this.battleState.smogonChaos?.data?.[teammate]?.["Raw count"];
+        const leadCount = this.battleState.smogonLeads?.data?.[teammate]?.rawCount;
+        if (!(rawCount > 0) || !(leadCount > 0)) {
+          continue;
+        }
+        const prior = rawCount - leadCount;
+        if (!(prior > 0)) {
+          continue;
+        }
+        normalization[teammate] = conditional[teammate] * Math.pow(prior, 1 - opponentTeamKey.length);
+      }
+    }
+    let prediction = null;
+    if (normalization) {
+      const normalizationTotal = Object.values(normalization).reduce((sum, value) => sum + value, 0);
+      if (normalizationTotal > 0) {
+        prediction = {};
+        for (const teammate in normalization) {
+          prediction[teammate] = normalization[teammate] / normalizationTotal * (opponentState.maxPokemon - opponentTeamKey.length);
+        }
+      }
+    }
+    if (prediction) {
+      const sortedPrediction = Object.entries(prediction).filter(([name, value]) => value >= 5e-3).sort((a, b) => b[1] - a[1]).map(([name, value]) => `${name}: ${Math.round(value * 100)}%`);
+      this.toolsState.prediction = sortedPrediction.join("\n");
+    } else {
+      this.toolsState.prediction = "";
     }
   }
 
