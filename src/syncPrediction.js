@@ -1,6 +1,6 @@
 /**
  * 
- * EDITINGNOTE: Building...
+ * EDITINGNOTE: Full review
  */
 
 export function syncPrediction() {

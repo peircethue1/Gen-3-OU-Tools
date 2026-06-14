@@ -3,6 +3,7 @@
  * EDITINGNOTE: This has been reviewed and blank comments have been inserted appropriately. Review spacing, punctuation, and insert comments
  */
 
+import { formatId, nonEmptyObject } from './utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
 import { ToolsDomRenderer } from './ToolsRenderer.js';
 import toolsHtml from './tools.html';
@@ -11,7 +12,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
   // 
   static getToolsRoomId(battleId) {
-    return `view-tools-${ToolsBootstrappable.formatId(battleId)}`;
+    return `view-tools-${formatId(battleId)}`;
   }
 
   // 
@@ -73,21 +74,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
   }
 
   // 
-  static nonEmptyObject(obj) {
-    if (typeof obj !== 'object') {
-      return false;
-    }
-
-    if (Array.isArray(obj)) {
-      return !!obj.length;
-    }
-
-    return !!Object.keys(obj || {}).length;
-  }
-
-  // 
   get battleRoom() {
-    if (!ToolsClassicBootstrapper.nonEmptyObject(window.app?.rooms) || !this.battleId?.startsWith?.('battle-')) {
+    if (!nonEmptyObject(window.app?.rooms) || !this.battleId?.startsWith?.('battle-')) {
       return null;
     }
 
@@ -291,7 +279,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
   close() {
 
     // 
-    if (!this.battleId || !ToolsClassicBootstrapper.nonEmptyObject(window.app?.rooms)) {
+    if (!this.battleId || !nonEmptyObject(window.app?.rooms)) {
       return;
     }
 

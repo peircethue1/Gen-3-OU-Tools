@@ -12,8 +12,7 @@ export class BootClassicBootstrappable extends BootBootstrappable {
 
   // Checks if the client is in the single panel layout
   static hasSinglePanel = () => (
-    (window.app.curRoom?.id?.startsWith('battle-') && window.innerWidth < 1275) ||
-    window.Dex?.prefs?.('onepanel')
+    (window.app.curRoom?.id?.startsWith('battle-') && window.innerWidth < 1275) || window.Dex?.prefs?.('onepanel')
   );
 
   // Creates a room in the client
@@ -30,7 +29,7 @@ export class BootClassicBootstrappable extends BootBootstrappable {
       return null;
     }
 
-    // Defines the room options with default values
+    // Defines the room with default values
     const { side, icon, focus, minWidth = 320, maxWidth = 1024 } = options || {};
 
     // Initializes the room
@@ -46,10 +45,10 @@ export class BootClassicBootstrappable extends BootBootstrappable {
       // Creates the room
       room = window.app._addRoom(roomId, 'html', true, title);
 
-      // Removes the default HTML
+      // Removes default HTML from the room
       room.$el.html('');
 
-      // Adds siderooms to the list of siderooms
+      // Checks if the room is a sideroom an adds it to the array of siderooms
       if (side) {
         room.isSideRoom = true;
         window.app.sideRoomList.push(window.app.roomList.pop());
@@ -67,7 +66,7 @@ export class BootClassicBootstrappable extends BootBootstrappable {
     room.minWidth = minWidth;
     room.maxWidth = maxWidth;
 
-    // Adds the icon to the tab button
+    // Adds an icon to the tab button
     if (icon) {
 
       // Creates a copy of the client tab button renderer
@@ -76,18 +75,16 @@ export class BootClassicBootstrappable extends BootBootstrappable {
       // Overrides the tab button renderer
       window.app.topbar.renderRoomTab = function(appRoom, appRoomId) {
 
-        // Defines the room
+        // Defines the room and the client tab button renderer
         const rid = appRoom?.id || appRoomId;
-
-        // Executes the client tab button renderer
         const buf = originalRenderer(appRoom, appRoomId);
 
-        // Checks if the room is the one being created and replaces the icon
+        // Checks if the the button being rendered is for the room being created and replaces the icon
         if (rid === roomId) {
           return buf.replace('fa-file-text-o', `fa-${icon}`);
         }
 
-        // Returns the buffer for the tab button
+        // Returns the buffer for the client tab button renderer
         return buf;
       };
     }

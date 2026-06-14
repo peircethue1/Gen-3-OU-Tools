@@ -14,9 +14,12 @@ const config = {
 
 if (isWatch) {
   let ctx = await esbuild.context(config);
+
   await ctx.watch();
+
   console.log('[esbuild] Watching for changes in src.');
 } else {
   await esbuild.build(config);
+
   console.log('[esbuild] Build finished successfully.');
 }

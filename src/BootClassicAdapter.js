@@ -79,7 +79,7 @@ export class BootClassicAdapter extends BootAdapter {
         // Fetches the data receiver for the battle room
         let receiver = this.battleReceiverNamed(roomId);
 
-        // Creates the data receiver for the battle room if none exists
+        // Creates a data receiver for the battle room if none exists
         if (!receiver && typeof this.receiverFactory === 'function') {
           receiver = this.receiverFactory(roomId);
 
@@ -132,7 +132,7 @@ export class BootClassicAdapter extends BootAdapter {
     return pair ? pair[1] : null;
   };
 
-  // Adds the data receiver to the array of data receivers
+  // Adds a data receiver to the array of data receivers
   static addBattleReceiver(roomId, receiver) {
     if (!roomId || typeof receiver !== 'function' || this.__battleReceivers.some((receiver) => receiver[0] === roomId)) {
       return;
@@ -141,7 +141,7 @@ export class BootClassicAdapter extends BootAdapter {
     this.__battleReceivers.push([roomId, receiver]);
   };
 
-  // Removes the data receiver from the array of data receivers
+  // Removes a data receiver from the array of data receivers
   static removeBattleReceiver(key) {
     if (!key || !this.__battleReceivers.length) {
       return;

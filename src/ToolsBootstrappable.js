@@ -1,13 +1,13 @@
 ﻿/**
  * 
- * EDITINGNOTE: REVIEW THIS, THEN TOOLSCLASSICBOOTSTRAPPER, THEN SYNCBATTLE, THEN SYNCPREDICTION
- * EDITINGNOTE: Review comment content only, REVIEW NONCE CHUNK IN FULL
+ * EDITINGNOTE: Review comment content, perhaps spacing - need to generally match up init, sync(battleState), and nonce
  */
 
-import { NIL as uuidnil, v5 as uuidv5 } from 'uuid';
+import { NIL as uuidnil } from 'uuid';
 import { syncBattle } from './syncBattle.js';
-import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 import { syncPrediction } from './syncPrediction.js';
+import { detectGenFromFormat, clonePlayerSideConditions, sanitizePlayerSide, formatId, calcBattleToolsNonce, similarPokemon } from './utilities.js';
+import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
 
@@ -61,87 +61,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     return (this.battle?.stepQueue || []).some((step) => step?.startsWith('|noinit|nonexistent|'));
   }
 
-  // Creates a valid generation number
-  static detectGenFromFormat(format, defaultGen = null) {
-    if (typeof format === 'number') {
-      return Math.max(format, 0);
-    }
-
-    const genFormatRegex = /^gen(10|\d)/i;
-
-    if (!genFormatRegex.test(format)) {
-      return defaultGen;
-    }
-
-    const gen = parseInt(format.match(genFormatRegex)[1], 10) || 0;
-
-    if (gen < 1) {
-      return defaultGen;
-    }
-
-    return gen;
-  }
-
-  // 
-  static sanitizeField() {
-    return {
-      weather: null,
-      attackerSide: null,
-      defenderSide: null,
-    };
-  }
-
-  // Creates a clone of the side conditions
-  static clonePlayerSideConditions(conditions) {
-    return Object.entries(conditions || {}).reduce((prev, [key, value]) => {
-      prev[key] = Array.isArray(value) ? [...value] : value;
-      return prev;
-    }, {});
-  }
-
-  // Creates an clean ID
-  static formatId(value) {
-    return value
-      ?.toString?.()
-      .normalize('NFD')
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toLowerCase();
-  }
-
-  // Creates a standardized object for the current battle state
-  static sanitizePlayerSide(player, battleSide) {
-    const {
-      selectionIndex,
-      pokemon: playerPokemon,
-      side,
-    } = player || {};
-
-    const currentPokemon = playerPokemon?.length && selectionIndex > -1 ? playerPokemon[selectionIndex] : null;
-
-    const sideConditions = battleSide?.sideConditions || side?.conditions || {};
-
-    // Creates an array of sanitized side conditions
-    const sideConditionNames = Object.keys(sideConditions)
-      .map((condition) => ToolsBootstrappable.formatId(condition))
-      .filter(Boolean);
-
-    // Creates an array of sanitized volatiles
-    const volatileNames = Object.keys(currentPokemon?.volatiles || {})
-      .map((volatile) => ToolsBootstrappable.formatId(volatile))
-      .filter(Boolean);
-
-    // Creates a state object
-    return {
-      spikes: (sideConditionNames.includes('spikes') && sideConditions.spikes?.[1]) || 0,
-      isReflect: sideConditionNames.includes('reflect'),
-      isLightScreen: sideConditionNames.includes('lightscreen'),
-      isProtected: volatileNames.includes('protect'),
-      isSeeded: volatileNames.includes('leechseed'),
-      isForesight: volatileNames.includes('foresight'),
-      isSwitching: currentPokemon?.active ? 'out' : 'in',
-    };
-  }
-
   // Creates the initial battle state
   initToolsState() {
     const battleInstance = this.battle;
@@ -180,7 +99,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       battleId,
       battleNonce: initNonce,
       gen: battleInstance.gen,
-      format: battleId.split('-').find((part) => ToolsBootstrappable.detectGenFromFormat(part)),
+      format: battleId.split('-').find((part) => detectGenFromFormat(part)),
       gameType: battleInstance.gameType === 'singles' ? 'singles' : 'doubles',
       turn: Math.max((battleInstance.turn || 0), 0),
       active: !battleInstance.ended,
@@ -189,7 +108,11 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       authPlayerKey: null,
       opponentKey: null,
       switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
-      field: ToolsBootstrappable.sanitizeField(),
+      field: {
+        weather: null,
+        attackerSide: null,
+        defenderSide: null,
+      },
       p1: {
         sideid: null,
         active: false,
@@ -235,7 +158,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         selectionIndex: 0,
         maxPokemon: 0,
         side: {
-          conditions: ToolsBootstrappable.clonePlayerSideConditions(player?.sideConditions),
+          conditions: clonePlayerSideConditions(player?.sideConditions),
         },
         pokemonOrder: [],
         pokemon: [],
@@ -244,166 +167,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       // Populates the player side conditions with sanitized data
       this.toolsState[playerKey].side = {
         conditions: this.toolsState[playerKey].side.conditions,
-        ...ToolsBootstrappable.sanitizePlayerSide(this.toolsState[playerKey], player),
+        ...sanitizePlayerSide(this.toolsState[playerKey], player),
       };
     });
 
     // Sets the initialization lock
     battleInstance.toolsStateInit = true;
   }
-
-
-
-
-
-
-
-
-
-
-  // 
-  static nonEmptyObject = (obj) => {
-    if (typeof obj !== 'object') {
-      return false;
-    }
-
-    if (Array.isArray(obj)) {
-      return !!obj.length;
-    }
-
-    return !!Object.keys(obj || {}).length;
-  }
-
-  // 
-  static serializePayload = (payload) => Object.entries(payload || {})
-    .map(([key, value]) => `${key}:${(typeof value === 'object' ? JSON.stringify(value) : String(value)) ?? '???'}`)
-    .join('|')
-
-  // 
-  static calcToolsId = (payload) => {
-    const serialized = ToolsBootstrappable.nonEmptyObject(payload) ? ToolsBootstrappable.serializePayload(payload) :
-      ['string', 'number', 'boolean'].includes(typeof payload) ? String(payload) : null;
-
-    if (!serialized) {
-      return null;
-    }
-
-    return uuidv5(
-      serialized?.replace(/[^A-Z0-9\x20~`!@#$%^&*()+\-_=\[\]{}<>\|:;,\.'"\/\\]/gi, ''),
-      uuidnil,
-    );
-  }
-
-  // 
-  static sanitizeVolatiles = (pokemon) =>
-  Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
-    const [, value, ...rest] = volatile || [];
-
-    const transformed = formatId(id) === 'transform' && typeof value?.speciesForme === 'string';
-
-    if (transformed || !value || ['string', 'number'].includes(typeof value)) {
-      volatiles[id] = transformed ? [
-        id,
-        value.speciesForme,
-        ...rest,
-      ] : volatile;
-    }
-
-    return volatiles;
-  }, {});
-
-  // 
-  static calcPokemonToolsNonce = (pokemon) => ToolsBootstrappable.calcToolsId({
-    ident: pokemon?.ident,
-    name: pokemon?.name,
-    speciesForme: pokemon?.speciesForme,
-    hp: pokemon?.hp?.toString(),
-    maxhp: pokemon?.maxhp?.toString(),
-    level: pokemon?.level?.toString(),
-    gender: pokemon?.gender,
-    ability: pokemon?.ability,
-    baseAbility: pokemon?.baseAbility,
-    nature: (!!pokemon?.speciesForme && 'nature' in pokemon && pokemon.nature) || null,
-    types: (!!pokemon?.speciesForme && 'types' in pokemon && pokemon.types?.join('|')) || null,
-    item: pokemon?.item,
-    itemEffect: pokemon?.itemEffect,
-    prevItem: pokemon?.prevItem,
-    prevItemEffect: pokemon?.prevItemEffect,
-    ivs: (!!pokemon?.speciesForme && 'ivs' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.ivs)) || null,
-    evs: (!!pokemon?.speciesForme && 'evs' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.evs)) || null,
-    status: pokemon?.status,
-    statusData: ToolsBootstrappable.calcToolsId(pokemon?.statusData),
-    statusStage: pokemon?.statusStage?.toString(),
-    volatiles: ToolsBootstrappable.calcToolsId(ToolsBootstrappable.sanitizeVolatiles(pokemon)),
-    turnstatuses: ToolsBootstrappable.calcToolsId(pokemon?.turnstatuses),
-    sleepCounter: (!!pokemon?.speciesForme && 'sleepCounter' in pokemon && pokemon.sleepCounter?.toString())
-      || (ToolsBootstrappable.nonEmptyObject(pokemon?.statusData) && pokemon.statusData.sleepTurns?.toString())
-      || null,
-    toxicCounter: (!!pokemon?.speciesForme && 'toxicCounter' in pokemon && pokemon.toxicCounter?.toString())
-      || (ToolsBootstrappable.nonEmptyObject(pokemon?.statusData) && pokemon.statusData.toxicTurns?.toString())
-      || null,
-    hitCounter: (!!pokemon?.speciesForme && 'hitCounter' in pokemon && pokemon.hitCounter?.toString())
-      || (!!pokemon?.speciesForme && 'timesAttacked' in pokemon && pokemon.timesAttacked?.toString())
-      || null,
-    faintCounter: (!!pokemon?.speciesForme && 'faintCounter' in pokemon && pokemon.faintCounter?.toString()) || null,
-    moves: pokemon?.moves?.join(';'),
-    moveTrack: ToolsBootstrappable.calcToolsId((pokemon?.moveTrack)?.map((track) => track?.join(':'))?.join(';')),
-    revealedMoves: (!!pokemon?.speciesForme && 'revealedMoves' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.revealedMoves)) || null,
-    boosts: ToolsBootstrappable.calcToolsId(pokemon?.boosts),
-    baseStats: (!!pokemon?.speciesForme && 'baseStats' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.baseStats)) || null,
-    spreadStats: (!!pokemon?.speciesForme && 'spreadStats' in pokemon && ToolsBootstrappable.calcToolsId(pokemon.spreadStats)) || null,
-    criticalHit: (!!pokemon?.speciesForme && 'criticalHit' in pokemon && pokemon.criticalHit?.toString()) || null,
-  })
-
-  // 
-  static calcSideToolsNonce = (side) => ToolsBootstrappable.calcToolsId({
-    id: side?.id,
-    sideid: side?.sideid,
-    name: side?.name,
-    rating: side?.rating,
-    totalPokemon: side?.totalPokemon?.toString(),
-    active: side?.active?.map((mon) => ToolsBootstrappable.calcPokemonToolsNonce(mon)).join(';'),
-    pokemon: side?.pokemon?.map((mon) => ToolsBootstrappable.calcPokemonToolsNonce(mon)).join(';'),
-    sideConditions: Object.keys(side?.sideConditions || {}).join(';'),
-  })
-
-  // Creates a string that represents a unique battle state
-  calcBattleToolsNonce = (battle, request) => {
-    const stepQueue = battle?.stepQueue
-      ?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step))
-      || [];
-
-    return ToolsBootstrappable.calcToolsId({
-      id: battle?.id,
-      gen: battle?.gen?.toString(),
-      tier: battle?.tier,
-      gameType: battle?.gameType,
-      paused: String(!!battle?.paused),
-      ended: String(!!battle?.ended),
-      myPokemon: battle?.myPokemon?.length ? ToolsBootstrappable.calcToolsId(
-        battle.myPokemon.map((pokemon) => ToolsBootstrappable.calcPokemonToolsNonce(pokemon)).join(';') || 'empty',
-      ) : null,
-      mySide: ToolsBootstrappable.calcSideToolsNonce(battle?.mySide),
-      nearSide: ToolsBootstrappable.calcSideToolsNonce(battle?.nearSide),
-      p1: ToolsBootstrappable.calcSideToolsNonce(battle?.p1),
-      p2: ToolsBootstrappable.calcSideToolsNonce(battle?.p2),
-      stepQueue: ToolsBootstrappable.calcToolsId(stepQueue.join(';')),
-      rqid: request?.rqid?.toString(),
-      requestType: request?.requestType,
-      side: request?.side?.id,
-      smogonChaos: !!this.battleState?.smogonChaos,
-      smogonLeads: !!this.battleState?.smogonLeads,
-    });
-  }
-
-
-
-
-
-
-
-
-
 
   // 
   syncTools() {
@@ -443,13 +213,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
       // defines the userID
       const { Adapter } = ToolsBootstrappable;
-      const authUserId = (!!Adapter?.authUsername && ToolsBootstrappable.formatId(Adapter.authUsername)) || null;
+      const authUserId = (!!Adapter?.authUsername && formatId(Adapter.authUsername)) || null;
 
       // 
       this.initToolsState();
 
       // Checks if the user is a player in the battle
-      if (!battleInstance.ended && ['p1', 'p2'].some((playerKey) => ToolsBootstrappable.formatId(battleInstance[playerKey]?.name) === authUserId)) {
+      if (!battleInstance.ended && ['p1', 'p2'].some((playerKey) => formatId(battleInstance[playerKey]?.name) === authUserId)) {
         return;
       }
     }
@@ -480,7 +250,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // 
-    battleInstance.nonce = this.calcBattleToolsNonce(battleInstance, this.battleRequest);
+    battleInstance.nonce = calcBattleToolsNonce(battleInstance, this.battleRequest, this.battleState);
 
     // 
     if (!this.battleState?.battleNonce) {
@@ -505,78 +275,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     this.syncBattle(battleInstance, this.battleRequest);
   }
-
-  // 
-  static getDexForFormat (format) {
-    if (typeof Dex === 'undefined') {
-      console.warn('[Gen 3 OU Tools] The global Dex is not available for this format:', format);
-
-      return null;
-    }
-
-    if (!format) {
-      return Dex;
-    }
-
-    if (typeof format === 'number') {
-      return format > 0 ? Dex.forGen(format) : Dex;
-    }
-
-    const formatAsId = ToolsBootstrappable.formatId(format);
-    const gen = ToolsBootstrappable.detectGenFromFormat(formatAsId);
-
-    if (typeof gen !== 'number' || gen < 1) {
-      return Dex;
-    }
-
-    return Dex.forGen(gen);
-  };
-
-  // 
-  static parsePokemonDetails(details) {
-    if (!details) {
-      return null;
-    }
-
-    const [speciesForme] = details.split(', ');
-
-    if (!speciesForme) {
-      return null;
-    }
-
-    return { speciesForme };
-  };
-
-  // 
-  static similarPokemon(pokemonA, pokemonB, config) {
-    if (!pokemonA?.details || !pokemonB?.details) {
-      return false;
-    }
-
-    const { details: detailsA } = pokemonA;
-    const { details: detailsB } = pokemonB;
-    const { format } = config || {};
-
-    const dex = ToolsBootstrappable.getDexForFormat(format);
-
-    const { speciesForme: speciesA } = ToolsBootstrappable.parsePokemonDetails(detailsA);
-    const dexA = dex.species.get(speciesA);
-    const formeA = (dexA?.exists && dexA.baseSpecies) || null;
-
-    if (!formeA) {
-      return false;
-    }
-
-    const { speciesForme: speciesB } = ToolsBootstrappable.parsePokemonDetails(detailsB);
-    const dexB = dex.species.get(speciesB);
-    const formeB = (dexB?.exists && dexB.baseSpecies) || null;
-
-    if (!formeB) {
-      return false;
-    }
-
-    return formeA === formeB;
-  };
 
   // patches in the toolsId to client Showdown.Pokemon
   patchClientToolsIdentifier(playerKey, addPokemon, addPokemonArgv) {
@@ -641,7 +339,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     // 
     const prevPokemon = (replaceSlot >= 0 && pokemonSearchList[replaceSlot]) || pokemonSearchList.filter((pokemon) => !!pokemon.toolsId).find((pokemon) => (
         (!ident || ((!!pokemon?.ident && pokemon.ident === ident) || (!!pokemon?.searchid?.includes('|') && pokemon.searchid.split('|')[0] === ident))) &&
-          ToolsBootstrappable.similarPokemon(
+          similarPokemon(
             { details },
             pokemon, 
             { format: this.battleState.format },
@@ -688,7 +386,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // 
-    const format = this.battle.id.split('-').find((part) => ToolsBootstrappable.detectGenFromFormat(part));
+    const format = this.battle.id.split('-').find((part) => detectGenFromFormat(part));
 
     if (!format) {
       return;
@@ -720,7 +418,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       // 
       const prevMyPokemon = myPokemon.find((prev) => !!prev?.ident && (
         prev.ident === pokemon.ident || prev.speciesForme === pokemon.speciesForme || prev.details === pokemon.details || 
-        ToolsBootstrappable.similarPokemon(
+        similarPokemon(
           pokemon,
           prev,
           { format }
@@ -748,7 +446,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     const { nonce: prevNonce } = this.battle;
 
     // 
-    this.battle.nonce = this.calcBattleToolsNonce(this.battle, this.battleRequest);
+    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest, this.battleState);
 
     console.debug(
       '[Gen 3 OU Tools] Restored toolsId to data from the server.',

@@ -19,7 +19,7 @@ export class BootManager {
       .map(([name]) => name);
   }
 
-  // Adds the bootstrapper to the registry
+  // Adds a bootstrapper to the registry
   static register(name, Bootstrapper) {
     if (!name || !(name in this.__bootstrappers) || typeof Bootstrapper !== 'function') {
       return;
@@ -40,7 +40,7 @@ export class BootManager {
     return !!this.__bootstrappers[name];
   }
 
-  // Fetches the bootstrapper from the registry
+  // Fetches a bootstrapper from the registry
   static named(name) {
     const Bootstrapper = this.__bootstrappers[name];
 
@@ -52,7 +52,7 @@ export class BootManager {
         '\nBootstrapper:', Bootstrapper,
       );
 
-      throw new Error('The', name, 'bootstrapper could not be found.');
+      throw new Error(`The ${name} bootstrapper could not be found.`);
     }
 
     return Bootstrapper;

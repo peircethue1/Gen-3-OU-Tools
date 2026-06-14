@@ -2,16 +2,16 @@
  * Injects the main script into the webpage
  */
 
+// Checks the webpage and extension context
 const runtime = chrome.runtime;
 
-// Checks the webpage and extension context
 if (typeof document === 'undefined' || !runtime?.id) {
   console.error('[Gen 3 OU Tools] Missing webpage or extension context.');
 
   throw new Error('Missing webpage or extension context.');
 }
 
-// Converts a Smogon leads text table into an object
+// Converts the Smogon leads text table into an object
 function parseSmogonLeads(text) {
   const lines = text.split('\n');
   let totalLeads = 0;
@@ -22,6 +22,7 @@ function parseSmogonLeads(text) {
 
     if (line.startsWith("Total leads:")) {
       totalLeads = parseInt(line.split(":")[1].trim(), 10);
+      
       continue;
     }
 
@@ -72,9 +73,11 @@ async function getSmogonData() {
         if (chrome.runtime.lastError) {
           return reject(new Error(chrome.runtime.lastError.message));
         }
+
         if (!response.success) {
           return reject(new Error(response?.error));
         }
+
         resolve(response.data);
       });
     });
