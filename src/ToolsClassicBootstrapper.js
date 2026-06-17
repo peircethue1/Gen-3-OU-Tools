@@ -424,6 +424,10 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
         // 
         this.battle.subscription('atqueueend');
+      } else {
+
+        // 
+        this.battle.subscription('step');
       }
 
       return;
@@ -482,6 +486,13 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
       // 
       this.battle.subscription('atqueueend');
+    }
+
+    // 
+    if (toolsElement && !this.battle.atQueueEnd) {
+
+      // 
+      this.battle.subscription('step');
     }
   }
 }

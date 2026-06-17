@@ -5,7 +5,9 @@
 
 import { NIL as uuidnil } from 'uuid';
 import { syncBattle } from './syncBattle.js';
+import { syncCalculator } from './syncCalculator.js';
 import { syncPrediction } from './syncPrediction.js';
+import { syncInformation } from './syncInformation.js';
 import { detectGenFromFormat, clonePlayerSideConditions, sanitizePlayerSide, formatId, calcBattleToolsNonce, similarPokemon } from './utilities.js';
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 
@@ -16,7 +18,9 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
   // 
   syncBattle = syncBattle;
+  syncCalculator = syncCalculator;
   syncPrediction = syncPrediction;
+  syncInformation = syncInformation;
 
   // 
   battleSubscription = (state) => {

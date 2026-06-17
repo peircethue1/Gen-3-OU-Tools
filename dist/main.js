@@ -5,8 +5,14 @@
     static __initialized = false;
     static __authUsername = null;
     // Defines the initialization lifecycle hooks
-    static hook = null;
+    static __hooks = [];
     static ready = null;
+    // EDITINGNOTE
+    static registerHook(hook) {
+      if (typeof hook === "function") {
+        this.__hooks.push(hook);
+      }
+    }
     // Prepares the extension state
     static async __init() {
       if (this.__initialized) {
@@ -25,12 +31,12 @@
     // Executes the initialization sequence
     static async run() {
       console.debug("[Gen 3 OU Tools] Starting the initialization sequence.");
-      try {
-        if (typeof this.hook === "function") {
-          await this.hook();
+      for (const hook of this.__hooks) {
+        try {
+          await hook();
+        } catch (error) {
+          console.error("[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.", error);
         }
-      } catch (error) {
-        console.error("[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.", error);
       }
       try {
         await this.__init();
@@ -48,6 +54,7 @@
   var BootClassicAdapter = class _BootClassicAdapter extends BootAdapter {
     // Defines the adapter state
     static __appReceive = null;
+    static __appRun = null;
     static __battleReceivers = [];
     static __mutex = {
       ok: false,
@@ -111,6 +118,46 @@
         }
       };
     };
+    // EDITINGNOTE
+    static runHook = () => {
+      console.debug("[Gen 3 OU Tools] Intercepting client data via window.Battle.prototype.run.");
+      this.__appRun = window.Battle.prototype.run;
+      window.Battle.prototype.run = function(...args) {
+        const result = _BootClassicAdapter.__appRun.apply(this, args);
+        const command = args[0];
+        if (typeof command === "string" && !!command.length) {
+          const roomId = this.id;
+          console.debug(
+            "[Gen 3 OU Tools] Received client data via window.Battle.prototype.run.",
+            "\nbattle room:",
+            roomId,
+            "\ncommand:",
+            command,
+            "\nargs:",
+            args
+          );
+          if (!_BootClassicAdapter.__mutex.ok) {
+            _BootClassicAdapter.__mutex.battleBuf.push([roomId, command]);
+          } else {
+            let receiver = _BootClassicAdapter.battleReceiverNamed(roomId);
+            if (!receiver && typeof _BootClassicAdapter.receiverFactory === "function") {
+              receiver = _BootClassicAdapter.receiverFactory(roomId);
+              if (typeof receiver === "function") {
+                _BootClassicAdapter.addBattleReceiver(roomId, receiver);
+              }
+            }
+            if (typeof receiver === "function") {
+              receiver(command);
+            }
+          }
+        }
+        return result;
+      };
+    };
+    static {
+      this.registerHook(this.hook);
+      this.registerHook(this.runHook);
+    }
     // Flushes the buffer after initialization
     static ready = () => {
       this.__mutex.battleBuf.forEach(([roomId, data]) => {
@@ -1670,6 +1717,7 @@
       this.toolsState.battleNonce = battleNonce;
     }
     this.syncPrediction();
+    this.syncTest();
     const toolsElement = battle.toolsHtmlRoom?.el;
     if (!toolsElement) {
       console.warn("[Gen 3 OU Tools] syncBattle completed, but the room element was not found for this battle:", battle.id);
@@ -1790,6 +1838,17 @@
     } else {
       this.toolsState.prediction = "";
     }
+  }
+
+  // src/syncTest.js
+  function syncTest() {
+    const opponentKey = this.battleState?.opponentKey;
+    const activeHP = this.battle[opponentKey]?.active?.[0]?.hp;
+    const stepIndex = this.battle.currentStep;
+    const stepText = this.battle.stepQueue[stepIndex];
+    const pastSteps = this.battleState.stepHistory || [];
+    const updatedStepHistory = [...pastSteps, `${activeHP}: ${stepText}`];
+    this.toolsState.stepHistory = updatedStepHistory;
   }
 
   // src/BootManager.js
@@ -1954,6 +2013,7 @@
     // 
     syncBattle = syncBattle;
     syncPrediction = syncPrediction;
+    syncTest = syncTest;
     // 
     battleSubscription = (state) => {
       console.debug(
@@ -2574,6 +2634,8 @@
       if (this.battle.toolsInit) {
         if (this.battle.toolsStateInit && this.battle.atQueueEnd) {
           this.battle.subscription("atqueueend");
+        } else {
+          this.battle.subscription("step");
         }
         return;
       }
@@ -2619,6 +2681,9 @@
       this.battle.toolsInit = true;
       if (toolsElement && this.battle.atQueueEnd) {
         this.battle.subscription("atqueueend");
+      }
+      if (toolsElement && !this.battle.atQueueEnd) {
+        this.battle.subscription("step");
       }
     }
   };

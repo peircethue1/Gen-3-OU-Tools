@@ -532,7 +532,9 @@ export function syncBattle(battle, request) {
   }
 
   // 
+  this.syncCalculator();
   this.syncPrediction();
+  this.syncInformation();
 
   // Retrieve the HTML room container tied to this battle
   const toolsElement = battle.toolsHtmlRoom?.el;

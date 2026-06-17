@@ -9,8 +9,15 @@ export class BootAdapter {
   static __authUsername = null;
 
   // Defines the initialization lifecycle hooks
-  static hook = null;
+  static __hooks = [];
   static ready = null;
+
+  // Adds a hook to the registry
+  static registerHook(hook) {
+    if (typeof hook === 'function') {
+      this.__hooks.push(hook)
+    }
+  }
 
   // Prepares the extension state
   static async __init() {
@@ -37,12 +44,12 @@ export class BootAdapter {
     console.debug('[Gen 3 OU Tools] Starting the initialization sequence.');
 
     // Executes hook setup
-    try {
-      if (typeof this.hook === 'function') {
-        await this.hook();
+    for (const hook of this.__hooks) {
+      try {
+        await hook();
+      } catch (error) {
+        console.error('[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.', error);
       }
-    } catch (error) {
-      console.error('[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.', error);
     }
 
     // Executes post-initialization setup
