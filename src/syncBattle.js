@@ -1,6 +1,7 @@
 /**
  * 
  * EDITINGNOTE: Full review
+ * EDITINGNOTE: Handle "render" and possibly html
  * EDITINGNOTE: Make sure battleState and toolsState are applied correctly
  * EDITINGNOTE: I don't want to support replays, so do I want to stop syncing when !this.toolsState.active? Should I detect if the authPlayer is in the battle?
  * EDITINGNOTE: I only want to support gen 3 ou, so how do I stop my tool from running in other contexts?

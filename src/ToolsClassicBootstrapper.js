@@ -1,6 +1,7 @@
 ﻿/**
  * 
  * EDITINGNOTE: This has been reviewed and blank comments have been inserted appropriately. Review spacing, punctuation, and insert comments
+ * EDITINGNOTE: handle "render" and html
  */
 
 import { formatId, nonEmptyObject } from './utilities.js';
