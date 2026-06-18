@@ -1,10 +1,13 @@
 ﻿/**
  * 
  * EDITINGNOTE: This has been reviewed and blank comments have been inserted appropriately. Review spacing, punctuation, and insert comments
- * EDITINGNOTE: handle "render" and html
+ * EDITINGNOTE: handle "render" and html, also this is the only "complete" file with react and root in it, this must be where the react root is mounted, see also CalcdexRenderer.tsx
  */
 
-import { formatId, nonEmptyObject } from './utilities.js';
+import {
+  formatId,
+  nonEmptyObject
+} from './utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
 import { ToolsDomRenderer } from './ToolsRenderer.js';
 import toolsHtml from './tools.html';

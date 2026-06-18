@@ -8,7 +8,20 @@
  * EDITINGNOTE: Make initialized and synced variables consistent, and check what variables I actually need throughout
  */
 
-import { detectAuthPlayerKeyFromBattle, syncField, formatId, similarPokemon, calcPokemonToolsId, diffArrays, sanitizePokemon, sanitizeVolatiles, syncPokemon, detectPlayerKeyFromPokemon, clonePlayerSideConditions, sanitizePlayerSide } from './utilities.js';
+import {
+  detectAuthPlayerKeyFromBattle,
+  syncField,
+  formatId,
+  similarPokemon,
+  calcPokemonToolsId,
+  diffArrays,
+  sanitizePokemon,
+  sanitizeVolatiles,
+  syncPokemon,
+  detectPlayerKeyFromPokemon,
+  clonePlayerSideConditions,
+  sanitizePlayerSide,
+} from './utilities.js';
 import { ToolsDomRenderer } from './ToolsRenderer.js';
 
 export function syncBattle(battle, request) {
