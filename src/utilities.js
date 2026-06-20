@@ -1,8 +1,8 @@
-// EDITINGNOTE: Full review
+// EDITINGNOTE: Needed final decisions are noted
 
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
-// Creates a valid generation number
+// Creates a generation number for the format
 export const detectGenFromFormat = (format) => {
   if (typeof format === 'number') {
     return Math.max(format, 0);
@@ -23,7 +23,7 @@ export const detectGenFromFormat = (format) => {
   return gen;
 };
 
-// Creates a clone of the side conditions
+// Creates a copy of the player side conditions
 export const clonePlayerSideConditions = (conditions) =>
   Object.entries(conditions || {}).reduce((prev, [key, value]) => {
     prev[key] = Array.isArray(value) ? [...value] : value;
@@ -31,11 +31,14 @@ export const clonePlayerSideConditions = (conditions) =>
     return prev;
   }, {});
 
-// Creates an clean ID
+// Creates a standardized identification string
 export const formatId = (value) =>
-  value?.toString?.().normalize('NFD').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  value?.toString?.()
+    .normalize('NFD')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase();
 
-// Creates a standardized object for the current battle state
+// Creates a standardized object for the player side
 export const sanitizePlayerSide = (player, battleSide) => {
   const {
     selectionIndex,
@@ -47,17 +50,14 @@ export const sanitizePlayerSide = (player, battleSide) => {
 
   const sideConditions = battleSide?.sideConditions || side?.conditions || {};
 
-  // Creates an array of sanitized side conditions
   const sideConditionNames = Object.keys(sideConditions)
     .map((condition) => formatId(condition))
     .filter(Boolean);
 
-  // Creates an array of sanitized volatiles
   const volatileNames = Object.keys(currentPokemon?.volatiles || {})
     .map((volatile) => formatId(volatile))
     .filter(Boolean);
 
-  // Creates a state object
   return {
     spikes: (sideConditionNames.includes('spikes') && sideConditions.spikes?.[1]) || 0,
     isReflect: sideConditionNames.includes('reflect'),
@@ -69,28 +69,32 @@ export const sanitizePlayerSide = (player, battleSide) => {
   };
 };
 
-// 
+// Checks if the object contains any elements or keys
 export const nonEmptyObject = (object) => {
   if (typeof object !== 'object') {
     return false;
   }
 
   if (Array.isArray(object)) {
-    return !!obj.length;
+    return !!object.length;
   }
 
   return !!Object.keys(object || {}).length;
 };
 
-// 
-const serializePayload = (payload) => Object.entries(payload || {})
-  .map(([key, value]) => `${key}:${(typeof value === 'object' ? JSON.stringify(value) : String(value)) ?? '???'}`)
-  .join('|');
+// Creates a string for the key-value pair
+const serializePayload = (payload) =>
+  Object.entries(payload || {})
+    .map(([key, value]) => `${key}:${(typeof value === 'object' ? JSON.stringify(value) : String(value))}`)
+    .join('|');
 
-// 
+// Creates a deterministic identification string
 const calcToolsId = (payload) => {
-  const serialized = nonEmptyObject(payload) ? serializePayload(payload) :
-    ['string', 'number', 'boolean'].includes(typeof payload) ? String(payload) : null;
+  const serialized = nonEmptyObject(payload)
+    ? serializePayload(payload)
+    : ['string', 'number', 'boolean'].includes(typeof payload)
+      ? String(payload)
+      : null;
 
   if (!serialized) {
     return null;
@@ -102,7 +106,7 @@ const calcToolsId = (payload) => {
   );
 };
 
-// 
+// Creates a standardized object for the Pokemon volatiles
 export const sanitizeVolatiles = (pokemon) =>
   Object.entries(pokemon?.volatiles || {}).reduce((volatiles, [id, volatile]) => {
     const [, value, ...rest] = volatile || [];
@@ -110,72 +114,70 @@ export const sanitizeVolatiles = (pokemon) =>
     const transformed = formatId(id) === 'transform' && typeof value?.speciesForme === 'string';
 
     if (transformed || !value || ['string', 'number'].includes(typeof value)) {
-      volatiles[id] = transformed ? [
-        id,
-        value.speciesForme,
-        ...rest,
-      ] : volatile;
+      volatiles[id] = transformed ? [id, value.speciesForme, ...rest] : volatile;
     }
 
     return volatiles;
   }, {});
 
-// 
-const calcPokemonToolsNonce = (pokemon) => calcToolsId({
-  ident: pokemon?.ident,
-  name: pokemon?.name,
-  speciesForme: pokemon?.speciesForme,
-  hp: pokemon?.hp?.toString(),
-  maxhp: pokemon?.maxhp?.toString(),
-  level: pokemon?.level?.toString(),
-  gender: pokemon?.gender,
-  ability: pokemon?.ability,
-  baseAbility: pokemon?.baseAbility,
-  nature: (!!pokemon?.speciesForme && 'nature' in pokemon && pokemon.nature) || null,
-  types: (!!pokemon?.speciesForme && 'types' in pokemon && pokemon.types?.join('|')) || null,
-  item: pokemon?.item,
-  itemEffect: pokemon?.itemEffect,
-  prevItem: pokemon?.prevItem,
-  prevItemEffect: pokemon?.prevItemEffect,
-  ivs: (!!pokemon?.speciesForme && 'ivs' in pokemon && calcToolsId(pokemon.ivs)) || null,
-  evs: (!!pokemon?.speciesForme && 'evs' in pokemon && calcToolsId(pokemon.evs)) || null,
-  status: pokemon?.status,
-  statusData: calcToolsId(pokemon?.statusData),
-  statusStage: pokemon?.statusStage?.toString(),
-  volatiles: calcToolsId(sanitizeVolatiles(pokemon)),
-  turnstatuses: calcToolsId(pokemon?.turnstatuses),
-  sleepCounter: (!!pokemon?.speciesForme && 'sleepCounter' in pokemon && pokemon.sleepCounter?.toString())
-    || (nonEmptyObject(pokemon?.statusData) && pokemon.statusData.sleepTurns?.toString())
-    || null,
-  toxicCounter: (!!pokemon?.speciesForme && 'toxicCounter' in pokemon && pokemon.toxicCounter?.toString())
-    || (nonEmptyObject(pokemon?.statusData) && pokemon.statusData.toxicTurns?.toString())
-    || null,
-  hitCounter: (!!pokemon?.speciesForme && 'hitCounter' in pokemon && pokemon.hitCounter?.toString())
-    || (!!pokemon?.speciesForme && 'timesAttacked' in pokemon && pokemon.timesAttacked?.toString())
-    || null,
-  faintCounter: (!!pokemon?.speciesForme && 'faintCounter' in pokemon && pokemon.faintCounter?.toString()) || null,
-  moves: pokemon?.moves?.join(';'),
-  moveTrack: calcToolsId((pokemon?.moveTrack)?.map((track) => track?.join(':'))?.join(';')),
-  revealedMoves: (!!pokemon?.speciesForme && 'revealedMoves' in pokemon && calcToolsId(pokemon.revealedMoves)) || null,
-  boosts: calcToolsId(pokemon?.boosts),
-  baseStats: (!!pokemon?.speciesForme && 'baseStats' in pokemon && calcToolsId(pokemon.baseStats)) || null,
-  spreadStats: (!!pokemon?.speciesForme && 'spreadStats' in pokemon && calcToolsId(pokemon.spreadStats)) || null,
-  criticalHit: (!!pokemon?.speciesForme && 'criticalHit' in pokemon && pokemon.criticalHit?.toString()) || null,
-});
+// Creates a deterministic string that represents the Pokemon state EDITINGNOTE: Come back to this to decide what we need from battle and what we need from battleState. Do I need faintCounter?
+const calcPokemonToolsNonce = (pokemon) =>
+  calcToolsId({
+    ident: pokemon?.ident,
+    name: pokemon?.name,
+    speciesForme: pokemon?.speciesForme,
+    hp: pokemon?.hp?.toString(),
+    maxhp: pokemon?.maxhp?.toString(),
+    level: pokemon?.level?.toString(),
+    gender: pokemon?.gender,
+    ability: pokemon?.ability,
+    baseAbility: pokemon?.baseAbility,
+    nature: (!!pokemon?.speciesForme && 'nature' in pokemon && pokemon.nature) || null,
+    types: (!!pokemon?.speciesForme && 'types' in pokemon && pokemon.types?.join('|')) || null,
+    item: pokemon?.item,
+    itemEffect: pokemon?.itemEffect,
+    prevItem: pokemon?.prevItem,
+    prevItemEffect: pokemon?.prevItemEffect,
+    ivs: (!!pokemon?.speciesForme && 'ivs' in pokemon && calcToolsId(pokemon.ivs)) || null,
+    evs: (!!pokemon?.speciesForme && 'evs' in pokemon && calcToolsId(pokemon.evs)) || null,
+    status: pokemon?.status,
+    statusData: calcToolsId(pokemon?.statusData),
+    statusStage: pokemon?.statusStage?.toString(),
+    volatiles: calcToolsId(sanitizeVolatiles(pokemon)),
+    turnstatuses: calcToolsId(pokemon?.turnstatuses),
+    sleepCounter: (!!pokemon?.speciesForme && 'sleepCounter' in pokemon && pokemon.sleepCounter?.toString())
+      || (nonEmptyObject(pokemon?.statusData) && pokemon.statusData.sleepTurns?.toString())
+      || null,
+    toxicCounter: (!!pokemon?.speciesForme && 'toxicCounter' in pokemon && pokemon.toxicCounter?.toString())
+      || (nonEmptyObject(pokemon?.statusData) && pokemon.statusData.toxicTurns?.toString())
+      || null,
+    hitCounter: (!!pokemon?.speciesForme && 'hitCounter' in pokemon && pokemon.hitCounter?.toString())
+      || (!!pokemon?.speciesForme && 'timesAttacked' in pokemon && pokemon.timesAttacked?.toString())
+      || null,
+    faintCounter: (!!pokemon?.speciesForme && 'faintCounter' in pokemon && pokemon.faintCounter?.toString()) || null,
+    moves: pokemon?.moves?.join(';'),
+    moveTrack: calcToolsId((pokemon?.moveTrack)?.map((track) => track?.join(':'))?.join(';')),
+    revealedMoves: (!!pokemon?.speciesForme && 'revealedMoves' in pokemon && calcToolsId(pokemon.revealedMoves)) || null,
+    boosts: calcToolsId(pokemon?.boosts),
+    baseStats: (!!pokemon?.speciesForme && 'baseStats' in pokemon && calcToolsId(pokemon.baseStats)) || null,
+    spreadStats: (!!pokemon?.speciesForme && 'spreadStats' in pokemon && calcToolsId(pokemon.spreadStats)) || null,
+    criticalHit: (!!pokemon?.speciesForme && 'criticalHit' in pokemon && pokemon.criticalHit?.toString()) || null,
+  });
 
-// 
-const calcSideToolsNonce = (side) => calcToolsId({
-  id: side?.id,
-  sideid: side?.sideid,
-  name: side?.name,
-  rating: side?.rating,
-  totalPokemon: side?.totalPokemon?.toString(),
-  active: side?.active?.map((mon) => calcPokemonToolsNonce(mon)).join(';'),
-  pokemon: side?.pokemon?.map((mon) => calcPokemonToolsNonce(mon)).join(';'),
-  sideConditions: Object.keys(side?.sideConditions || {}).join(';'),
-});
+// Creates a deterministic string that represents the player side EDITINGNOTE: Come back to this to decide what we need from battle and what we need from battleState
+const calcSideToolsNonce = (side) =>
+  calcToolsId({
+    id: side?.id,
+    sideid: side?.sideid,
+    name: side?.name,
+    rating: side?.rating,
+    totalPokemon: side?.totalPokemon?.toString(),
+    active: side?.active?.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';'),
+    pokemon: side?.pokemon?.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';'),
+    sideConditions: Object.keys(side?.sideConditions || {}).join(';'),
+  });
 
-// Creates a string that represents a unique battle state
+// Creates a deterministic string that represents the battle state EDITINGNOTE: Come back to this to decide what we need from battle and what we need from battleState
 export const calcBattleToolsNonce = (battle, request, battleState) => {
   const stepQueue = battle?.stepQueue?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step)) || [];
 
@@ -186,9 +188,9 @@ export const calcBattleToolsNonce = (battle, request, battleState) => {
     gameType: battle?.gameType,
     paused: String(!!battle?.paused),
     ended: String(!!battle?.ended),
-    myPokemon: battle?.myPokemon?.length ? calcToolsId(
-      battle.myPokemon.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';') || 'empty',
-    ) : null,
+    myPokemon: battle?.myPokemon?.length
+    ? calcToolsId(battle.myPokemon.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';') || 'empty')
+    : null,
     mySide: calcSideToolsNonce(battle?.mySide),
     nearSide: calcSideToolsNonce(battle?.nearSide),
     p1: calcSideToolsNonce(battle?.p1),
@@ -202,8 +204,8 @@ export const calcBattleToolsNonce = (battle, request, battleState) => {
   });
 };
 
-// 
-const getDexForFormat = (format) => {
+// Fetches the Dex for the format
+export const getDexForFormat = (format) => {
   if (typeof Dex === 'undefined') {
     console.warn('[Gen 3 OU Tools] The global Dex is not available for this format:', format);
 
@@ -228,7 +230,7 @@ const getDexForFormat = (format) => {
   return Dex.forGen(gen);
 };
 
-// 
+// Creates a structured object for the Pokemon details
 const parsePokemonDetails = (details) => {
   if (!details) {
     return null;
@@ -243,7 +245,7 @@ const parsePokemonDetails = (details) => {
   return { speciesForme };
 };
 
-// 
+// Checks if two Pokemon details strings are for the same Pokemon
 export const similarPokemon = (pokemonA, pokemonB, config) => {
   if (!pokemonA?.details || !pokemonB?.details) {
     return false;
@@ -274,13 +276,13 @@ export const similarPokemon = (pokemonA, pokemonB, config) => {
   return formeA === formeB;
 };
 
-// 
+// Creates an identitification string for the Pokemon
 const detectPokemonIdent = (pokemon) => [
   ('side' in (pokemon || {}) && pokemon.side?.sideid) || pokemon?.searchid?.split?.(':')[0] || pokemon?.ident?.split?.(':')[0],
   pokemon?.speciesForme || pokemon?.details?.split?.(', ')?.[0] || pokemon?.searchid?.split?.('|')[1] || pokemon?.ident?.split?.(': ')[1] || pokemon?.name,
 ].filter(Boolean).join(': ') || pokemon?.ident || pokemon?.searchid?.split?.('|')[0] || null;
 
-// 
+// Creates a player key for the Pokemon
 export const detectPlayerKeyFromPokemon = (pokemon) => {
   if (pokemon?.playerKey) {
     return pokemon.playerKey;
@@ -295,12 +297,12 @@ export const detectPlayerKeyFromPokemon = (pokemon) => {
   return /^(p\d)[a-z]?:/.exec(ident)?.[1];
 };
 
-// 
+// Fetches the username
 const getAuthUsername = () => (
   window.app.user?.attributes?.name || null
 );
 
-// 
+// Creates a player key for the username
 export const detectAuthPlayerKeyFromBattle = (battle) => {
   const detectedPlayerKey = detectPlayerKeyFromPokemon(battle?.myPokemon?.[0]);
 
@@ -314,17 +316,14 @@ export const detectAuthPlayerKeyFromBattle = (battle) => {
     return null;
   }
 
-  return battle?.sides?.find?.((side) => 'name' in (side || {}) && [
-    side.id,
-    side.name,
-  ].filter(Boolean).includes(authName))?.sideid || null;
+  return battle?.sides?.find?.((side) =>
+    'name' in (side || {}) && [side.id, side.name].filter(Boolean).includes(authName)
+  )?.sideid || null;
 };
 
-// 
+// Creates a copy of the field
 const cloneField = (field) => {
-  const output = {
-    ...field,
-  };
+  const output = { ...field };
 
   if ('attackerSide' in output) {
     delete output.attackerSide;
@@ -337,7 +336,7 @@ const cloneField = (field) => {
   return output;
 };
 
-// 
+// Relates weather identifiers
 const WEATHER_MAP = {
   raindance: 'Rain',
   sandstorm: 'Sand',
@@ -345,7 +344,7 @@ const WEATHER_MAP = {
   hail: 'Hail',
 };
 
-// 
+// Creates a standardized object for the field
 const sanitizeField = (battle) => {
   const { weather } = battle || {};
 
@@ -358,7 +357,7 @@ const sanitizeField = (battle) => {
   return sanitizedField;
 };
 
-// 
+// Updates the field object based on the field state EDITINGNOTE: Come back to this to decide how to handle dirty properties
 export const syncField = (state, battle) => {
   if (!nonEmptyObject(state?.field) || !battle?.p1) {
     console.warn(
@@ -393,17 +392,17 @@ export const syncField = (state, battle) => {
   return newField;
 };
 
-// 
-export const calcPokemonToolsId = (pokemon, playerKey) => calcToolsId({
-  ident: [
-    playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
-    uuidv4(),
-  ].filter(Boolean).join(': '),
+// Creates a unique identification string for the Pokemon
+export const calcPokemonToolsId = (pokemon, playerKey) =>
+  calcToolsId({
+    ident: [
+      playerKey || pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
+      uuidv4(),
+    ].filter(Boolean).join(': '),
+    speciesForme: pokemon?.speciesForme,
+  });
 
-  speciesForme: pokemon?.speciesForme,
-});
-
-// 
+// Creates an array that contains all elements that exist in exactly one of two arrays
 export const diffArrays = (arrayA, arrayB) => {
   if (!Array.isArray(arrayA) || !Array.isArray(arrayB)) {
     return null;
@@ -432,48 +431,45 @@ export const diffArrays = (arrayA, arrayB) => {
   ];
 };
 
-// 
-const detectSpeciesForme = (pokemon) => pokemon?.speciesForme || 
-  pokemon?.details?.split?.(', ')[0] || 
-  pokemon?.searchid?.split?.('|')[1] || 
+// Creates a species form for the Pokemon
+const detectSpeciesForme = (pokemon) =>
+  pokemon?.speciesForme ||
+  pokemon?.details?.split?.(', ')[0] ||
+  pokemon?.searchid?.split?.('|')[1] ||
   pokemon?.ident?.split?.(': ')[1];
 
-// 
+// Creates a structured object for the Pokemon statistics
 const populateStatsTable = (stats, config) => {
   const { spread } = config || {};
 
-  const output = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'].reduce((prev, stat) => {
-    prev[stat] = null;
-
-    return prev;
-  }, {});
+  const output = { hp: null, atk: null, def: null, spa: null, spd: null, spe: null };
 
   if (!nonEmptyObject(stats)) {
     return output;
   }
 
-  const max = spread === 'ev' ? 252 : 31;
+  const max = spread === 'ev' ? 255 : 31;
 
-  Object.entries(stats).forEach(([
-    stat,
-    rawValue,
-  ]) => {
+  Object.entries(stats).forEach(([stat, rawValue]) => {
     const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
 
     if (Number.isNaN(value)) {
       return;
     }
 
-    output[stat] = Math.max(Math.min(value, max ?? value), 0);
+    output[stat] = Math.max(Math.min(value, max), 0);
   });
 
   return output;
 };
 
-// 
-const getDexMoveTrack = (dex, moveTrack, transformed) => 
+// Creates a structured object for the Pokemon moves
+const getDexMoveTrack = (dex, moveTrack, transformed) =>
   moveTrack?.filter((track) => (
-    Array.isArray(track) && typeof track[0] === 'string' && !!track[0] && (transformed ? track[0].startsWith('*') : !track[0].startsWith('*'))
+    Array.isArray(track) &&
+    typeof track[0] === 'string' &&
+    !!track[0] &&
+    (transformed ? track[0].startsWith('*') : !track[0].startsWith('*'))
   ))
   .map(([moveName, ppUsed]) => [
     dex.moves.get(moveName?.replace('*', '')),
@@ -481,8 +477,8 @@ const getDexMoveTrack = (dex, moveTrack, transformed) =>
   ])
   .filter(([move]) => move?.exists && !!move.name);
 
-// 
-const sanitizeMoveTrack = (pokemon, format) => {
+// Creates a standardized object for the Pokemon moves
+export const sanitizeMoveTrack = (pokemon, format) => {
   const dex = getDexForFormat(format);
 
   const output = {
@@ -517,13 +513,13 @@ const sanitizeMoveTrack = (pokemon, format) => {
   return output;
 };
 
-// 
-const similarArrays = (...args) => {
-  if (args.length < 2) {
+// Checks if two arrays contain exactly the same elements
+export const similarArrays = (arrayA, arrayB) => {
+  if (!Array.isArray(arrayA) || !Array.isArray(arrayB)) {
     return false;
   }
 
-  const diff = diffArrays(...args);
+  const diff = diffArrays(arrayA, arrayB);
 
   if (!Array.isArray(diff)) {
     return false;
@@ -532,7 +528,16 @@ const similarArrays = (...args) => {
   return !diff.length;
 };
 
-// 
+// Checks if the Pokemon ability is active
+const detectToggledAbility = (pokemon) => {
+  const ability = pokemon.ability;
+  const volatiles = Object.keys(pokemon.volatiles || {});
+  const abilityId = formatId(ability);
+
+  return volatiles.some((key) => key?.includes(abilityId));
+};
+
+// Creates a standardized object for the Pokemon EDITINGNOTE: Do I need faintCounter?
 export const sanitizePokemon = (pokemon, format) => {
   const dex = getDexForFormat(format);
   const gen = detectGenFromFormat(format);
@@ -544,14 +549,12 @@ export const sanitizePokemon = (pokemon, format) => {
     toolsId: pokemon?.toolsId || null,
     source: pokemon?.source || null,
     playerKey: pokemon?.playerKey || detectPlayerKeyFromPokemon(pokemon),
-
     slot: pokemon?.slot ?? null,
     ident: detectPokemonIdent(pokemon),
     name: pokemon?.name || null,
     details: pokemon?.details || null,
     searchid: pokemon?.searchid || null,
     active: pokemon?.active || false,
-
     speciesForme: detectSpeciesForme(pokemon)?.replace('-*', '') || null,
     transformedForme: (
       transformed
@@ -560,52 +563,35 @@ export const sanitizePokemon = (pokemon, format) => {
           : pokemon.volatiles.transform[1]
         : null
     ) || null,
-
     level: pokemon?.level || 0,
     transformedLevel: pokemon?.transformedLevel || null,
     gender: pokemon?.gender || 'N',
-    shiny: pokemon?.shiny || false,
-
-    types: (
-      typeChanged
-        ? pokemon.volatiles.typechange[1].split('/')
-        : pokemon?.types
-    ) || [],
-
+    types: (typeChanged ? pokemon.volatiles.typechange[1].split('/') : pokemon?.types) || [],
     hp: pokemon?.hp ?? 100,
     maxhp: pokemon?.maxhp || 100,
-    fainted: !pokemon?.hp,
-
+    fainted: pokemon?.hp === 0,
     baseAbility: pokemon?.baseAbility?.replace(/no\s?ability/i, ''),
     ability: pokemon?.ability || null,
     abilityToggled: pokemon?.abilityToggled || false,
     abilities: pokemon?.abilities || [],
     transformedAbilities: pokemon?.transformedAbilities || [],
-
     item: (!!pokemon?.item && dex.items.get(pokemon.item.replace('(exists)', ''))?.name) || null,
-
     itemEffect: pokemon?.itemEffect || null,
     prevItem: pokemon?.prevItem || null,
     prevItemEffect: pokemon?.prevItemEffect || null,
-
     nature: pokemon?.nature || null,
     ivs: populateStatsTable(pokemon?.ivs, { spread: 'iv', format }),
     evs: populateStatsTable(pokemon?.evs, { spread: 'ev', format }),
-
     boosts: ['atk', 'def', 'spa', 'spd', 'spe'].reduce((table, stat) => {
       const boosts = pokemon?.boosts;
-
       const raw = boosts?.[stat] ?? 0;
 
       table[stat] = Math.max(Math.min(raw, 6), -6);
 
       return table;
     }, {}),
-
-    // I've gotten rid of Autoboostmap here
     transformedBaseStats: pokemon?.transformedBaseStats || null,
     serverStats: pokemon?.serverStats || null,
-
     status: (!!pokemon?.hp && pokemon?.status) || null,
     turnstatuses: Object.entries(pokemon?.turnstatuses || {}).reduce((
       prev, 
@@ -614,27 +600,18 @@ export const sanitizePokemon = (pokemon, format) => {
       ...prev,
       ...(Array.isArray(effectState) && { [effectId]: [...effectState] }),
     }), {}),
-
     chainMove: pokemon?.chainMove || null,
     chainCounter: pokemon?.chainCounter || 0,
-
     sleepCounter: pokemon?.sleepCounter || pokemon?.statusData?.sleepTurns || 0,
-
     toxicCounter: pokemon?.toxicCounter || pokemon?.statusData?.toxicTurns || 0,
-
     hitCounter: pokemon?.hitCounter || pokemon?.timesAttacked || 0,
-
     faintCounter: pokemon?.faintCounter || 0,
-
     criticalHit: pokemon?.criticalHit || false,
-
     lastMove: pokemon?.lastMove || null,
     moves: [...(pokemon?.moves || [])],
     serverMoves: pokemon?.serverMoves || [],
     transformedMoves: pokemon?.transformedMoves || [],
-
     ...sanitizeMoveTrack(pokemon, format),
-
     volatiles: sanitizeVolatiles(pokemon),
   };
 
@@ -658,11 +635,15 @@ export const sanitizePokemon = (pokemon, format) => {
     sanitizedPokemon.types = [...speciesTypes];
   }
 
-  sanitizedPokemon.abilities = [...Object.values(species?.abilities || {})].filter((ability) => !!ability && formatId(ability) !== 'noability');
+  sanitizedPokemon.abilities = [
+    ...Object.values(species?.abilities || {})
+  ].filter((ability) => !!ability && formatId(ability) !== 'noability');
 
-  sanitizedPokemon.transformedAbilities = [...Object.values(transformedSpecies?.abilities || {})].filter((ability) => !!ability && formatId(ability) !== 'noability');
+  sanitizedPokemon.transformedAbilities = [
+    ...Object.values(transformedSpecies?.abilities || {})
+  ].filter((ability) => !!ability && formatId(ability) !== 'noability');
 
-  const abilitiesSource = sanitizedPokemon.transformedAbilities.length ? sanitizedPokemon.transformedAbilities : sanitizedPokemon.abilities;
+  sanitizedPokemon.abilityToggled = detectToggledAbility(sanitizedPokemon);
 
   if (!sanitizedPokemon?.toolsId) {
     sanitizedPokemon.toolsId = calcPokemonToolsId(sanitizedPokemon);
@@ -671,8 +652,8 @@ export const sanitizePokemon = (pokemon, format) => {
   return sanitizedPokemon;
 };
 
-// 
-const clonePokemon = (pokemon) => {
+// Creates a copy of the Pokemon
+export const clonePokemon = (pokemon) => {
   const output = { ...pokemon };
 
   if (Array.isArray(output.types)) {
@@ -738,8 +719,8 @@ const clonePokemon = (pokemon) => {
   return output;
 };
 
-// 
-const Pokemon_Nature_Boosts = {
+// Relates natures and statistics
+const POKEMON_NATURE_BOOSTS = {
   Adamant: ['atk', 'spa'],
   Bashful: [],
   Bold: ['def', 'atk'],
@@ -767,49 +748,44 @@ const Pokemon_Nature_Boosts = {
   Timid: ['spe', 'atk'],
 };
 
-// 
-const tr = (num, bits = 0) => (
+// Truncates the number to a specific bit size
+const truncate = (num, bits) => (
   bits ? (num >>> 0) % (2 ** bits) : (num >>> 0)
 );
 
-// 
-const calcPokemonStat = (format, stat, base, iv, ev, level, nature) => {
-  const gen = typeof format === 'string' ? detectGenFromFormat(format) : format;
-
+// Creates a raw Pokemon statistic
+const calcPokemonStat = (stat, base, iv, ev, level, nature) => {
   const actualIv = Math.max(iv, 0);
   const actualEv = Math.max(ev, 0);
-  const actualLevel = Math.max(Math.min(level, 100), 0);
+  const actualLevel = Math.max(Math.min(level, 100), 1);
 
   if (stat === 'hp') {
     if (base === 1) {
       return base;
     }
 
-    return tr(((2 * base + actualIv + tr(actualEv / 4)) * actualLevel) / 100) + actualLevel + 10;
+    return truncate(((2 * base + actualIv + truncate(actualEv / 4)) * actualLevel) / 100) + actualLevel + 10;
   }
 
-  const value = tr(((2 * base + actualIv + tr(actualEv / 4)) * actualLevel) / 100) + 5;
+  const value = truncate(((2 * base + actualIv + truncate(actualEv / 4)) * actualLevel) / 100) + 5;
 
-  if (nature && nature in Pokemon_Nature_Boosts) {
-    const [
-      plus,
-      minus,
-    ] = Pokemon_Nature_Boosts[nature];
+  if (nature && nature in POKEMON_NATURE_BOOSTS) {
+    const [plus, minus] = POKEMON_NATURE_BOOSTS[nature];
 
     if (plus && stat === plus) {
-      return tr(tr(value * 110, 16) / 100);
+      return truncate(truncate(value * 110, 16) / 100);
     }
 
     if (minus && stat === minus) {
-      return tr(tr(value * 90, 16) / 100);
+      return truncate(truncate(value * 90, 16) / 100);
     }
   }
 
   return value;
 };
 
-//
-const calcPokemonSpreadStats = (format, pokemon) => {
+// Creates a raw Pokemon statistic spread EDITINGNOTE: What are the right default values here?
+export const calcPokemonSpreadStats = (pokemon) => {
   if (!nonEmptyObject(pokemon?.baseStats)) {
     return { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   }
@@ -818,406 +794,14 @@ const calcPokemonSpreadStats = (format, pokemon) => {
     const baseStat = (pokemon.transformedForme && stat !== 'hp' ? pokemon.transformedBaseStats : pokemon.baseStats)?.[stat];
 
     prev[stat] = calcPokemonStat(
-      format,
       stat,
       baseStat,
       pokemon.ivs?.[stat],
       pokemon.evs?.[stat],
-      (stat !== 'hp' && pokemon.transformedLevel) || (pokemon.level ?? 100),
+      (stat !== 'hp' && pokemon.transformedLevel) || pokemon.level,
       pokemon.nature,
     );
 
     return prev;
   }, { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
-};
-
-// 
-export const syncPokemon = (pokemon, config) => {
-  const {
-    format,
-    clientPokemon,
-    serverPokemon,
-  } = config || {};
-
-  const dex = getDexForFormat(format);
-  const gen = detectGenFromFormat(format);
-
-  // final synced Pokemon that will be returned at the end
-  const syncedPokemon = clonePokemon(pokemon);
-
-  // if server-sourced, will be updated below
-  if (!syncedPokemon.source && clientPokemon?.speciesForme) {
-    syncedPokemon.source = 'client';
-  }
-
-  // you should not be looping through any special CalcdexPokemon-specific properties here!
-  ([
-    'name',
-    'speciesForme',
-    'hp',
-    'maxhp',
-    'status',
-    'statusData',
-    'timesAttacked',
-    'ability',
-    'baseAbility',
-    'item',
-    'itemEffect',
-    'prevItem',
-    'prevItemEffect',
-    'moves',
-    'lastMove',
-    'moveTrack',
-    'volatiles',
-    'turnstatuses',
-    'boosts',
-  ]).forEach((key) => {
-    const prevValue = syncedPokemon[key];
-    let value = clientPokemon?.[key];
-
-    // note: this will accept null values!
-    if (value === undefined) {
-      return;
-    }
-
-    // note: `return` to not set the `value` & go next, `break` to stop processing & move onto the `value` diff check to set it
-    switch (key) {
-      case 'name': {
-        break;
-      }
-
-      case 'speciesForme': {
-
-        // e.g., 'Urshifu-*' -> 'Urshifu' (to fix forme switching, which is prevented due to the wildcard forme)
-        value = value.replace('-*', '');
-
-        if (prevValue === value) {
-          return;
-        }
-
-        // if the speciesForme changed, update the types & possible abilities (could change due to mega-evolutions or gigantamaxing, for instance)
-        const updatedSpecies = dex.species.get(value);
-
-        syncedPokemon.types = [
-          ...(updatedSpecies?.types || syncedPokemon.types || []),
-        ];
-
-        if (nonEmptyObject(updatedSpecies?.abilities)) {
-          syncedPokemon.abilities = [
-            ...Object.values(updatedSpecies.abilities),
-          ];
-        }
-
-        break;
-      }
-
-      case 'hp':
-      case 'maxhp': {
-
-        // note: returning at any point here will skip syncing the `value` from the Showdown.Pokemon (i.e., clientPokemon) to the CalcdexPokemon (i.e., syncedPokemon) (but only for the current `key` of the iteration, of course)
-        if (typeof serverPokemon?.hp === 'number' && typeof serverPokemon.maxhp === 'number') {
-          return;
-        }
-
-        // note: breaking will continue the sync operation (which in this case, if a serverPokemon wasn't provided, we'll use the hp/maxhp from the clientPokemon)
-        break;
-      }
-
-      case 'status': {
-
-        // remove the Pokemon's status if fainted
-        if (!syncedPokemon.hp) {
-          value = null;
-        }
-
-        break;
-      }
-
-      case 'statusData': {
-        const statusData = value;
-
-        if (typeof statusData?.sleepTurns === 'number' && statusData.sleepTurns > -1) {
-          syncedPokemon.sleepCounter = statusData.sleepTurns;
-        }
-
-        if (typeof statusData?.toxicTurns === 'number' && statusData.toxicTurns > -1) {
-          syncedPokemon.toxicCounter = statusData.toxicTurns;
-        }
-
-        return;
-      }
-
-      case 'timesAttacked': {
-        if (typeof value === 'number' && value > -1) {
-          syncedPokemon.hitCounter = value;
-        }
-
-        return;
-      }
-
-      case 'ability': {
-        if (!value || /^\([\w\s]+\)$/.test(value) || formatId(value) === 'noability') {
-          return;
-        }
-
-        break;
-      }
-
-      case 'item': {
-
-        // ignore any unrevealed item (resulting in a falsy value) that hasn't been knocked-off/consumed/etc. (this can be checked since when the item be consumed, prevItem would NOT be falsy)
-        if ((!value || formatId(value) === 'exists') && !clientPokemon?.prevItem) {
-          return;
-        }
-
-        // run the item through the dex in case it's formatted as an id
-        value = dex?.items.get(value)?.name || value;
-
-        break;
-      }
-
-      case 'prevItem': {
-        break;
-      }
-
-      case 'boosts': {
-        value = ['atk', 'def', 'spa', 'spd', 'spe'].reduce((prev, stat) => {
-          const prevBoost = prev[stat];
-          const boost = clientPokemon?.boosts?.[stat] || 0;
-
-          if (boost !== prevBoost) {
-            prev[stat] = boost;
-          }
-
-          return prev;
-        }, {
-          atk: syncedPokemon.boosts?.atk || 0,
-          def: syncedPokemon.boosts?.def || 0,
-          spa: syncedPokemon.boosts?.spa || 0,
-          spd: syncedPokemon.boosts?.spd || 0,
-          spe: syncedPokemon.boosts?.spe || 0,
-        });
-
-        break;
-      }
-
-      case 'lastMove': {
-
-        // allowing falsy values to enable clearing the lastMove
-        if (!value) {
-          break;
-        }
-
-        const dexMove = dex.moves.get(value);
-
-        if (dexMove?.exists) {
-          value = dexMove.name;
-        }
-
-        break;
-      }
-
-      case 'moveTrack': {
-        const {
-          moveTrack,
-          revealedMoves,
-          transformedMoves,
-        } = sanitizeMoveTrack(clientPokemon, format);
-
-        value = moveTrack;
-
-        if (syncedPokemon.source === 'server') {
-          break;
-        }
-
-        syncedPokemon.revealedMoves = revealedMoves;
-        syncedPokemon.transformedMoves = transformedMoves;
-
-        break;
-      }
-
-      case 'volatiles': {
-        const volatiles = value;
-
-        // check for type changes (and apply only when not terastallized) (client reports a 'typechange' volatile when a Pokemon terastallizes)
-        const changedTypes = (
-
-          // e.g., 'Psychic/Ice' -> ['Psychic', 'Ice']
-          'typechange' in volatiles && volatiles.typechange[1]?.split?.('/')
-        ) || [];
-
-        if (changedTypes.length) {
-          syncedPokemon.types = [...changedTypes];
-        }
-
-        // check for type change resets
-        const resetTypes = ('typechange' in syncedPokemon.volatiles && !changedTypes.length && dex.species.get(syncedPokemon.speciesForme)?.types) || [];
-
-        if (resetTypes?.length) {
-          syncedPokemon.types = [...resetTypes];
-        }
-
-        // check for type additions (separate from type changes)
-        const addedType = ('typeadd' in volatiles && volatiles.typeadd?.[1]) || null;
-
-        if (addedType && !syncedPokemon.types.includes(addedType)) {
-          syncedPokemon.types.push(addedType);
-        }
-
-        // check for transformations (e.g., from Ditto/Mew)
-        const transformedPokemon = ('transform' in volatiles && volatiles.transform?.[1]) || null;
-
-        const transformedForme = transformedPokemon?.speciesForme;
-
-        syncedPokemon.transformedForme = transformedForme || null;
-        syncedPokemon.transformedLevel = transformedPokemon?.level || null;
-
-        // check for (untransformed) forme changes
-        const formeChange = ('formechange' in volatiles && volatiles.formechange?.[1]) || null;
-        const dexForme = formeChange ? dex.species.get(formeChange) : null;
-
-        if (!transformedForme && formeChange) {
-          syncedPokemon.speciesForme = formeChange;
-
-          // update the Pokemon's types to match its new forme's types
-          if (dexForme?.types?.length) {
-            syncedPokemon.types = [...dexForme.types];
-          }
-        }
-
-        // sanitizing to make sure a transformed Pokemon doesn't crash the extension lol
-        value = sanitizeVolatiles(clientPokemon);
-
-        break;
-      }
-
-      default: {
-        break;
-      }
-    }
-
-    // update (2023/07/18): storing the value like this so we don't have to run JSON.stringify() again below when we set syncedPokemon[key] (rather, just simply passing it to JSON.parse())
-    const stringifiedValue = JSON.stringify(value);
-
-    if (stringifiedValue === JSON.stringify(prevValue)) {
-      return;
-    }
-
-    syncedPokemon[key] = typeof value === 'object' ? JSON.parse(stringifiedValue) : value;
-  });
-
-  // fill in some additional fields if the serverPokemon was provided
-  if (serverPokemon?.ident) {
-    syncedPokemon.source = 'server';
-
-    // should always be the case, idk why it shouldn't be (but you know we gotta check)
-    if (typeof serverPokemon.hp === 'number' && typeof serverPokemon.maxhp === 'number') {
-      syncedPokemon.hp = serverPokemon.hp;
-
-      // EDITINGNOTE: Figure out what to do here. make sure `maxhp` isn't a percentage (which is usually the case with dead Pokemon, i.e., 0% HP) (this isn't foolproof tho cause there could be instances where the `maxhp` is legit 100 lol)
-      if (serverPokemon.hp || serverPokemon.maxhp !== 100) {
-        syncedPokemon.maxhp = serverPokemon.maxhp;
-      }
-    }
-
-    // sometimes, the server may only provide the baseAbility (w/ an undefined ability)
-    const serverAbility = serverPokemon.ability || serverPokemon.baseAbility;
-
-    if (serverAbility) {
-      const dexAbility = dex.abilities.get(serverAbility);
-
-      if (dexAbility?.name) {
-        syncedPokemon.ability = dexAbility.name;
-      }
-    }
-
-    if (serverPokemon.item) {
-      const dexItem = dex.items.get(serverPokemon.item);
-
-      if (dexItem?.exists && dexItem.name) {
-        syncedPokemon.item = dexItem.name;
-      }
-    }
-
-    // copy the server stats for more accurate final stats calculations
-    if (!nonEmptyObject(syncedPokemon.serverStats) && nonEmptyObject(serverPokemon.stats)) {
-      syncedPokemon.serverStats = {
-        ...serverPokemon.stats,
-        hp: serverPokemon.maxhp,
-      };
-
-      // when refreshing the page, server will report dead ServerPokemon with 0 hp and 100 maxhp, which breaks the guessing part since no EV/IV combination may match 100 HP (setting 0 HP for the serverStats tells guessServerSpread() to ignore the HP when guessing)
-      if (!serverPokemon.hp && serverPokemon.maxhp === 100) {
-        syncedPokemon.serverStats.hp = 0;
-      }
-    }
-
-    // sanitize the moves from the serverPokemon
-    const serverMoves = serverPokemon.moves?.map((id) => dex.moves.get(id)?.name).filter(Boolean);
-
-    // set the serverMoves/transformedMoves if available (& not transformed, otherwise, serverMoves[] will be of the Transform-target Pokemon's moves!!)
-    const shouldUpdateServerMoves = !!serverMoves?.length && !syncedPokemon.serverMoves?.length && !syncedPokemon.transformedForme;
-
-    if (shouldUpdateServerMoves) {
-      syncedPokemon.serverMoves = [...serverMoves];
-    }
-
-    syncedPokemon.transformedMoves = [...(serverMoves?.length && syncedPokemon.transformedForme ? serverMoves : [])];
-  }
-
-  // from Showdown's battle log: "In Gens 3-4, Knock Off only makes the target's item unusable; it cannot obtain a new item."
-  if (syncedPokemon.item && formatId(syncedPokemon.itemEffect) === 'knockedoff') {
-    syncedPokemon.prevItem = syncedPokemon.item;
-    syncedPokemon.prevItemEffect = syncedPokemon.itemEffect;
-    syncedPokemon.item = null;
-    syncedPokemon.itemEffect = null;
-  }
-
-  // only using sanitizePokemon() to get some values back (is this a good idea? idk)
-  const {
-    transformedForme,
-    abilities,
-    transformedAbilities,
-    baseStats,
-    transformedBaseStats,
-  } = sanitizePokemon(syncedPokemon, format);
-
-  // update the abilities (including transformedAbilities) if they're different from what was stored prior (note: only checking if they're arrays instead of their length since th ability list could be empty)
-  const shouldUpdateAbilities = Array.isArray(abilities) && !similarArrays(abilities, syncedPokemon.abilities);
-
-  if (shouldUpdateAbilities) {
-    syncedPokemon.abilities = [...abilities];
-  }
-
-  const shouldUpdateTransformedAbilities = Array.isArray(transformedAbilities) && !similarArrays(transformedAbilities, syncedPokemon.transformedAbilities);
-
-  if (shouldUpdateTransformedAbilities) {
-    syncedPokemon.transformedAbilities = [...transformedAbilities];
-  }
-
-  // check for base stats (in case of forme changes)
-  if (nonEmptyObject(baseStats)) {
-    syncedPokemon.baseStats = { ...baseStats };
-  }
-
-  // check for transformed base stats
-  syncedPokemon.transformedBaseStats = (transformedForme && nonEmptyObject(transformedBaseStats) && { ...transformedBaseStats }) || null;
-
-  // clear the list of transformed moves if the Pokemon is no longer transformed // (this one applies to both client [i.e., non-server-sourced] & [redundantly] server-sourced syncedPokemon)
-  if (!transformedForme) {
-    syncedPokemon.transformedMoves = [];
-  }
-
-  // if the Pokemon is transformed, auto-set the moves
-  if (syncedPokemon.transformedMoves?.length) {
-    syncedPokemon.moves = [...syncedPokemon.transformedMoves];
-  }
-
-  // basically just shallow-copies moves[], i.e., basically a no-op
-  syncedPokemon.moves = [...syncedPokemon.moves];
-
-  // recalculate the spread stats (calcPokemonSpredStats() will determine whether to use the transformedBaseStats or baseStats)
-  syncedPokemon.spreadStats = calcPokemonSpreadStats(format, syncedPokemon);
-
-  return syncedPokemon;
 };

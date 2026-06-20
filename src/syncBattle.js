@@ -17,11 +17,11 @@ import {
   diffArrays,
   sanitizePokemon,
   sanitizeVolatiles,
-  syncPokemon,
   detectPlayerKeyFromPokemon,
   clonePlayerSideConditions,
   sanitizePlayerSide,
 } from './utilities.js';
+import { syncPokemon } from './syncPokemon.js';
 import { ToolsDomRenderer } from './ToolsRenderer.js';
 
 export function syncBattle(battle, request) {
