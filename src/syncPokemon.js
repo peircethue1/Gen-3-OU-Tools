@@ -1,6 +1,10 @@
 /**
  * 
- * EDITINGNOTE: Full review
+ * EDITINGNOTE: Needed final decisions are noted
+ * EDITINGNOTE: Standardize approach for forms (Castform and possibly Unown)
+ * EDITINGNOTE: Should boosts default to 0? Check use of 0 as a default throughout all files
+ * EDITINGNOTE: Should I remove faintCounter throughout all files since it's been deemed irrelevant here?
+ * EDITINGNOTE: Investigate the 100 max hp issue. Without revive effects in gen 3, I don't see why the stats of fainted mons are relevant
  */
 
 import {
@@ -17,25 +21,22 @@ import {
 } from './utilities.js';
 
 export const syncPokemon = (pokemon, config) => {
-  const {
-    format,
-    clientPokemon,
-    serverPokemon,
-  } = config || {};
+  const { format, clientPokemon, serverPokemon } = config || {};
 
+  // Defines the Dex and generation number
   const dex = getDexForFormat(format);
   const gen = detectGenFromFormat(format);
 
-  // final synced Pokemon that will be returned at the end
+  // Creates a copy of the Pokemon
   const syncedPokemon = clonePokemon(pokemon);
 
-  // if server-sourced, will be updated below
+  // Checks if the Pokemon lacks a source and client data is available, and defines the client as the source
   if (!syncedPokemon.source && clientPokemon?.speciesForme) {
     syncedPokemon.source = 'client';
   }
 
-  // you should not be looping through any special CalcdexPokemon-specific properties here!
-  ([
+  // Defines the Pokemon object
+  [
     'name',
     'speciesForme',
     'hp',
@@ -55,42 +56,32 @@ export const syncPokemon = (pokemon, config) => {
     'volatiles',
     'turnstatuses',
     'boosts',
-  ]).forEach((key) => {
+  ].forEach((key) => {
+
+    // Defines the previous and updated values
     const prevValue = syncedPokemon[key];
     let value = clientPokemon?.[key];
 
-    // note: this will accept null values!
+    // Checks if the updated value is invalid
     if (value === undefined) {
       return;
     }
 
-    // note: `return` to not set the `value` & go next, `break` to stop processing & move onto the `value` diff check to set it
     switch (key) {
-      case 'name': {
-        break;
-      }
-
       case 'speciesForme': {
 
-        // e.g., 'Urshifu-*' -> 'Urshifu' (to fix forme switching, which is prevented due to the wildcard forme)
+        // Removes the wildcard form
         value = value.replace('-*', '');
 
+        // Checks if the species form is unchanged
         if (prevValue === value) {
           return;
         }
 
-        // if the speciesForme changed, update the types & possible abilities (could change due to mega-evolutions or gigantamaxing, for instance)
+        // Defines the Pokemon types
         const updatedSpecies = dex.species.get(value);
 
-        syncedPokemon.types = [
-          ...(updatedSpecies?.types || syncedPokemon.types || []),
-        ];
-
-        if (nonEmptyObject(updatedSpecies?.abilities)) {
-          syncedPokemon.abilities = [
-            ...Object.values(updatedSpecies.abilities),
-          ];
-        }
+        syncedPokemon.types = [ ...(updatedSpecies?.types || syncedPokemon.types || []) ];
 
         break;
       }
@@ -98,18 +89,17 @@ export const syncPokemon = (pokemon, config) => {
       case 'hp':
       case 'maxhp': {
 
-        // note: returning at any point here will skip syncing the `value` from the Showdown.Pokemon (i.e., clientPokemon) to the CalcdexPokemon (i.e., syncedPokemon) (but only for the current `key` of the iteration, of course)
+        // Checks if the server has valid data for the Pokemon HP and max HP, and skips defining Pokemon HP and max HP
         if (typeof serverPokemon?.hp === 'number' && typeof serverPokemon.maxhp === 'number') {
           return;
         }
 
-        // note: breaking will continue the sync operation (which in this case, if a serverPokemon wasn't provided, we'll use the hp/maxhp from the clientPokemon)
         break;
       }
 
       case 'status': {
 
-        // remove the Pokemon's status if fainted
+        // Removes fainted Pokemon status
         if (!syncedPokemon.hp) {
           value = null;
         }
@@ -118,6 +108,8 @@ export const syncPokemon = (pokemon, config) => {
       }
 
       case 'statusData': {
+
+        // Checks if the status data is valid and defines status counters
         const statusData = value;
 
         if (typeof statusData?.sleepTurns === 'number' && statusData.sleepTurns > -1) {
@@ -132,6 +124,8 @@ export const syncPokemon = (pokemon, config) => {
       }
 
       case 'timesAttacked': {
+        
+        // Checks if the hit data is valid and defines the hit counter
         if (typeof value === 'number' && value > -1) {
           syncedPokemon.hitCounter = value;
         }
@@ -140,6 +134,8 @@ export const syncPokemon = (pokemon, config) => {
       }
 
       case 'ability': {
+
+        // Checks if the ability data is invalid, and skips defining the Pokemon ability
         if (!value || /^\([\w\s]+\)$/.test(value) || formatId(value) === 'noability') {
           return;
         }
@@ -149,26 +145,111 @@ export const syncPokemon = (pokemon, config) => {
 
       case 'item': {
 
-        // ignore any unrevealed item (resulting in a falsy value) that hasn't been knocked-off/consumed/etc. (this can be checked since when the item be consumed, prevItem would NOT be falsy)
+        // Checks if the item data is invalid or unrevealed, and skips defining the item
         if ((!value || formatId(value) === 'exists') && !clientPokemon?.prevItem) {
           return;
         }
 
-        // run the item through the dex in case it's formatted as an id
+        // Fetches the item name for the item ID
         value = dex?.items.get(value)?.name || value;
 
         break;
       }
 
-      case 'prevItem': {
+      case 'lastMove': {
+
+        // Checks if the last move is valid
+        if (!value) {
+          break;
+        }
+
+        // Fetches the move name for the move string
+        const dexMove = dex.moves.get(value);
+
+        if (dexMove?.exists) {
+          value = dexMove.name;
+        }
+
+        break;
+      }
+
+      case 'moveTrack': {
+
+        // Defines the move tracker
+        const { moveTrack, revealedMoves, transformedMoves } = sanitizeMoveTrack(clientPokemon, format);
+
+        value = moveTrack;
+
+        // Checks if the source is server data
+        if (syncedPokemon.source === 'server') {
+          break;
+        }
+
+        // Defines revealed moves and transformed moves
+        syncedPokemon.revealedMoves = revealedMoves;
+        syncedPokemon.transformedMoves = transformedMoves;
+
+        break;
+      }
+
+      case 'volatiles': {
+        const volatiles = value;
+
+        // Check if the Pokemon type has been changed and defines the Pokemon types
+        const changedTypes = ('typechange' in volatiles && volatiles.typechange[1]?.split?.('/')) || [];
+
+        if (changedTypes.length) {
+          syncedPokemon.types = [...changedTypes];
+        }
+
+        // Checks if the type change has been reset and defines the Pokemon types
+        const resetTypes = ('typechange' in syncedPokemon.volatiles && !changedTypes.length && dex.species.get(syncedPokemon.speciesForme)?.types) || [];
+
+        if (resetTypes?.length) {
+          syncedPokemon.types = [...resetTypes];
+        }
+
+        // Defines the form and level of the transformed Pokemon
+        const transformedPokemon = ('transform' in volatiles && volatiles.transform?.[1]) || null;
+        const transformedForme = transformedPokemon?.speciesForme;
+
+        syncedPokemon.transformedForme = transformedForme || null;
+        syncedPokemon.transformedLevel = transformedPokemon?.level || null;
+
+        // Checks if the Pokemon has changed form without using transform and defines the form
+        const formeChange = ('formechange' in volatiles && volatiles.formechange?.[1]) || null;
+        const dexForme = formeChange ? dex.species.get(formeChange) : null;
+
+        if (!transformedForme && formeChange) {
+          syncedPokemon.speciesForme = formeChange;
+
+          // Checks if the Pokemon form has valid Dex types and defines the Pokemon types
+          if (dexForme?.types?.length) {
+            syncedPokemon.types = [...dexForme.types];
+          }
+        }
+
+        // Checks if the Pokemon transformed into a changed form and defines its transformed form as the changed form
+        if (transformedPokemon && formeChange) {
+          syncedPokemon.transformedForme = formeChange;
+        }
+
+        // Defines the Pokemon volatiles
+        value = sanitizeVolatiles(clientPokemon);
+
         break;
       }
 
       case 'boosts': {
+
+        // Defines the Pokemon boost object
         value = ['atk', 'def', 'spa', 'spd', 'spe'].reduce((prev, stat) => {
+
+          // Defines the previous and updated boost values
           const prevBoost = prev[stat];
           const boost = clientPokemon?.boosts?.[stat] || 0;
 
+          // Checks if the boost value is changed and updates the boost value
           if (boost !== prevBoost) {
             prev[stat] = boost;
           }
@@ -185,126 +266,41 @@ export const syncPokemon = (pokemon, config) => {
         break;
       }
 
-      case 'lastMove': {
-
-        // allowing falsy values to enable clearing the lastMove
-        if (!value) {
-          break;
-        }
-
-        const dexMove = dex.moves.get(value);
-
-        if (dexMove?.exists) {
-          value = dexMove.name;
-        }
-
-        break;
-      }
-
-      case 'moveTrack': {
-        const {
-          moveTrack,
-          revealedMoves,
-          transformedMoves,
-        } = sanitizeMoveTrack(clientPokemon, format);
-
-        value = moveTrack;
-
-        if (syncedPokemon.source === 'server') {
-          break;
-        }
-
-        syncedPokemon.revealedMoves = revealedMoves;
-        syncedPokemon.transformedMoves = transformedMoves;
-
-        break;
-      }
-
-      case 'volatiles': {
-        const volatiles = value;
-
-        // check for type changes (and apply only when not terastallized) (client reports a 'typechange' volatile when a Pokemon terastallizes)
-        const changedTypes = (
-
-          // e.g., 'Psychic/Ice' -> ['Psychic', 'Ice']
-          'typechange' in volatiles && volatiles.typechange[1]?.split?.('/')
-        ) || [];
-
-        if (changedTypes.length) {
-          syncedPokemon.types = [...changedTypes];
-        }
-
-        // check for type change resets
-        const resetTypes = ('typechange' in syncedPokemon.volatiles && !changedTypes.length && dex.species.get(syncedPokemon.speciesForme)?.types) || [];
-
-        if (resetTypes?.length) {
-          syncedPokemon.types = [...resetTypes];
-        }
-
-        // check for type additions (separate from type changes)
-        const addedType = ('typeadd' in volatiles && volatiles.typeadd?.[1]) || null;
-
-        if (addedType && !syncedPokemon.types.includes(addedType)) {
-          syncedPokemon.types.push(addedType);
-        }
-
-        // check for transformations (e.g., from Ditto/Mew)
-        const transformedPokemon = ('transform' in volatiles && volatiles.transform?.[1]) || null;
-
-        const transformedForme = transformedPokemon?.speciesForme;
-
-        syncedPokemon.transformedForme = transformedForme || null;
-        syncedPokemon.transformedLevel = transformedPokemon?.level || null;
-
-        // check for (untransformed) forme changes
-        const formeChange = ('formechange' in volatiles && volatiles.formechange?.[1]) || null;
-        const dexForme = formeChange ? dex.species.get(formeChange) : null;
-
-        if (!transformedForme && formeChange) {
-          syncedPokemon.speciesForme = formeChange;
-
-          // update the Pokemon's types to match its new forme's types
-          if (dexForme?.types?.length) {
-            syncedPokemon.types = [...dexForme.types];
-          }
-        }
-
-        // sanitizing to make sure a transformed Pokemon doesn't crash the extension lol
-        value = sanitizeVolatiles(clientPokemon);
-
-        break;
-      }
-
       default: {
         break;
       }
     }
 
-    // update (2023/07/18): storing the value like this so we don't have to run JSON.stringify() again below when we set syncedPokemon[key] (rather, just simply passing it to JSON.parse())
+    // Checks if the previous value is unchanged
     const stringifiedValue = JSON.stringify(value);
 
     if (stringifiedValue === JSON.stringify(prevValue)) {
       return;
     }
 
+    // Defines the value for the key
     syncedPokemon[key] = typeof value === 'object' ? JSON.parse(stringifiedValue) : value;
   });
 
-  // fill in some additional fields if the serverPokemon was provided
+  // Checks if server data is available
   if (serverPokemon?.ident) {
+    
+    // Defines the server as the source
     syncedPokemon.source = 'server';
 
-    // should always be the case, idk why it shouldn't be (but you know we gotta check)
+    // Checks if the Pokemon HP and max HP data is valid
     if (typeof serverPokemon.hp === 'number' && typeof serverPokemon.maxhp === 'number') {
+
+      // Defines the Pokemon HP
       syncedPokemon.hp = serverPokemon.hp;
 
-      // EDITINGNOTE: Figure out what to do here. make sure `maxhp` isn't a percentage (which is usually the case with dead Pokemon, i.e., 0% HP) (this isn't foolproof tho cause there could be instances where the `maxhp` is legit 100 lol)
+      // Checks if the Pokemon HP and max HP values are valid, and defines the Pokemon max HP
       if (serverPokemon.hp || serverPokemon.maxhp !== 100) {
         syncedPokemon.maxhp = serverPokemon.maxhp;
       }
     }
 
-    // sometimes, the server may only provide the baseAbility (w/ an undefined ability)
+    // Checks if the ability data is valid and defines the Pokemon ability 
     const serverAbility = serverPokemon.ability || serverPokemon.baseAbility;
 
     if (serverAbility) {
@@ -315,6 +311,7 @@ export const syncPokemon = (pokemon, config) => {
       }
     }
 
+    // Checks if the item data is valid and defines the item
     if (serverPokemon.item) {
       const dexItem = dex.items.get(serverPokemon.item);
 
@@ -323,23 +320,18 @@ export const syncPokemon = (pokemon, config) => {
       }
     }
 
-    // copy the server stats for more accurate final stats calculations
+    // Checks if the statistics data is valid and defines the Pokemon statistics
     if (!nonEmptyObject(syncedPokemon.serverStats) && nonEmptyObject(serverPokemon.stats)) {
-      syncedPokemon.serverStats = {
-        ...serverPokemon.stats,
-        hp: serverPokemon.maxhp,
-      };
+      syncedPokemon.serverStats = {...serverPokemon.stats, hp: serverPokemon.maxhp};
 
-      // when refreshing the page, server will report dead ServerPokemon with 0 hp and 100 maxhp, which breaks the guessing part since no EV/IV combination may match 100 HP (setting 0 HP for the serverStats tells guessServerSpread() to ignore the HP when guessing)
+      // Checks if the Pokemon HP and max HP values are invalid, and defines the Pokemon HP
       if (!serverPokemon.hp && serverPokemon.maxhp === 100) {
         syncedPokemon.serverStats.hp = 0;
       }
     }
 
-    // sanitize the moves from the serverPokemon
+    // Checks if the moves data is valid for untransformed and transformed Pokemon, and defines the untransformed and transformed Pokemon moves
     const serverMoves = serverPokemon.moves?.map((id) => dex.moves.get(id)?.name).filter(Boolean);
-
-    // set the serverMoves/transformedMoves if available (& not transformed, otherwise, serverMoves[] will be of the Transform-target Pokemon's moves!!)
     const shouldUpdateServerMoves = !!serverMoves?.length && !syncedPokemon.serverMoves?.length && !syncedPokemon.transformedForme;
 
     if (shouldUpdateServerMoves) {
@@ -349,7 +341,7 @@ export const syncPokemon = (pokemon, config) => {
     syncedPokemon.transformedMoves = [...(serverMoves?.length && syncedPokemon.transformedForme ? serverMoves : [])];
   }
 
-  // from Showdown's battle log: "In Gens 3-4, Knock Off only makes the target's item unusable; it cannot obtain a new item."
+  // Checks if the item has been knocked off and defines the Pokemon item, item effect, previous item, and previous item effect
   if (syncedPokemon.item && formatId(syncedPokemon.itemEffect) === 'knockedoff') {
     syncedPokemon.prevItem = syncedPokemon.item;
     syncedPokemon.prevItemEffect = syncedPokemon.itemEffect;
@@ -357,7 +349,6 @@ export const syncPokemon = (pokemon, config) => {
     syncedPokemon.itemEffect = null;
   }
 
-  // only using sanitizePokemon() to get some values back (is this a good idea? idk)
   const {
     transformedForme,
     abilities,
@@ -366,7 +357,7 @@ export const syncPokemon = (pokemon, config) => {
     transformedBaseStats,
   } = sanitizePokemon(syncedPokemon, format);
 
-  // update the abilities (including transformedAbilities) if they're different from what was stored prior (note: only checking if they're arrays instead of their length since th ability list could be empty)
+  // Checks if the untransformed and transformed ability data is valid and has changed, and defines the untransformed and transformed Pokemon abilities
   const shouldUpdateAbilities = Array.isArray(abilities) && !similarArrays(abilities, syncedPokemon.abilities);
 
   if (shouldUpdateAbilities) {
@@ -379,28 +370,25 @@ export const syncPokemon = (pokemon, config) => {
     syncedPokemon.transformedAbilities = [...transformedAbilities];
   }
 
-  // check for base stats (in case of forme changes)
+  // Checks if the statistics data is available and defines the Pokemon statistics
   if (nonEmptyObject(baseStats)) {
     syncedPokemon.baseStats = { ...baseStats };
   }
 
-  // check for transformed base stats
+  // Defines the transformed Pokemon statistics
   syncedPokemon.transformedBaseStats = (transformedForme && nonEmptyObject(transformedBaseStats) && { ...transformedBaseStats }) || null;
 
-  // clear the list of transformed moves if the Pokemon is no longer transformed // (this one applies to both client [i.e., non-server-sourced] & [redundantly] server-sourced syncedPokemon)
+  // Checks if the Pokemon is untransformed and defines the transformed Pokemon moves
   if (!transformedForme) {
     syncedPokemon.transformedMoves = [];
   }
 
-  // if the Pokemon is transformed, auto-set the moves
+  // Checks if the Pokemon has transformed moves and defines the Pokemon moves
   if (syncedPokemon.transformedMoves?.length) {
     syncedPokemon.moves = [...syncedPokemon.transformedMoves];
   }
 
-  // basically just shallow-copies moves[], i.e., basically a no-op
-  syncedPokemon.moves = [...syncedPokemon.moves];
-
-  // recalculate the spread stats (calcPokemonSpredStats() will determine whether to use the transformedBaseStats or baseStats)
+  // Defines the Pokemon statistic spread
   syncedPokemon.spreadStats = calcPokemonSpreadStats(syncedPokemon);
 
   return syncedPokemon;

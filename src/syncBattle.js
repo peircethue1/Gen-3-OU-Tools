@@ -563,4 +563,4 @@ export function syncBattle(battle, request) {
 
   // Directly execute the DOM renderer update hook
   this.renderTools(toolsElement);
-}
+};
