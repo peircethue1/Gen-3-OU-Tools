@@ -62,7 +62,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       // 
       toolsRoom.el.innerHTML = '';
 
-      // clean up allocated memory from toolsState for this Tools instance
+      // clean up allocated memory from tools state for this Tools instance
       this.toolsState = null;
 
       // 
@@ -230,7 +230,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     ToolsDomRenderer(
       element,
       {
-        state: this.battleState,
+        state: this.toolsState,
         battleId: this.battleId,
       },
     );
@@ -240,7 +240,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
   open() {
 
     // 
-    if (!this.battleState?.battleId) {
+    if (!this.toolsState?.battleId) {
       return;
     }
 
@@ -348,14 +348,14 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     if (!this.battle?.id) {
 
       // we'd typically reach this point when the user forfeits through the popup
-      if (!this.battleState?.battleId) {
-        console.debug('[Gen 3 OU Tools] The bootstrap request was ignored for this battle with no battleState:', this.battleId);
+      if (!this.toolsState?.battleId) {
+        console.debug('[Gen 3 OU Tools] The bootstrap request was ignored for this battle with no state:', this.battleId);
 
         return;
       }
 
       // 
-      if (this.battleState?.active) {
+      if (this.toolsState?.active) {
         this.toolsState = {
           battleId: this.battleId,
           active: false,
@@ -367,10 +367,10 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
       if (toolsRoomId in window.app.rooms) {
         console.debug(
-          '[Gen 3 OU Tools] Leaving with a destroyed battleState.',
+          '[Gen 3 OU Tools] Leaving with a destroyed toolsState.',
           '\ntoolsRoomId:', toolsRoomId,
           '\nbattleId:', this.battleId,
-          '\nbattleState:', this.battleState,
+          '\nstate:', this.toolsState,
         );
 
         // this will destroy the Tools state if configured to, via toolsRoom's requestLeave() handler
@@ -384,7 +384,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
         '\nbattleId:', this.battleId,
         '\nbattle:', this.battle,
         '\nbattleRoom:', this.battleRoom,
-        '\nbattleState:', this.battleState,
+        '\nstate:', this.toolsState,
       );
 
       return;

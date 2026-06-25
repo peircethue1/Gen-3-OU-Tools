@@ -5,6 +5,7 @@
  * EDITINGNOTE: Should boosts default to 0? Check use of 0 as a default throughout all files
  * EDITINGNOTE: Should I remove faintCounter throughout all files since it's been deemed irrelevant here?
  * EDITINGNOTE: Investigate the 100 max hp issue. Without revive effects in gen 3, I don't see why the stats of fainted mons are relevant
+ * EDITINGNOTE: Should I adopt a direct mutation approach over immutable cloning?
  */
 
 import {
@@ -23,7 +24,7 @@ import {
 export const syncPokemon = (pokemon, config) => {
   const { format, clientPokemon, serverPokemon } = config || {};
 
-  // Defines the Dex and generation number
+  // Defines the Dex and generation
   const dex = getDexForFormat(format);
   const gen = detectGenFromFormat(format);
 

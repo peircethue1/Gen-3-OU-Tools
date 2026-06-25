@@ -1,6 +1,6 @@
 ﻿/**
  * 
- * EDITINGNOTE: Review comment content, perhaps spacing - need to generally match up init, sync(battleState), and nonce
+ * EDITINGNOTE: Review comment content, perhaps spacing - need to generally match up init, sync, and nonce
  */
 
 import { NIL as uuidnil } from 'uuid';
@@ -62,17 +62,12 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     throw new Error('Bootstrapper error: get battleRequest() is not implemented.');
   }
 
-  // 
-  get battleState() {
-    return this.toolsState;
-  }
-
   // Checks if initialization is disabled for the battle
   get initDisabled() {
     return (this.battle?.stepQueue || []).some((step) => step?.startsWith('|noinit|nonexistent|'));
   }
 
-  // Creates the initial battle state
+  // Creates the initial state
   initToolsState() {
     const battleInstance = this.battle;
     const battleId = battleInstance?.id || this.battleId;
@@ -89,13 +84,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         '\nbattleId:', battleId,
         '\ntoolsStateInit:', battleInstance.toolsStateInit,
         '\nbattle:', battleInstance,
-        '\ntoolsState:', this.toolsState,
+        '\nstate:', this.toolsState,
       );
 
       return;
     }
 
-    // Defines the initial nonce representing the battle state
+    // Defines the initial nonce representing the state
     const initNonce = uuidnil;
 
     console.debug(
@@ -105,7 +100,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nbattle:', battleInstance,
     );
 
-    // Creates a snapshot of the battle state
+    // Creates a snapshot of the state
     this.toolsState = {
       battleId,
       battleNonce: initNonce,
@@ -115,7 +110,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       turn: Math.max((battleInstance.turn || 0), 0),
       active: !battleInstance.ended,
       paused: false,
-      playerKey: null,
       authPlayerKey: null,
       opponentKey: null,
       switchPlayers: battleInstance.viewpointSwitched ?? battleInstance.sidesSwitched,
@@ -241,7 +235,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // make sure the battle was active on the previous sync, but now has ended
-    if (this.battleState?.active && battleInstance.ended) {
+    if (this.toolsState?.active && battleInstance.ended) {
       console.debug(
         '[Gen 3 OU Tools] Updating active state for the battle.',
         '\nbattleId:', battleInstance.id,
@@ -261,26 +255,26 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }
 
     // 
-    battleInstance.nonce = calcBattleToolsNonce(battleInstance, this.battleRequest, this.battleState);
+    battleInstance.nonce = calcBattleToolsNonce(battleInstance, this.battleRequest, this.toolsState);
 
     // 
-    if (!this.battleState?.battleNonce) {
+    if (!this.toolsState?.battleNonce) {
       return;
     }
 
     // dispatch a battle sync if the nonces are different (i.e., something changed)
-    if (battleInstance.nonce === this.battleState.battleNonce) {
+    if (battleInstance.nonce === this.toolsState.battleNonce) {
       return;
     }
 
     console.debug(
       '[Gen 3 OU Tools] Syncing the battle.',
       '\nbattleId:', battleInstance.id,
-      '\nprevious nonce:', this.battleState.battleNonce,
+      '\nprevious nonce:', this.toolsState.battleNonce,
       '\nnew nonce:', battleInstance.nonce,
       '\nrequest:', this.battleRequest,
       '\nbattle:', battleInstance,
-      '\nbattleState:', this.battleState,
+      '\nstate:', this.toolsState,
     );
 
     // 
@@ -319,13 +313,13 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       pokemonSearchCandidates.push(...side.pokemon);
     }
 
-    // checks for valid toolsstate
-    if (!this.battleState?.battleId) {
+    // checks for valid tools state
+    if (!this.toolsState?.battleId) {
       return execAddPokemon();
     }
 
     // 
-    const { pokemon: pokemonFromState } = this.battleState[playerKey] || {};
+    const { pokemon: pokemonFromState } = this.toolsState[playerKey] || {};
 
     if (pokemonFromState?.length) {
       pokemonSearchCandidates.push(...pokemonFromState);
@@ -353,7 +347,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
           similarPokemon(
             { details },
             pokemon, 
-            { format: this.battleState.format },
+            { format: this.toolsState.format },
           )
       ));
 
@@ -457,7 +451,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     const { nonce: prevNonce } = this.battle;
 
     // 
-    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest, this.battleState);
+    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest, this.toolsState);
 
     console.debug(
       '[Gen 3 OU Tools] Restored toolsId to data from the server.',

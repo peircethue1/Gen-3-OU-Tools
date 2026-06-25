@@ -4,13 +4,13 @@
  */
 
 export function syncPrediction() {
-  const opponentKey = this.battleState.opponentKey;
+  const opponentKey = this.toolsState.opponentKey;
 
   if (!opponentKey) {
     return;
   }
 
-  const opponentState = this.battleState[opponentKey];
+  const opponentState = this.toolsState[opponentKey];
 
   if (!opponentState || !Array.isArray(opponentState.pokemonOrder)) {
     return;
@@ -44,7 +44,7 @@ export function syncPrediction() {
     opponentBracket = "1500"
   }
 
-  if (!this.battleState.smogonChaos || !this.battleState.smogonLeads) {
+  if (!this.toolsState.smogonChaos || !this.toolsState.smogonLeads) {
     const handleSmogonResponse = (event) => {
       if (!event.data || !event.data.type) {
         return;
@@ -75,7 +75,7 @@ export function syncPrediction() {
 
   for (let index = 0; index < opponentTeamKey.length; index++) {
     const pokemon = opponentTeamKey[index];
-    const teammates = this.battleState.smogonChaos?.data?.[pokemon]?.Teammates;
+    const teammates = this.toolsState.smogonChaos?.data?.[pokemon]?.Teammates;
 
     if (!teammates) {
       conditional = null;
@@ -121,8 +121,8 @@ export function syncPrediction() {
 
     for (const teammate in conditional) {
 
-      const rawCount = this.battleState.smogonChaos?.data?.[teammate]?.["Raw count"];
-      const leadCount = this.battleState.smogonLeads?.data?.[teammate]?.rawCount;
+      const rawCount = this.toolsState.smogonChaos?.data?.[teammate]?.["Raw count"];
+      const leadCount = this.toolsState.smogonLeads?.data?.[teammate]?.rawCount;
 
       if (!(rawCount > 0) || !(leadCount > 0)) {
         continue;

@@ -2,7 +2,7 @@
 
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
-// Creates a generation number for the format
+// Creates a generation for the format
 export const detectGenFromFormat = (format) => {
   if (typeof format === 'number') {
     return Math.max(format, 0);
@@ -120,7 +120,7 @@ export const sanitizeVolatiles = (pokemon) =>
     return volatiles;
   }, {});
 
-// Creates a deterministic string that represents the Pokemon state EDITINGNOTE: Come back to this to decide what we need from battle and what we need from battleState. Do I need faintCounter?
+// Creates a deterministic string that represents the Pokemon state EDITINGNOTE: Come back to this to decide what we need from battle and what we need from state. Do I need faintCounter?
 const calcPokemonToolsNonce = (pokemon) =>
   calcToolsId({
     ident: pokemon?.ident,
@@ -164,7 +164,7 @@ const calcPokemonToolsNonce = (pokemon) =>
     criticalHit: (!!pokemon?.speciesForme && 'criticalHit' in pokemon && pokemon.criticalHit?.toString()) || null,
   });
 
-// Creates a deterministic string that represents the player side EDITINGNOTE: Come back to this to decide what we need from battle and what we need from battleState
+// Creates a deterministic string that represents the player side EDITINGNOTE: Come back to this to decide what we need from battle and what we need from state
 const calcSideToolsNonce = (side) =>
   calcToolsId({
     id: side?.id,
@@ -177,8 +177,8 @@ const calcSideToolsNonce = (side) =>
     sideConditions: Object.keys(side?.sideConditions || {}).join(';'),
   });
 
-// Creates a deterministic string that represents the battle state EDITINGNOTE: Come back to this to decide what we need from battle and what we need from battleState
-export const calcBattleToolsNonce = (battle, request, battleState) => {
+// Creates a deterministic string that represents the state EDITINGNOTE: Come back to this to decide what we need from battle and what we need from state
+export const calcBattleToolsNonce = (battle, request, toolsState) => {
   const stepQueue = battle?.stepQueue?.filter?.((step) => !!step && !/^\|(?:inactive|-message|c(?!.+\|\/raw)|j|l|player)/i.test(step)) || [];
 
   return calcToolsId({
@@ -199,8 +199,8 @@ export const calcBattleToolsNonce = (battle, request, battleState) => {
     rqid: request?.rqid?.toString(),
     requestType: request?.requestType,
     side: request?.side?.id,
-    smogonChaos: !!battleState?.smogonChaos,
-    smogonLeads: !!battleState?.smogonLeads,
+    smogonChaos: !!toolsState?.smogonChaos,
+    smogonLeads: !!toolsState?.smogonLeads,
   });
 };
 
@@ -362,7 +362,7 @@ export const syncField = (state, battle) => {
   if (!nonEmptyObject(state?.field) || !battle?.p1) {
     console.warn(
       '[Gen 3 OU Tools] The field or battle is invalid.',
-      '\nbattleState.field:', state.field,
+      '\nstate.field:', state.field,
       '\nbattle:', battle,
     );
 
