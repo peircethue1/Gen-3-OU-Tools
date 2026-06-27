@@ -156,7 +156,7 @@ window.addEventListener("message", async (event) => {
 });
 
 // Defines the main script location and settings
-const mainUrl = runtime.getURL('dist/main.js');
+const mainUrl = runtime.getURL('main.js');
 const extensionId = runtime.id;
 const injectables = [
   {

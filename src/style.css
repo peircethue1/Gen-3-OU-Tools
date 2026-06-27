@@ -3,3 +3,7 @@
 EDITINGNOTE: Building...
 EDITINGNOTE: see Calcdex.module.scss
 */
+
+.tools-panel {
+  padding: 10px;
+}

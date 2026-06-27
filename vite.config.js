@@ -16,15 +16,10 @@ export default defineConfig({
         background: resolve(__dirname, 'src/background.js'),
       },
       output: {
+        format: 'iife',
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'style.css') {
-            return 'main.css';
-          }
-
-          return '[name].[ext]';
-        },
+        assetFileNames: (assetInfo) => assetInfo.name === 'style.css' ? 'main.css' : '[name].[ext]',
       },
     },
   },

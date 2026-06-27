@@ -1,4 +1,4 @@
-// EDITINGNOTE: Needed final decisions are noted
+// EDITINGNOTE: Needed final decisions are noted...
 
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
@@ -357,7 +357,7 @@ const sanitizeField = (battle) => {
   return sanitizedField;
 };
 
-// Updates the field object based on the field state EDITINGNOTE: Come back to this to decide how to handle dirty properties
+// Updates the field object based on the field state
 export const syncField = (state, battle) => {
   if (!nonEmptyObject(state?.field) || !battle?.p1) {
     console.warn(

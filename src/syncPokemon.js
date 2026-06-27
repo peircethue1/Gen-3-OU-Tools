@@ -1,11 +1,10 @@
 /**
- * 
- * EDITINGNOTE: Needed final decisions are noted
- * EDITINGNOTE: Standardize approach for forms (Castform and possibly Unown)
+ * Creates the Pokemon
+ * EDITINGNOTE: Needed final decisions are noted...
+ * EDITINGNOTE: Investigate behavior and develop a standardized approach for forms including Castform and possibly Unown
  * EDITINGNOTE: Should boosts default to 0? Check use of 0 as a default throughout all files
  * EDITINGNOTE: Should I remove faintCounter throughout all files since it's been deemed irrelevant here?
  * EDITINGNOTE: Investigate the 100 max hp issue. Without revive effects in gen 3, I don't see why the stats of fainted mons are relevant
- * EDITINGNOTE: Should I adopt a direct mutation approach over immutable cloning?
  */
 
 import {
@@ -36,7 +35,7 @@ export const syncPokemon = (pokemon, config) => {
     syncedPokemon.source = 'client';
   }
 
-  // Defines the Pokemon object
+  // Defines the Pokemon
   [
     'name',
     'speciesForme',
@@ -243,7 +242,7 @@ export const syncPokemon = (pokemon, config) => {
 
       case 'boosts': {
 
-        // Defines the Pokemon boost object
+        // Defines the Pokemon boost
         value = ['atk', 'def', 'spa', 'spd', 'spe'].reduce((prev, stat) => {
 
           // Defines the previous and updated boost values

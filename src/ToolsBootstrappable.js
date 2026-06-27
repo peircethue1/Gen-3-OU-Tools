@@ -1,6 +1,6 @@
 ﻿/**
  * 
- * EDITINGNOTE: Review comment content, perhaps spacing - need to generally match up init, sync, and nonce
+ * EDITINGNOTE: Review comment content and spacing...
  */
 
 import { NIL as uuidnil } from 'uuid';

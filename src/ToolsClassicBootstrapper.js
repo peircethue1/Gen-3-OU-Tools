@@ -1,16 +1,16 @@
 ﻿/**
  * 
- * EDITINGNOTE: This has been reviewed and blank comments have been inserted appropriately. Review spacing, punctuation, and insert comments
- * EDITINGNOTE: handle "render" and html, also this is the only "complete" file with react and root in it, this must be where the react root is mounted, see also CalcdexRenderer.tsx
+ * EDITINGNOTE: Review spacing, punctuation, comments, and note...
  */
 
+import * as ReactDOM from 'react-dom/client';
 import {
   formatId,
   nonEmptyObject
 } from './utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
-import { ToolsDomRenderer } from './ToolsRenderer.js';
-import toolsHtml from './tools.html';
+import { ToolsDomRenderer } from './ToolsRenderer.jsx';
+import './style.css';
 
 export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
@@ -48,7 +48,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     }
 
     // 
-    toolsRoom.el.innerHTML = toolsHtml;
+    toolsRoom.reactRoot = ReactDOM.createRoot(toolsRoom.el);
 
     // 
     toolsRoom.requestLeave = () => {
@@ -60,7 +60,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       }
 
       // 
-      toolsRoom.el.innerHTML = '';
+      toolsRoom.reactRoot?.unmount?.();
 
       // clean up allocated memory from tools state for this Tools instance
       this.toolsState = null;
@@ -219,21 +219,15 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
   }
 
   // 
-  renderTools(element) {
+  renderTools(dom) {
 
     // 
-    if (!this.battleId || !element) {
+    if (!this.battleId || !dom) {
       return;
     }
 
     // 
-    ToolsDomRenderer(
-      element,
-      {
-        state: this.toolsState,
-        battleId: this.battleId,
-      },
-    );
+    ToolsDomRenderer(dom, { state: this.toolsState, battleId: this.battleId });
   }
 
   // 
@@ -258,7 +252,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       const toolsRoom = ToolsClassicBootstrapper.createToolsRoom(this.battleId, true);
 
       // 
-      this.renderTools(toolsRoom.el);
+      this.renderTools(toolsRoom.reactRoot);
 
       // if the battleRoom exists, attach the created room to the battle object
       if (this.battleRoom?.battle?.id) {
@@ -447,15 +441,15 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     // 
     this.preparePanel();
 
-    // 
-    const toolsElement = this.battle.toolsHtmlRoom?.el;
+    // EDITINGNOTE: Fix this error message
+    const toolsReactRoot = this.battle.toolsHtmlRoom?.reactRoot;
 
-    if (!toolsElement) {
+    if (!toolsReactRoot) {
       console.error(
         'ReactDOM root hasn\'t been initialized, despite completing the classic bootstrap;',
         'something is horribly wrong here!',
         '\n', 'battleId', this.battle.id,
-        '\n', 'toolsElement', '(typeof)', typeof toolsElement, toolsElement,
+        '\n', 'toolsReactRoot', '(typeof)', typeof toolsReactRoot, toolsReactRoot,
         '\n', 'battle', this.battle,
         '\n', 'battleRoom', this.battleRoom,
       );
@@ -467,7 +461,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     this.patchToolsIdentifier();
 
     // 
-    this.renderTools(toolsElement);
+    this.renderTools(toolsReactRoot);
 
     console.debug(
       '[Gen 3 OU Tools] Intercepting client data via battle.subscribe.',
@@ -486,14 +480,14 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     this.battle.toolsInit = true;
 
     // 
-    if (toolsElement && this.battle.atQueueEnd) {
+    if (toolsReactRoot && this.battle.atQueueEnd) {
 
       // 
       this.battle.subscription('atqueueend');
     }
 
     // 
-    if (toolsElement && !this.battle.atQueueEnd) {
+    if (toolsReactRoot && !this.battle.atQueueEnd) {
 
       // 
       this.battle.subscription('step');
