@@ -1,2 +1,0 @@
-chrome.runtime.onMessage.addListener((e,t,n)=>{if(e.type===`SMOGON_FETCH`)return fetch(e.url).then(t=>{if(!t.ok)throw Error(`Smogon fetch failed with status: ${t.status}`);return e.isJson?t.json():t.text()}).then(e=>{n({success:!0,data:e})}).catch(e=>{console.error(`[Gen 3 OU Tools] Failed to fetch data from Smogon with this error:`,e),n({success:!1,error:e.message})}),!0});
-//# sourceMappingURL=background.js.map
