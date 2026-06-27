@@ -10,7 +10,7 @@ import {
 } from './utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
 import { ToolsDomRenderer } from './ToolsRenderer.jsx';
-import './style.css';
+import './main.css';
 
 export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
