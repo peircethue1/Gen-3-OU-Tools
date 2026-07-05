@@ -10,6 +10,7 @@
     "watch": "node build.js --watch"
   },
   "dependencies": {
+    "@react-hook/size": "^2.1.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "uuid": "^14.0.1"

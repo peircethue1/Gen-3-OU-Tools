@@ -6,6 +6,7 @@ export class BootAdapter {
 
   // Defines the initialization state
   static __initialized = false;
+  static __colorScheme = null;
   static __authUsername = null;
 
   // Defines the initialization lifecycle hooks
@@ -28,6 +29,16 @@ export class BootAdapter {
     // Defines the initialization lock
     this.__initialized = true;
   };
+
+  // Fetches the color scheme
+  static get colorScheme() {
+    return this.__colorScheme;
+  }
+
+  // Updates the color scheme
+  static set colorScheme(value) {
+    this.__colorScheme = value;
+  }
 
   // Fetches the username
   static get authUsername() {

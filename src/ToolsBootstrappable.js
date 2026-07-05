@@ -100,6 +100,8 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nbattle:', battleInstance,
     );
 
+    const { Adapter } = ToolsBootstrappable;
+
     // Creates a snapshot of the state
     this.toolsState = {
       battleId,
@@ -146,6 +148,9 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         pokemonOrder: [],
         pokemon: [],
       },
+      colorScheme: Adapter.colorScheme || 'light',
+      containerSize: 'xs',
+      containerWidth: 320,
       smogonChaos: null,
       smogonLeads: null,
     };
@@ -175,6 +180,25 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         ...sanitizePlayerSide(this.toolsState[playerKey], player),
       };
     });
+
+    // Creates a color scheme receiver
+    this.__colorSchemeReceiver = (colorScheme) => {
+
+      // Checks if the state is available and defines the color scheme
+      if (this.toolsState) {
+        this.toolsState.colorScheme = colorScheme;
+
+        // Checks if the react root is available and the renderer is valid and renders the panel
+        const toolsReactRoot = this.battle?.toolsHtmlRoom?.reactRoot;
+
+        if (toolsReactRoot && typeof this.renderTools === 'function') {
+          this.renderTools(toolsReactRoot);
+        }
+      }
+    };
+
+    // Adds the color scheme receiver to the array of color scheme receivers
+    Adapter.addColorSchemeReceiver(this.__colorSchemeReceiver);
 
     // Sets the initialization lock
     battleInstance.toolsStateInit = true;

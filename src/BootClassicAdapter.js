@@ -10,6 +10,8 @@ export class BootClassicAdapter extends BootAdapter {
   static __appReceive = null;
   static __appRun = null;
   static __battleReceivers = [];
+  static __colorSchemeObserver = null;
+  static __colorSchemeReceivers = [];
   static __mutex = {
     ok: false,
     battleBuf: [],
@@ -97,6 +99,50 @@ export class BootClassicAdapter extends BootAdapter {
         receiver(data);
       }
     };
+
+    // Initializes the color scheme
+    const clientPrefs = window.Dex?.prefs?.('theme');
+    const systemPrefs = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ? 'dark' : 'light';
+    const initColorScheme = (clientPrefs === 'light' || clientPrefs === 'dark') ? clientPrefs : (
+      clientPrefs === 'system' ? systemPrefs : 'light'
+    );
+
+    this.colorScheme = initColorScheme;
+
+    console.debug('[Gen 3 OU Tools] Initializing the client color scheme observer.');
+
+    // Creates a client color scheme observer
+    this.__colorSchemeObserver = new MutationObserver((mutationList) => {
+      const [mutation] = mutationList || [];
+
+      // Checks if the mutation is a change in attribute
+      if (mutation?.type !== 'attributes') {
+        return;
+      }
+
+      // Checks if the color scheme has changed and stores the color scheme
+      const { className } = (mutation.target) || {};
+      const colorScheme = className?.includes('dark') ? 'dark' : 'light';
+
+      if (BootClassicAdapter.colorScheme !== colorScheme) {
+        BootClassicAdapter.colorScheme = colorScheme;
+
+        // Checks if each color scheme receiver is valid and updates the color scheme
+        BootClassicAdapter.__colorSchemeReceivers.forEach((receiver) => {
+          if (typeof receiver === 'function') {
+            receiver(colorScheme);
+          }
+        });
+      }
+    });
+
+    // Observes the root document class attributes
+    this.__colorSchemeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+      childList: false,
+      characterData: false,
+    });
   };
 
   // Intercepts battle data via window.Battle.prototype.run
@@ -223,5 +269,27 @@ export class BootClassicAdapter extends BootAdapter {
     }
 
     this.__battleReceivers.length = 0;
+  };
+
+  // Adds a color scheme receiver to the array of color scheme receivers
+  static addColorSchemeReceiver(receiver) {
+    if (typeof receiver !== 'function' || this.__colorSchemeReceivers.includes(receiver)) {
+      return;
+    }
+
+    this.__colorSchemeReceivers.push(receiver);
+  };
+
+  // Removes a color scheme receiver from the array of color scheme receivers
+  static removeColorSchemeReceiver(receiver) {
+    if (!receiver || !this.__colorSchemeReceivers.length) {
+      return;
+    }
+
+    const index = this.__colorSchemeReceivers.indexOf(receiver);
+
+    if (index >= 0) {
+      this.__colorSchemeReceivers.splice(index, 1);
+    }
   };
 }

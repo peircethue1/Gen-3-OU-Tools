@@ -227,7 +227,17 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     }
 
     // 
-    ToolsDomRenderer(dom, { state: this.toolsState, battleId: this.battleId });
+    ToolsDomRenderer(dom, {
+      state: this.toolsState,
+      updateState: (updates) => {
+        this.toolsState = {
+          ...this.toolsState,
+          ...updates
+        };
+
+        this.renderTools(dom);
+      }
+    });
   }
 
   // 
@@ -321,7 +331,13 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     Adapter.removeBattleReceiver(this.battleId);
 
     // 
+    Adapter.removeColorSchemeReceiver(this.__colorSchemeReceiver);
+
+    // 
     this.toolsState = null;
+
+    // 
+    this.__colorSchemeReceiver = null;
   }
 
   // 
