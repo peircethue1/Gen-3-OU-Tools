@@ -3,7 +3,7 @@
  * EDITINGNOTE: Needed final decisions are noted...
  * EDITINGNOTE: I only want to support gen 3 ou and not replays; how do I stop my tool from running in other contexts?
  * EDITINGNOTE: Check consistency of initialized, synced, and nonce properties throughout files
- * EDITINGNOTE: Should I drop request from syncBattle? I would also need to drop it from syncBattle in other files
+ * EDITINGNOTE: Should I drop the request argument? I would also need to drop it where syncBattle is called in other files
  */
 
 import {

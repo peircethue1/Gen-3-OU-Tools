@@ -2,8 +2,29 @@
 
 EDITINGNOTE: Building...
 EDITINGNOTE: see Calcdex.module.scss
+from Tools.jsx: container, extraSmall (verySmol), slim (skinnyBoi), authPlayerCalc (playerCalc), fieldCalc (this needs to include expanded), opponentCalc
 */
 
-.tools-panel {
-  padding: 10px;
+.container {
+  visibility: inherit;
+}
+
+.extraSmall {
+  visibility: inherit;
+}
+
+.slim {
+  visibility: inherit;
+}
+
+.authPlayerCalc {
+  visibility: inherit;
+}
+
+.fieldCalc {
+  visibility: inherit;
+}
+
+.opponentCalc {
+  visibility: inherit;
 }

@@ -1,16 +1,12 @@
 ﻿/**
  * 
- * EDITINGNOTE: Review spacing, punctuation, comments, and note...
+ * EDITINGNOTE: Review comment content, spacing, and punctuation...
  */
 
 import * as ReactDOM from 'react-dom/client';
-import {
-  formatId,
-  nonEmptyObject
-} from './utilities.js';
+import { formatId, nonEmptyObject } from './utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
 import { ToolsDomRenderer } from './ToolsRenderer.jsx';
-import './main.css';
 
 export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
@@ -457,17 +453,17 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     // 
     this.preparePanel();
 
-    // EDITINGNOTE: Fix this error message
+    // 
     const toolsReactRoot = this.battle.toolsHtmlRoom?.reactRoot;
 
     if (!toolsReactRoot) {
       console.error(
-        'ReactDOM root hasn\'t been initialized, despite completing the classic bootstrap;',
-        'something is horribly wrong here!',
-        '\n', 'battleId', this.battle.id,
-        '\n', 'toolsReactRoot', '(typeof)', typeof toolsReactRoot, toolsReactRoot,
-        '\n', 'battle', this.battle,
-        '\n', 'battleRoom', this.battleRoom,
+        '[Gen 3 OU Tools] The bootstrap completed but the React root has not been initialized.',
+        '\nbattleId:', this.battle.id,
+        '\nReact root type:', typeof toolsReactRoot, 
+        '\nReact root:', toolsReactRoot,
+        '\nbattle:', this.battle,
+        '\nbattleRoom:', this.battleRoom,
       );
 
       return;
