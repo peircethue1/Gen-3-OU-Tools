@@ -296,7 +296,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     }
 
     // 
-    if (this.battleRoom?.id && this.toolsState?.active) {
+    if (this.battleRoom?.id && !this.toolsState?.active) {
       window.app.leaveRoom(this.battleId);
     }
   }

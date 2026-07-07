@@ -2,10 +2,17 @@
 
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
+// 
+export const clamp = (min, value, max) => (
+  typeof max === 'number' && max > min
+    ? Math.max(Math.min(value, max ?? value), min)
+    : Math.max(value, min ?? value)
+);
+
 // Creates a generation for the format
 export const detectGenFromFormat = (format) => {
   if (typeof format === 'number') {
-    return Math.max(format, 0);
+    return clamp(0, format);
   }
 
   const genFormatRegex = /^gen(10|\d)/i;
@@ -457,7 +464,7 @@ const populateStatsTable = (stats, config) => {
       return;
     }
 
-    output[stat] = Math.max(Math.min(value, max), 0);
+    output[stat] = clamp(0, value, max);
   });
 
   return output;
@@ -586,7 +593,7 @@ export const sanitizePokemon = (pokemon, format) => {
       const boosts = pokemon?.boosts;
       const raw = boosts?.[stat] ?? 0;
 
-      table[stat] = Math.max(Math.min(raw, 6), -6);
+      table[stat] = clamp(-6, raw, 6);
 
       return table;
     }, {}),
@@ -755,9 +762,9 @@ const truncate = (num, bits) => (
 
 // Creates a raw Pokemon statistic
 const calcPokemonStat = (stat, base, iv, ev, level, nature) => {
-  const actualIv = Math.max(iv, 0);
-  const actualEv = Math.max(ev, 0);
-  const actualLevel = Math.max(Math.min(level, 100), 1);
+  const actualIv = clamp(0, iv);
+  const actualEv = clamp(0, ev);
+  const actualLevel = clamp(0, level, 100);
 
   if (stat === 'hp') {
     if (base === 1) {

@@ -10,6 +10,7 @@ import { syncPrediction } from './syncPrediction.js';
 import { syncInformation } from './syncInformation.js';
 import {
   detectGenFromFormat,
+  clamp,
   clonePlayerSideConditions,
   sanitizePlayerSide,
   formatId,
@@ -109,7 +110,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       gen: battleInstance.gen,
       format: battleId.split('-').find((part) => detectGenFromFormat(part)),
       gameType: battleInstance.gameType === 'singles' ? 'singles' : 'doubles',
-      turn: Math.max((battleInstance.turn || 0), 0),
+      turn: clamp(0, battleInstance.turn || 0),
       active: !battleInstance.ended,
       paused: false,
       authPlayerKey: null,

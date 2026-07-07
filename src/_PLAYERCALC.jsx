@@ -1,83 +1,31 @@
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
 import cx from 'classnames';
-import { PlayerPiconButton } from '@showdex/components/calc';
-import { DroppableGrid } from '@showdex/components/layout';
-import { ContextMenu, useContextMenu } from '@showdex/components/ui';
-import { PiconRackContext } from '@showdex/components/layout';
-import { useColorScheme } from '@showdex/redux/store';
-import { clamp, env } from '@showdex/utils/core';
-import { logger } from '@showdex/utils/debug';
-import { useRandomUuid } from '@showdex/utils/hooks';
-import { CalcdexPokeProvider } from '../CalcdexPokeContext';
-import { useCalcdexContext } from '../CalcdexContext';
-import { PlayerInfo } from '../PlayerInfo';
-import { PokeCalc } from '../PokeCalc';
-import { SideControls } from '../SideControls';
-import styles from './PlayerCalc.module.scss';
+import { PlayerPiconButton } from '';
+import { DroppableGrid } from '';
+import { PiconRackContext } from './_PICONRACKCONTEXT.js';
+import { useColorScheme } from './hooks.js';
+import { clamp } from './utilities.js';
+import { ToolsPokeProvider } from '';
+import { useToolsContext } from './hooks.js';
+import { PlayerInfo } from '';
+import { PokeCalc } from '';
+import './main.css';
 
-export const PlayerCalc = ({
-  className,
-  style,
-  position,
-  playerKey,
-  defaultName = '--',
-  playerOptions,
-  onUserPopup,
-}) => {
+export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();
 
-  const {
-    state,
-    selectPokemon,
-  } = useCalcdexContext();
+  const { state, selectPokemon } = useToolsContext();
+  const { containerSize, containerWidth, format } = state;
 
-  const {
-    renderMode,
-    containerSize,
-    containerWidth,
-    format,
-    gameType,
-    authPlayerKey,
-  } = state;
+  const playerState = React.useMemo(() => state[playerKey] || {}, [state, playerKey]);
+  const { maxPokemon } = playerState;
 
-  const minPokemonKey = 'calcdex-player-min-pokemon';
-
-  const minPokemon = (!!minPokemonKey && env.int(minPokemonKey)) || 0;
-  const playerState = React.useMemo(() => state[playerKey] || {}, [playerKey, state]);
-
-  const {
-    pokemon: playerParty,
-    maxPokemon,
-    activeIndices: playerActives,
-    // selectionIndex: playerIndex,
-  } = playerState;
-
-  const {
-    show: showContextMenu,
-    hideAfter,
-  } = useContextMenu();
-
-  const piconMenuId = useRandomUuid();
-  const [contextPiconId, setContextPiconId] = React.useState<string>(null);
-
-  const contextPokemonIndex = React.useMemo(() => (
-    contextPiconId
-      ? playerParty.findIndex((p) => p?.calcdexId === contextPiconId)
-      : null
-  ), [
-    contextPiconId,
-    playerParty,
-  ]);
-
-  const contextPokemon = (contextPokemonIndex ?? -1) > -1
-    && playerParty[contextPokemonIndex];
+  const [contextPiconId, setContextPiconId] = React.useState(null);
 
   const rackCtx = React.useContext(PiconRackContext);
   const itemIds = rackCtx[playerKey] || [];
 
   const {
-    // itemKeyPrefix,
     lastAddedId,
     gridSpecs,
     makeItemId,
@@ -85,90 +33,62 @@ export const PlayerCalc = ({
     extractPokemonId,
   } = rackCtx;
 
-  const renderItem = React.useCallback<RackGridProps<React.ReactNode>['renderItem']>((
-    id,
-    sortable,
-  ) => {
+  // EDITINGNOTE: check on sortable here once droppablegrid is built
+  const renderItem = React.useCallback((id, sortable) => {
+    // what is this second argument, detectonly?
     const pkey = extractPlayerKey?.(id, true);
     const pid = extractPokemonId?.(id) || id;
-
     const party = state?.[pkey]?.pokemon || [];
-    const partyIndex = party?.findIndex((p) => p?.calcdexId === pid) ?? -1;
+    const partyIndex = party?.findIndex((pokemon) => pokemon?.toolsId === pid) ?? -1;
     const targetIndex = partyIndex > -1 ? partyIndex : clamp(0, sortable?.itemIndex ?? party.length, party.length);
 
     return (
       <PlayerPiconButton
         key={`PlayerCalc:PlayerPiconButton:${playerKey}:${pid}`}
-        // ref={sortable?.setActivatorNodeRef}
         player={state?.[pkey]}
         pokemon={party[partyIndex]}
         format={format}
-        showNickname={settings?.showNicknames}
-        dragging={sortable?.dragging}
-        itemIndex={partyIndex < 0 ? sortable?.itemIndex : undefined} // for showing the selection over the "new" Pokemon slot
-        nativeProps={undefined}
-        onPress={() => selectPokemon(
-          playerKey,
-          targetIndex,
-          `${l.scope}:PlayerPiconButton~SelectionIndex:onPress()`,
-        )}
-        onContextMenu={undefined}
+        itemIndex={partyIndex < 0 ? sortable?.itemIndex : undefined}
+        onPress={() => selectPokemon(playerKey, targetIndex)}
       />
     );
-  }, [
-    extractPlayerKey,
-    extractPokemonId,
-    format,
-    playerKey,
-    piconMenuId,
-    selectPokemon,
-    settings?.showNicknames,
-    showContextMenu,
-    state,
-  ]);
+  }, [extractPlayerKey, extractPokemonId, state, playerKey, format, selectPokemon]);
 
+  // EDITINGNOTE: we'll want to replace droppable in makeItemId, or perhaps makeitemid itself, will also want to inspect maxpokemon array here
   return (
     <div
       className={cx(
-        styles.container,
-        !!colorScheme && styles[colorScheme],
-        containerWidth < 380 && styles.skinnyBoi,
-        containerSize === 'xs' && styles.verySmol,
-        ['xs', 'sm'].includes(containerSize) && styles.smol,
-        ['md', 'lg', 'xl'].includes(containerSize) && styles.big,
-        (containerSize === 'xl' || containerWidth > 990) && styles.veryThicc,
-        (mobile && renderMode === 'overlay') && styles.mobileOverlay,
+        container,
+        !!colorScheme && colorScheme,
+        containerWidth < 380 && slim,
+        containerSize === 'xs' && extraSmall,
+        ['xs', 'sm'].includes(containerSize) && small,
+        ['md', 'lg', 'xl'].includes(containerSize) && large,
+        (containerSize === 'xl' || containerWidth > 990) && extraLarge,
         className,
       )}
-      style={style}
     >
-      <div className={styles.playerBar}>
-        {}
-
+      <div className={playerBar}>
         {(
           <PlayerInfo
-            className={styles.playerInfo}
+            className={playerInfo}
             position={position}
             playerKey={playerKey}
             defaultName={defaultName}
-            playerOptions={playerOptions}
-            mobile={mobile}
-            onUserPopup={onUserPopup}
           />
         )}
 
         <DroppableGrid
-          containerClassName={styles.teamList}
+          containerClassName={teamList}
           itemIds={itemIds}
           itemKeyPrefix={makeItemId(playerKey, 'droppable')}
           renderItem={renderItem}
-          editable={false}
           lastAddedId={lastAddedId}
           focusedId={contextPiconId}
           gridSpecs={gridSpecs}
         >
           {(
-            Array(clamp(0, clamp(maxPokemon || 0, minPokemon) - itemIds.length))
+            Array(clamp(0, clamp(maxPokemon || 0, 6) - itemIds.length))
               .fill(null)
               .map((_, i) => {
                 const itemIndex = itemIds.length + i;
@@ -182,11 +102,11 @@ export const PlayerCalc = ({
         </DroppableGrid>
       </div>
 
-      <CalcdexPokeProvider playerKey={playerKey}>
+      <ToolsPokeProvider playerKey={playerKey}>
         <PokeCalc
-          className={styles.pokeCalc}
+          className={pokeCalc}
         />
-      </CalcdexPokeProvider>
+      </ToolsPokeProvider>
     </div>
   );
 };

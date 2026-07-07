@@ -7,6 +7,7 @@
  */
 
 import {
+  clamp,
   detectAuthPlayerKeyFromBattle,
   syncField,
   similarPokemon,
@@ -80,7 +81,7 @@ export function syncBattle(battle, request) {
   this.toolsState.gameType = gameType === 'singles' ? 'singles' : 'doubles';
 
   // Defines the turn
-  this.toolsState.turn = Math.max((turn || 0), 0);
+  this.toolsState.turn = clamp(0, turn || 0);
 
   // Checks if the user player is available and defines the user and opponent player
   const detectedAuthPlayerKey = this.toolsState.authPlayerKey || detectAuthPlayerKeyFromBattle(battle);
@@ -160,7 +161,7 @@ export function syncBattle(battle, request) {
     }
 
     // Checks if the battle and state have mismatched maximum Pokemon and defines the maximum Pokemon
-    const maxPokemon = Math.max(Math.min(player?.totalPokemon || 0, 6), 1);
+    const maxPokemon = clamp(0, player?.totalPokemon || 0, 6);
 
     if (playerToolsState.maxPokemon !== maxPokemon) {
       playerToolsState.maxPokemon = maxPokemon;
