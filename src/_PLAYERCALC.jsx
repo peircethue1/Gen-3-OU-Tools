@@ -1,3 +1,5 @@
+// EDITINGNOTE: Second pass completed, see notes...
+
 import * as React from 'react';
 import cx from 'classnames';
 import { PlayerPiconButton } from '';
@@ -11,7 +13,7 @@ import { PlayerInfo } from '';
 import { PokeCalc } from '';
 import './main.css';
 
-export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
+export const PlayerCalc = ({ className, style, position, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();
 
   const { state, selectPokemon } = useToolsContext();
@@ -25,6 +27,7 @@ export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
   const rackCtx = React.useContext(PiconRackContext);
   const itemIds = rackCtx[playerKey] || [];
 
+  // EDITINGNOTE: check on lastAddedId, gridSpecs, makeItemId once DroppableGrid is built
   const {
     lastAddedId,
     gridSpecs,
@@ -33,9 +36,9 @@ export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
     extractPokemonId,
   } = rackCtx;
 
-  // EDITINGNOTE: check on sortable here once droppablegrid is built
+  // EDITINGNOTE: check on sortable once PlayerPiconButton is built
   const renderItem = React.useCallback((id, sortable) => {
-    // what is this second argument, detectonly?
+    // EDITINGNOTE: check on this second argument once PiconRackContext is built
     const pkey = extractPlayerKey?.(id, true);
     const pid = extractPokemonId?.(id) || id;
     const party = state?.[pkey]?.pokemon || [];
@@ -54,33 +57,33 @@ export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
     );
   }, [extractPlayerKey, extractPokemonId, state, playerKey, format, selectPokemon]);
 
-  // EDITINGNOTE: we'll want to replace droppable in makeItemId, or perhaps makeitemid itself, will also want to inspect maxpokemon array here
   return (
     <div
       className={cx(
-        container,
-        !!colorScheme && colorScheme,
-        containerWidth < 380 && slim,
-        containerSize === 'xs' && extraSmall,
-        ['xs', 'sm'].includes(containerSize) && small,
-        ['md', 'lg', 'xl'].includes(containerSize) && large,
-        (containerSize === 'xl' || containerWidth > 990) && extraLarge,
+        'playercalc-container',
+        // EDITINGNOTE: check on the use of colorScheme as a style once main.css is built
+        !!colorScheme && `playercalc-${colorScheme}`,
+        containerWidth < 380 && 'playercalc-slim',
+        containerSize === 'xs' && 'playercalc-extraSmall',
+        ['xs', 'sm'].includes(containerSize) && 'playercalc-small',
+        ['md', 'lg', 'xl'].includes(containerSize) && 'playercalc-large',
+        (containerSize === 'xl' || containerWidth > 990) && 'playercalc-extraLarge',
         className,
       )}
+      style={style}
     >
-      <div className={playerBar}>
-        {(
-          <PlayerInfo
-            className={playerInfo}
-            position={position}
-            playerKey={playerKey}
-            defaultName={defaultName}
-          />
-        )}
+      <div className={'playercalc-playerBar'}>
+        <PlayerInfo
+          className={'playercalc-playerInfo'}
+          position={position}
+          playerKey={playerKey}
+          defaultName={defaultName}
+        />
 
         <DroppableGrid
-          containerClassName={teamList}
+          containerClassName={'playercalc-teamList'}
           itemIds={itemIds}
+          // EDITINGNOTE: check on makeItemId once DroppableGrid is built
           itemKeyPrefix={makeItemId(playerKey, 'droppable')}
           renderItem={renderItem}
           lastAddedId={lastAddedId}
@@ -88,6 +91,7 @@ export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
           gridSpecs={gridSpecs}
         >
           {(
+            // EDITINGNOTE: Rewrite this array to differentiate between unrevealed and missing pokemon
             Array(clamp(0, clamp(maxPokemon || 0, 6) - itemIds.length))
               .fill(null)
               .map((_, i) => {
@@ -104,7 +108,7 @@ export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
 
       <ToolsPokeProvider playerKey={playerKey}>
         <PokeCalc
-          className={pokeCalc}
+          className={'playercalc-pokeCalc'}
         />
       </ToolsPokeProvider>
     </div>

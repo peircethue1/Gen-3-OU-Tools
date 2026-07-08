@@ -30,16 +30,16 @@ export const Tools = () => {
         ref={containerRef}
         name="tools"
         className={cx(
-          container,
-          containerSize === 'xs' && extraSmall,
-          containerWidth < 380 && slim,
+          'tools-container',
+          containerSize === 'xs' && 'tools-extraSmall',
+          containerWidth < 380 && 'tools-slim',
         )}
-        contentClassName={content}
+        contentClassName={'tools-content'}
         contentScrollable
       >
         <PiconRackSortableContext playerKey={authPlayerKey}>
           <PlayerCalc
-            className={authPlayerCalc}
+            className={'tools-authPlayerCalc'}
             position="top"
             playerKey={authPlayerKey}
             defaultName="Player 1"
@@ -47,14 +47,17 @@ export const Tools = () => {
         </PiconRackSortableContext>
 
         <FieldCalc
-          className={fieldCalc}
+          className={cx(
+            'tools-fieldCalc',
+            'tools-expanded',
+          )}
           authPlayerKey={authPlayerKey}
           opponentKey={opponentKey}
         />
 
         <PiconRackSortableContext playerKey={opponentKey}>
           <PlayerCalc
-            className={opponentCalc}
+            className={'tools-opponentCalc'}
             position="bottom"
             playerKey={opponentKey}
             defaultName="Player 2"

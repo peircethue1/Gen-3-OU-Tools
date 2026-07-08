@@ -82,4 +82,5 @@ export const useToolsSize = (containerRef) => {
 // EDITINGNOTE: build this
 export const useToolsContext = () => {}
 
-// EDITINGNOTE: build useColorScheme
+// EDITINGNOTE: build this
+export const useColorScheme = () => {}
