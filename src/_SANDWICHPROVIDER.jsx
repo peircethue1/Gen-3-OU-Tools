@@ -1,4 +1,5 @@
-// EDITINGNOTE: Review... Do I really need active = true or can I collapse that logic?
+// EDITINGNOTE: Reviewed, see note...
+// EDITINGNOTE: Do I really need active = true or can I collapse that logic?
 
 import * as React from 'react';
 import { SandwichContext } from './_SANDWICHCONTEXT.js';

@@ -1,6 +1,6 @@
 ﻿/**
  * 
- * EDITINGNOTE: Review comment content and spacing...
+ * EDITINGNOTE: Review comment content, spacing, and punctuation...
  */
 
 import { NIL as uuidnil } from 'uuid';

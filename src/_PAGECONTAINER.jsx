@@ -1,66 +1,45 @@
+// EDITINGNOTE: Reviewed, needs import and styles...
+
 import * as React from 'react';
 import cx from 'classnames';
-import { Scrollable } from '@showdex/components/ui';
-import { useColorScheme, useColorTheme, useGlassyTerrain } from '@showdex/redux/store';
-import styles from './PageContainer.module.scss';
+import { Scrollable } from '';
+import { useColorScheme } from './hooks.js';
+import './main.css';
 
 export const PageContainer = React.forwardRef(({
-  contentRef,
   name,
   className,
-  style,
   contentClassName,
-  contentStyle,
-  scrollableContentClassName,
-  scrollableContentStyle,
-  prefix,
-  suffix,
   contentScrollable,
   children,
-  ...props
 }, forwardedRef) => {
   const colorScheme = useColorScheme();
-  const colorTheme = useColorTheme();
-  const glassyTerrain = useGlassyTerrain();
 
   return (
     <div
       ref={forwardedRef}
-      {...props}
       className={cx(
-        'showdex-module',
-        styles.container,
+        'tools-module',
+        'pagecontainer-container',
         className,
       )}
-      style={style}
-      {...(!!name && { 'data-showdex-module': name })}
-      {...(!!colorScheme && { 'data-showdex-scheme': colorScheme })}
-      {...(!!colorTheme && { 'data-showdex-theme': colorTheme })}
-      {...(glassyTerrain && { 'data-showdex-terrain': 'glassy' })}
+      {...(!!name && { 'data-tools-module': name })}
+      {...(!!colorScheme && { 'data-tools-scheme': colorScheme })}
+      data-tools-theme="sic"
     >
-      {prefix}
-
       {contentScrollable ? (
         <Scrollable
-          contentRef={contentRef}
-          className={cx(styles.content, contentClassName)}
-          style={contentStyle}
-          contentClassName={scrollableContentClassName}
-          contentStyle={scrollableContentStyle}
+          className={cx('pagecontainer-content', contentClassName)}
         >
           {children}
         </Scrollable>
       ) : (
         <div
-          ref={contentRef}
-          className={cx(styles.content, contentClassName)}
-          style={contentStyle}
+          className={cx('pagecontainer-content', contentClassName)}
         >
           {children}
         </div>
       )}
-
-      {suffix}
     </div>
   );
 });

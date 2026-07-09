@@ -1,16 +1,15 @@
+// EDITINGNOTE: Reviewed, see notes...
+// EDITINGNOTE: What of this is only related to drag and drop, a feature I'm removing?
+
 import * as React from 'react';
 import { useToolsContext } from './hooks.js';
 import { nonEmptyObject, similarArrays } from './utilities.js';
 import { PiconRackContext } from './_PICONRACKCONTEXT.js';
 
 export const PiconRackProvider = ({ children }) => {
-  const itemKeyPrefix = 'picon';
-
   const { state } = useToolsContext();
 
-  const columns = 6;
-
-  const makeItemId = (playerKey, pokemonId) => `${itemKeyPrefix}:${playerKey}:${pokemonId}`;
+  const makeItemId = (playerKey, pokemonId) => `picon:${playerKey}:${pokemonId}`;
 
   const parsePlayerParty = React.useCallback((playerKey) => (
     (state?.[playerKey]?.pokemon || [])
@@ -18,9 +17,10 @@ export const PiconRackProvider = ({ children }) => {
       .filter(Boolean)
   ), [state]);
 
+  // EDITINGNOTE: This is implemented as containerIds.current, which is defined in their code but not in ours. Should we strip this out or simplify it?
   const containerIds = React.useRef(
     ['p1', 'p2'].reduce((prev, key) => {
-      prev[key] = makeItemId(key, 'sortable');
+      prev[key] = `picon:${key}`;
 
       return prev;
     }, {}),
@@ -61,15 +61,10 @@ export const PiconRackProvider = ({ children }) => {
     state?.p2?.pokemon,
   ]);
 
-  const dndMuxTest = React.useMemo(
-    () => new RegExp(`^${itemKeyPrefix || ''}:(p\\d):`),
-    [itemKeyPrefix],
-  );
+  // EDITINGNOTE: Should this stay here or move outside the export? I'm suspecting move because of React dependencies
+  const dndMuxTest = /^picon:(p\d):/;
 
-  const extractPlayerKey = React.useCallback((
-    id,
-    detectOnly,
-  ) => {
+  const extractPlayerKey = React.useCallback((id, detectOnly) => {
     const detectedKey = dndMuxTest.exec(String(id || ''))?.[1];
     const pid = String(id || '').replace(dndMuxTest, '') || null;
 
@@ -78,32 +73,24 @@ export const PiconRackProvider = ({ children }) => {
     }
 
     const matchedKey = Object.entries(playerOrdering)
-      .find(([, oids]) => oids.some((oid) => oid?.includes(pid)))
-      ?.[0];
+      .find(([, oids]) => oids.some((oid) => oid?.includes(pid)))?.[0];
 
     return matchedKey || detectedKey;
-  }, [
-    dndMuxTest,
-    playerOrdering,
-  ]);
+  }, [playerOrdering]);
 
-  const extractPokemonId = React.useCallback((
-    id,
-  ) => String(id || '').replace(dndMuxTest, '') || null, [
-    dndMuxTest,
-  ]);
+  const extractPokemonId = (id) => String(id || '').replace(dndMuxTest, '') || null;
 
-  const [overlayId] = React.useState(null);
+  // EDITINGNOTE: The setter has been removed. How should this be handled?
   const [lastAddedId] = React.useState(null);
 
+  // EDITINGNOTE: gridSpecs is used by a component that I have stripped out here. How do I determine what I need here?
   const value = React.useMemo(() => ({
-    itemKeyPrefix,
+    itemKeyPrefix: 'picon',
     containerIds: containerIds.current,
-    overlayId,
     lastAddedId,
 
     gridSpecs: {
-      columns,
+      columns: 6,
       gridSize: 40,
       gridGap: 0,
     },
@@ -113,16 +100,7 @@ export const PiconRackProvider = ({ children }) => {
     makeItemId,
     extractPlayerKey,
     extractPokemonId,
-  }), [
-    columns,
-    extractPlayerKey,
-    extractPokemonId,
-    itemKeyPrefix,
-    lastAddedId,
-    makeItemId,
-    overlayId,
-    playerOrdering,
-  ]);
+  }), [lastAddedId, playerOrdering, makeItemId, extractPlayerKey]);
 
   return (
       <PiconRackContext.Provider value={value}>

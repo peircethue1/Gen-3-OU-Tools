@@ -5,9 +5,11 @@
 
 import * as React from 'react';
 import cx from 'classnames';
-// import { FieldCalc, PlayerCalc } from '';
+import { FieldCalc } from './_FIELDCALC.jsx';
+import { PlayerCalc } from './_PLAYERCALC.jsx';
 import { useToolsContext, useToolsSize } from './hooks.js';
-// import { PageContainer, PiconRackProvider, PiconRackSortableContext } from '';
+import { PageContainer } from './_PAGECONTAINER.jsx';
+import { PiconRackProvider } from './_PICONRACKPROVIDER.jsx';
 import './main.css';
 
 export const Tools = () => {
@@ -37,14 +39,12 @@ export const Tools = () => {
         contentClassName={'tools-content'}
         contentScrollable
       >
-        <PiconRackSortableContext playerKey={authPlayerKey}>
-          <PlayerCalc
-            className={'tools-authPlayerCalc'}
-            position="top"
-            playerKey={authPlayerKey}
-            defaultName="Player 1"
-          />
-        </PiconRackSortableContext>
+        <PlayerCalc
+          className={'tools-authPlayerCalc'}
+          position="top"
+          playerKey={authPlayerKey}
+          defaultName="Player 1"
+        />
 
         <FieldCalc
           className={cx(
@@ -55,14 +55,12 @@ export const Tools = () => {
           opponentKey={opponentKey}
         />
 
-        <PiconRackSortableContext playerKey={opponentKey}>
-          <PlayerCalc
-            className={'tools-opponentCalc'}
-            position="bottom"
-            playerKey={opponentKey}
-            defaultName="Player 2"
-          />
-        </PiconRackSortableContext>
+        <PlayerCalc
+          className={'tools-opponentCalc'}
+          position="bottom"
+          playerKey={opponentKey}
+          defaultName="Player 2"
+        />
       </PageContainer>
     </PiconRackProvider>
   );

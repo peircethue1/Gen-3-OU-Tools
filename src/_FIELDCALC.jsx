@@ -1,12 +1,17 @@
-// EDITINGNOTE: Second pass completed, see notes...
+// EDITINGNOTE: Reviewed, needs imports and styles, see notes...
+// EDITINGNOTE: need to add PlayerSideConditionsDexMap, formatDexDescription, and getWeatherConditions to utilities
+// EDITINGNOTE: Move WEATHER_MAP, FIELD_CONDITIONS_MAP, and playerToggleKeys to utilities and import them
+// EDITINGNOTE: Check if we need meta, onBlur, and onFocus once SpikesField and Dropdown are built
+// EDITINGNOTE: I will need to add certain dirty properties back throughout. So far, this includes dirtyWeather
 
 import * as React from 'react';
 import cx from 'classnames';
-// import { Dropdown, SpikesField } from '';
-// import { TableGrid, TableGridItem } from '';
-// import { ToggleButton } from '';
+import { Dropdown } from '';
+import { SpikesField } from '';
+import { TableGrid } from '';
+import { TableGridItem } from '';
+import { ToggleButton } from '';
 import { useColorScheme, useToolsContext } from './hooks.js';
-// EDITINGNOTE: need to add PlayerSideConditionsDexMap, formatDexDescription, and getWeatherConditions to utilities
 import {
   PlayerSideConditionsDexMap,
   formatId,
@@ -15,10 +20,6 @@ import {
   getWeatherConditions,
 } from './utilities.js';
 import './main.css';
-
-// EDITINGNOTE: I will need to add certain dirty properties back throughout. So far, this includes dirtyWeather
-// EDITINGNOTE: Move WEATHER_MAP, FIELD_CONDITIONS_MAP, and playerToggleKeys to utilities and import them
-// EDITINGNOTE: Check if we need meta, onBlur, and onFocus once SpikesField and Dropdown are built,
 
 export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
   const { state, updateSide, updateField } = useToolsContext();

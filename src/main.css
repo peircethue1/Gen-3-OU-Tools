@@ -1,7 +1,7 @@
 /*
 
 EDITINGNOTE: Building...
-EDITINGNOTE: see Calcdex.module.scss, PlayerCalc.module.scss, FieldCalc.module.scss
+EDITINGNOTE: see Calcdex.module.scss, PageContainer.module.scss, PlayerCalc.module.scss, FieldCalc.module.scss
 from Tools.jsx:
   container
   extraSmall (verySmol)
@@ -10,6 +10,10 @@ from Tools.jsx:
   fieldCalc
   expanded
   opponentCalc
+from _PAGECONTAINER.jsx:
+  tools-module EDITINGNOTE: I need to investigate this, it is written this way in their file
+  container
+  content
 from _PLAYERCALC.jsx:
   container
   light, dark ([colorScheme])
