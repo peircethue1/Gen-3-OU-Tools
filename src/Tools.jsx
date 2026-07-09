@@ -1,6 +1,6 @@
 /**
  * 
- * EDITINGNOTE: Building...
+ * EDITINGNOTE: Reviewed...
  */
 
 import * as React from 'react';

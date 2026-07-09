@@ -61,7 +61,7 @@ export const PiconRackProvider = ({ children }) => {
     state?.p2?.pokemon,
   ]);
 
-  // EDITINGNOTE: Should this stay here or move outside the export? I'm suspecting move because of React dependencies
+  // EDITINGNOTE: Should this stay here or move outside the export? I'm suspecting move because of React dependencies. In that case, does it become a utility?
   const dndMuxTest = /^picon:(p\d):/;
 
   const extractPlayerKey = React.useCallback((id, detectOnly) => {
@@ -80,10 +80,10 @@ export const PiconRackProvider = ({ children }) => {
 
   const extractPokemonId = (id) => String(id || '').replace(dndMuxTest, '') || null;
 
-  // EDITINGNOTE: The setter has been removed. How should this be handled?
+  // EDITINGNOTE: The setter has been removed. How should this be handled now that it no longer changes?
   const [lastAddedId] = React.useState(null);
 
-  // EDITINGNOTE: gridSpecs is used by a component that I have stripped out here. How do I determine what I need here?
+  // EDITINGNOTE: gridSpecs is used by a component that I have stripped out. How do I determine what I need here?
   const value = React.useMemo(() => ({
     itemKeyPrefix: 'picon',
     containerIds: containerIds.current,

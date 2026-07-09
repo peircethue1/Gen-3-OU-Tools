@@ -1,4 +1,5 @@
 // EDITINGNOTE: Needed final decisions are noted...
+// EDITINGNOTE: This file now includes stubs
 
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
@@ -812,3 +813,8 @@ export const calcPokemonSpreadStats = (pokemon) => {
     return prev;
   }, { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 });
 };
+
+// EDITINGNOTE: These are stubs
+export const PlayerSideConditionsDexMap = { spikes: ['sideConditions', 'spikes'], isReflect: ['sideConditions', 'reflect'], isLightScreen: ['sideConditions', 'lightscreen'], isSeeded: ['sideConditions', 'leechseed'] };
+export const formatDexDescription = (desc) => desc || '';
+export const getWeatherConditions = (format) => { return ['hail', 'rain', 'sand', 'sun'] };

@@ -2,15 +2,15 @@
 
 import * as React from 'react';
 import cx from 'classnames';
-import { PlayerPiconButton } from '';
-import { DroppableGrid } from '';
+import { PlayerPiconButton } from './_STUBS.jsx';
+import { DroppableGrid } from './_STUBS.jsx';
 import { PiconRackContext } from './_PICONRACKCONTEXT.js';
 import { useColorScheme } from './hooks.js';
 import { clamp } from './utilities.js';
-import { ToolsPokeProvider } from '';
+import { ToolsPokeProvider } from './_STUBS.jsx';
 import { useToolsContext } from './hooks.js';
-import { PlayerInfo } from '';
-import { PokeCalc } from '';
+import { PlayerInfo } from './_STUBS.jsx';
+import { PokeCalc } from './_STUBS.jsx';
 import './main.css';
 
 export const PlayerCalc = ({ className, style, position, playerKey, defaultName }) => {

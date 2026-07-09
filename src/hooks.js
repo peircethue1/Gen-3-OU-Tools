@@ -79,8 +79,22 @@ export const useToolsSize = (containerRef) => {
   }, [state?.containerSize, state?.containerWidth, updateState, width, height, size]);
 };
 
-// EDITINGNOTE: build this
-export const useToolsContext = () => {}
+// EDITINGNOTE: This is a stub
+export const useToolsContext = () => {
+  const ctx = React.useContext(ToolsContext);
 
-// EDITINGNOTE: build this
-export const useColorScheme = () => {}
+  return {
+    ...ctx,
+
+    updateSide: (playerKey, updates) => console.log(`[Stub updateSide] ${playerKey}:`, updates),
+    updateField: (updates) => console.log('[Stub updateField]:', updates),
+    selectPokemon: (playerKey, index) => console.log(`[Stub selectPokemon] ${playerKey} index:`, index),
+    updateBattle: (updates, source) => console.log(`[Stub updateBattle] from ${source}:`, updates)
+  };
+};
+
+export const useColorScheme = () => {
+  const { state } = useToolsContext();
+
+  return state?.colorScheme || 'light'
+};

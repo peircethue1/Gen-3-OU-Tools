@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import cx from 'classnames';
-import { Scrollable } from '';
+import { Scrollable } from './_STUBS.jsx';
 import { useColorScheme } from './hooks.js';
 import './main.css';
 
