@@ -10,7 +10,7 @@ from Tools.jsx (Calcdex.module.scss):
   expanded
   opponentCalc
 from _PAGECONTAINER.jsx (PageContainer.module.scss):
-  tools-module EDITINGNOTE: I need to investigate this, it is written this way in their file
+  tools-module EDITINGNOTE: I need to investigate this, it is written this way in their file. In fact, I need to look for hard-coded values like this throughout
   container
   content
 from _PLAYERCALC.jsx (PlayerCalc.module.scss):

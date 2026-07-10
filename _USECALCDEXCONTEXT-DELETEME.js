@@ -1,4 +1,4 @@
-// This is a workspace. This should ultimately overwrite the stub in hooks.
+// This is a workspace. This will ultimately overwrite the stub in hooks and be deleted
 
 import * as React from 'react';
 import { NIL as NIL_UUID } from 'uuid';

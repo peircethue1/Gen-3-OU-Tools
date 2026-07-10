@@ -1,5 +1,5 @@
 // EDITINGNOTE: Reviewed, see notes...
-// EDITINGNOTE: What of this is only related to drag and drop, a feature I'm removing?
+// EDITINGNOTE: What parts of this are only related to drag and drop, a feature I'm removing?
 
 import * as React from 'react';
 import { useToolsContext } from './hooks.js';
@@ -17,7 +17,7 @@ export const PiconRackProvider = ({ children }) => {
       .filter(Boolean)
   ), [state]);
 
-  // EDITINGNOTE: This is implemented as containerIds.current, which is defined in their code but not in ours. Should we strip this out or simplify it?
+  // EDITINGNOTE: This is implemented as containerIds.current, which is defined in their code but not in ours. Should we remove this or simplify it?
   const containerIds = React.useRef(
     ['p1', 'p2'].reduce((prev, key) => {
       prev[key] = `picon:${key}`;
@@ -61,7 +61,7 @@ export const PiconRackProvider = ({ children }) => {
     state?.p2?.pokemon,
   ]);
 
-  // EDITINGNOTE: Should this stay here or move outside the export? I'm suspecting move because of React dependencies. In that case, does it become a utility?
+  // EDITINGNOTE: Should I move this to utilities? I'm suspecting so because of React dependencies
   const dndMuxTest = /^picon:(p\d):/;
 
   const extractPlayerKey = React.useCallback((id, detectOnly) => {
@@ -80,10 +80,10 @@ export const PiconRackProvider = ({ children }) => {
 
   const extractPokemonId = (id) => String(id || '').replace(dndMuxTest, '') || null;
 
-  // EDITINGNOTE: The setter has been removed. How should this be handled now that it no longer changes?
+  // EDITINGNOTE: This setter has been removed. How should this be handled now that it can no longer change?
   const [lastAddedId] = React.useState(null);
 
-  // EDITINGNOTE: gridSpecs is used by a component that I have stripped out. How do I determine what I need here?
+  // EDITINGNOTE: gridSpecs is used by a component that I have stripped out. How can I determine which properties to remove?
   const value = React.useMemo(() => ({
     itemKeyPrefix: 'picon',
     containerIds: containerIds.current,

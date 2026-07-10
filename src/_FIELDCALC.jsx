@@ -174,7 +174,7 @@ export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
         align="left"
         header
       >
-        {/* p1 screens header */}
+        {/* user screens header */}
         &uarr; Field
       </TableGridItem>
       <TableGridItem
@@ -195,11 +195,11 @@ export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
         align="right"
         header
       >
-        {/* p2 screens header */}
+        {/* opponent screens header */}
         &darr; Field
       </TableGridItem>
 
-      {/* p1 screens */}
+      {/* user screens */}
       <TableGridItem
         className={'fieldcalc-leftFieldInput'}
         align="left"
@@ -224,7 +224,7 @@ export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
             onBlur: () => void 0,
             onFocus: () => void 0,
           }}
-          options={getWeatherConditions(format).map((name) => ({
+          options={getWeatherConditions().map((name) => ({
             label: WEATHER_MAP[formatId(name)].label,
             value: name,
           }))}
@@ -234,7 +234,7 @@ export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
         />
       </TableGridItem>
 
-      {/* opponent's screens */}
+      {/* opponent screens */}
       <TableGridItem
         className={'fieldcalc-rightFieldInput'}
         align="right"
