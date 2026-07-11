@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Gen 3 OU Tools",
   "version": "1.0.0",
-  "description": "Team prediction tool for Pokemon Showdown's Gen 3 OU format",
+  "description": "Damage calculator, team prediction, and pokemon information tools for Pokemon Showdown's Gen 3 OU format",
   "author": "",
 
   "permissions": [
@@ -31,7 +31,7 @@
     }
   ],
 
-"web_accessible_resources": [
+  "web_accessible_resources": [
     {
       "matches": [
         "https://play.pokemonshowdown.com/*",

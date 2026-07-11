@@ -1,0 +1,20 @@
+complete________________________
+build
+BootManager
+BootBootstrappable
+BootClassicBootstrappable
+
+
+leave untouched________________________
+package-lock
+
+
+revisit________________________
+manifest (this may need to be reevaluated based on how Bakedex is implemented)
+package (make sure redux and others are added correctly)
+BootAdapter (see notes)
+BootClassicAdapter (see notes)
+
+
+next up________________________
+ToolsBootstrappable

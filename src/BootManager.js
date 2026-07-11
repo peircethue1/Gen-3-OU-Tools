@@ -1,25 +1,27 @@
 ﻿/**
- * Creates registration and execution lifecycles
+ * Creates the registration and execution lifecycles
  */
 
 import { BootAdapter } from './BootAdapter';
 
 export class BootManager {
 
-  // Defines the registry state
+  // Exposes the adapter class
   static Adapter = BootAdapter;
+
+  // Manages the bootstrapper registry
   static __bootstrappers = {
     tools: null,
-  };
+  }
 
-  // Creates an array of registered bootstrappers
+  // Gets the registered bootstrapper names
   static get registry() {
     return Object.entries(this.__bootstrappers)
       .filter(([, bootstrapper]) => !!bootstrapper)
       .map(([name]) => name);
   }
 
-  // Adds a bootstrapper to the registry
+  // Registers a bootstrapper
   static register(name, Bootstrapper) {
     if (!name || !(name in this.__bootstrappers) || typeof Bootstrapper !== 'function') {
       return;
@@ -35,12 +37,12 @@ export class BootManager {
     );
   }
 
-  // Checks if the bootstrapper has been registered
+  // Checks if the bootstrapper is registered
   static registered(name) {
     return !!this.__bootstrappers[name];
   }
 
-  // Fetches a bootstrapper from the registry
+  // Retrieves a bootstrapper from the registry
   static named(name) {
     const Bootstrapper = this.__bootstrappers[name];
 
@@ -58,7 +60,7 @@ export class BootManager {
     return Bootstrapper;
   }
 
-  // Initializes the Tools panel
+  // Runs the Tools bootstrapper
   static runTools(battleId) {
     if (!battleId) {
       return;
@@ -85,7 +87,7 @@ export class BootManager {
     new (this.named('tools'))(battleId).close();
   }
 
-  // Removes the Tools panel
+  // Destroys the Tools session
   static destroyTools(battleId) {
     if (!battleId) {
       return;

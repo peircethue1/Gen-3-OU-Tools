@@ -7,18 +7,17 @@ import { BootClassicAdapter } from './BootClassicAdapter';
 
 export class BootClassicBootstrappable extends BootBootstrappable {
 
-  // Creates a reference to the adapter
+  // Exposes the adapter class
   static Adapter = BootClassicAdapter;
 
-  // Checks if the client is in the single panel layout
+  // Checks if the client is in the single-panel layout
   static hasSinglePanel = () => (
-    (window.app.curRoom?.id?.startsWith('battle-') && window.innerWidth < 1275) || window.Dex?.prefs?.('onepanel')
+    (window.app.curRoom?.id?.startsWith('battle-') && window.innerWidth < 1275) ||
+    window.Dex?.prefs?.('onepanel')
   );
 
   // Creates a room in the client
   static createHtmlRoom(roomId, title, options) {
-
-    // Checks if the client function to add a room is valid
     if (typeof window.app?._addRoom !== 'function') {
       console.error(
         '[Gen 3 OU Tools] Cannot create a room because window.app._addRoom is invalid.',
@@ -29,74 +28,56 @@ export class BootClassicBootstrappable extends BootBootstrappable {
       return null;
     }
 
-    // Defines the room with default values
     const { side, icon, focus, minWidth = 320, maxWidth = 1024 } = options || {};
 
-    // Initializes the room
     let room = null;
 
-    // Checks if the client already contains the room and fetches or creates the room
+    // Checks if the client already contains the room and retrieves or creates the room
     if (roomId in window.app.rooms) {
-
-      // Fetches the room
       room = window.app.rooms[roomId];
     } else {
-
-      // Creates the room
       room = window.app._addRoom(roomId, 'html', true, title);
 
-      // Removes default HTML from the room
       room.$el.html('');
 
-      // Checks if the room is a sideroom an adds it to the array of siderooms
       if (side) {
         room.isSideRoom = true;
+
         window.app.sideRoomList.push(window.app.roomList.pop());
       }
     }
 
-    // Checks if the room was fetched or created successfully
     if (!room?.el) {
-      console.error('Could not fetch or create the', side ? 'sideroom' : 'room', 'with roomId:', roomId);
+      console.error('[Gen 3 OU Tools] Could not retrieve or create the', side ? 'sideroom' : 'room', 'with roomId:', roomId);
 
       return room;
     }
 
-    // Defines the room dimensions
     room.minWidth = minWidth;
     room.maxWidth = maxWidth;
 
-    // Adds an icon to the tab button
+    // Adds an icon to the room tab
     if (icon) {
-
-      // Creates a copy of the client tab button renderer
       const originalRenderer = window.app.topbar.renderRoomTab.bind(window.app.topbar);
 
-      // Overrides the tab button renderer
-      window.app.topbar.renderRoomTab = function(appRoom, appRoomId) {
-
-        // Defines the room and the client tab button renderer
+      window.app.topbar.renderRoomTab = function renderCustomRoomTab(appRoom, appRoomId) {
         const rid = appRoom?.id || appRoomId;
         const buf = originalRenderer(appRoom, appRoomId);
 
-        // Checks if the the button being rendered is for the room being created and replaces the icon
         if (rid === roomId) {
           return buf.replace('fa-file-text-o', `fa-${icon}`);
         }
 
-        // Returns the buffer for the client tab button renderer
         return buf;
       };
     }
 
-    // Sets the focus to the room
     if (focus) {
       window.app[side ? 'focusRoomRight' : 'focusRoom'](room.id);
     }
 
-    // Updates the tab bar
     window.app.topbar.updateTabbar();
 
     return room;
-  };
+  }
 }

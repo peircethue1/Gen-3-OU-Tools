@@ -7,27 +7,27 @@ import { BootManager } from './BootManager';
 
 export class BootBootstrappable {
 
-  // Creates references to the adapter and the manager
+  // Exposes the adapter and the manager classes
   static Adapter = BootAdapter;
   static Manager = BootManager;
 
-  // Creates a default client layout
+  // Defines the default client layout
   static hasSinglePanel = () => false;
 
-  // Checks if a lifecycle method is executed without being implemented
+  // Checks if a lifecycle method is executed without being overridden
   open() {
-    throw new Error('Bootstrapper error: open() is not implemented.');
+    throw new Error('Bootstrapper error: open() must be overridden.');
   }
 
   close() {
-    throw new Error('Bootstrapper error: close() is not implemented.');
+    throw new Error('Bootstrapper error: close() must be overridden.');
   }
 
   run() {
-    throw new Error('Bootstrapper error: run() is not implemented.');
+    throw new Error('Bootstrapper error: run() must be overridden.');
   }
 
   destroy() {
-    throw new Error('Bootstrapper error: destroy() is not implemented.');
+    throw new Error('Bootstrapper error: destroy() must be overridden.');
   }
 }

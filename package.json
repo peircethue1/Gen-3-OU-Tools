@@ -1,7 +1,7 @@
 {
   "name": "gen-3-ou-tools",
   "version": "1.0.0",
-  "description": "Team prediction tool for Pokemon Showdown's Gen 3 OU format",
+  "description": "Damage calculator, team prediction, and pokemon information tools for Pokemon Showdown's Gen 3 OU format",
   "author": "",
   "license": "ISC",
   "type": "module",
