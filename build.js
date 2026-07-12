@@ -1,5 +1,5 @@
 import * as esbuild from 'esbuild';
-import { existsSync, rmSync, mkdirSync, cpSync } from 'fs';
+import { existsSync, rmSync, mkdirSync, cpSync, watch } from 'fs';
 
 const isWatch = process.argv.includes('--watch');
 
@@ -20,18 +20,18 @@ const baseConfig = {
   minify: !isWatch,
   sourcemap: isWatch ? 'inline' : false,
   loader: { '.png': 'dataurl' },
-  define: { 'process.env.NODE_ENV': isWatch ? '"development"' : '"production"' }
+  define: { 'process.env.NODE_ENV': isWatch ? '"development"' : '"production"' },
 };
 
 const mainConfig = {
   ...baseConfig,
   entryPoints: ['src/main.js'],
-  format: 'iife'
+  format: 'iife',
 };
 
 const extensionConfig = {
   ...baseConfig,
-  entryPoints: ['src/background.js', 'src/content.js', 'src/main.css'],
+  entryPoints: ['src/background.js', 'src/content.js'],
 };
 
 if (isWatch) {
@@ -40,6 +40,14 @@ if (isWatch) {
 
   await ctxMain.watch();
   await ctxExt.watch();
+
+  if (existsSync('src/public')) {
+    watch('src/public', { recursive: true }, () => {
+      try {
+        cpSync('src/public', 'dist', { recursive: true });
+      } catch { }
+    });
+  }
 
   console.log('[esbuild] Watching for changes in src.');
 } else {

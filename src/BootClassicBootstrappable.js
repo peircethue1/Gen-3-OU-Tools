@@ -1,9 +1,11 @@
-﻿/**
+/**
  * Creates the room template
+ * EDITINGNOTE: See note...
+ * EDITINGNOTE: Do I need to use detectClassicHost? If so, where?
  */
 
-import { BootBootstrappable } from './BootBootstrappable';
-import { BootClassicAdapter } from './BootClassicAdapter';
+import { BootBootstrappable } from './BootBootstrappable.js';
+import { BootClassicAdapter } from './BootClassicAdapter.js';
 
 export class BootClassicBootstrappable extends BootBootstrappable {
 
@@ -12,7 +14,7 @@ export class BootClassicBootstrappable extends BootBootstrappable {
 
   // Checks if the client is in the single-panel layout
   static hasSinglePanel = () => (
-    (window.app.curRoom?.id?.startsWith('battle-') && window.innerWidth < 1275) ||
+    (window.app.curRoom?.id?.startsWith('battle-') && window.$?.(window).width() < 1275) ||
     window.Dex?.prefs?.('onepanel')
   );
 

@@ -2,7 +2,7 @@
  * Creates the registration and execution lifecycles
  */
 
-import { BootAdapter } from './BootAdapter';
+import { BootAdapter } from './BootAdapter.js';
 
 export class BootManager {
 
@@ -50,7 +50,7 @@ export class BootManager {
       console.error(
         '[Gen 3 OU Tools] The bootstrapper is not registered.',
         '\nname:', name,
-        '\nBootstrapper.name:', Bootstrapper.name,
+        '\nBootstrapper.name:', Bootstrapper?.name,
         '\nBootstrapper:', Bootstrapper,
       );
 

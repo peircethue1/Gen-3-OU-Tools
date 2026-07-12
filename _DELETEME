@@ -1,0 +1,17 @@
+complete__________
+BootManager
+BootBootstrappable
+
+leave untouched__________
+package-lock
+
+revisit__________
+manifest (reevaluate based on how Bakedex is implemented, storage (100% smogon), background(100% smogon), and content (50% smogon))
+build (esbuild builds CSS separately, which requires a manifest declaration or a custom inline-style plugin to bundle it inside main.js)
+package (make sure @reduxjs/toolkit and react-redux are added correctly)
+BootAdapter (see notes)
+BootClassicAdapter (see note)
+BootClassicBootstrappable (see note)
+
+next up__________
+ToolsBootstrappable (LEFT OFF ON FIRST PASS HERE, WILL FOR SURE NEED ANOTHER PASS)

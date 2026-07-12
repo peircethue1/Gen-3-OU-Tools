@@ -2,12 +2,12 @@
  * Creates the bootstrapper template
  */
 
-import { BootAdapter } from './BootAdapter';
-import { BootManager } from './BootManager';
+import { BootAdapter } from './BootAdapter.js';
+import { BootManager } from './BootManager.js';
 
 export class BootBootstrappable {
 
-  // Exposes the adapter and the manager classes
+  // Exposes the adapter and manager classes
   static Adapter = BootAdapter;
   static Manager = BootManager;
 

@@ -1,6 +1,7 @@
-﻿/**
+/**
  * Creates the data receiver lifecycle
  * EDITINGNOTE: See note...
+ * EDITINGNOTE: window.app.receive is validated in main, but there is no validation for window.Battle.prototype.run
  */
 
 import { BootAdapter } from './BootAdapter.js';
@@ -23,7 +24,7 @@ export class BootClassicAdapter extends BootAdapter {
 
     // Sends the client data to the data receivers
     window.app.receive = (data) => {
-      
+
       // Sends the client data to the client data receiver
       this.__appReceive(data);
 
@@ -87,7 +88,7 @@ export class BootClassicAdapter extends BootAdapter {
         receiver(data);
       }
     };
-    
+
     console.debug('[Gen 3 OU Tools] Initializing the client color scheme observer.');
 
     // Creates a client color scheme observer
@@ -120,7 +121,7 @@ export class BootClassicAdapter extends BootAdapter {
     this.__appRun = window.Battle.prototype.run;
 
     // Sends the battle data to the data receivers
-    window.Battle.prototype.run = function(...args) {
+    window.Battle.prototype.run = function (...args) {
       const result = BootClassicAdapter.__appRun.apply(this, args);
 
       const command = args[0];
@@ -160,13 +161,13 @@ export class BootClassicAdapter extends BootAdapter {
     };
   }
 
-  // EDITINGNOTE: Showdex doesn't have this. What is it's purpose?
-  static {
-    this.registerHook(this.receiveHook);
-    this.registerHook(this.runHook);
+  // Executes hook setup
+  static hook = () => {
+    this.receiveHook?.();
+    this.runHook?.();
   }
 
-  // Flushes the buffer after initialization
+  // Flushes the buffer
   static ready = () => {
     this.__mutex.battleBuf.forEach(([roomId, data]) => {
       const receiver = this.battleReceiverNamed(roomId);

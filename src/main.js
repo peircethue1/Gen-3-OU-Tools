@@ -1,5 +1,6 @@
 ﻿/**
  * Creates the initialization engine
+ * EDITINGNOTE: Consider decoupling the adapter from concrete bootstrapper classes by registering and running them via BootManager:
  */
 
 import { BootClassicAdapter } from './BootClassicAdapter.js';
