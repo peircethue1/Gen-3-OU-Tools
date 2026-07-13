@@ -1,9 +1,11 @@
 ﻿/**
- * 
- * EDITINGNOTE: Review comment content, spacing, and punctuation...
+ * Creates the classic Tools bootstrapper
+ * EDITINGNOTE: Do I need detectAuthPlayerKeyFromBattle in imports?
+ * EDITINGNOTE: should I change the top level comments from bootbootstrappable to here to prefer functional utility over divisiuon of responsibilities/inheritance flow
  */
 
 import * as ReactDOM from 'react-dom/client';
+import { toolsSlice } from '@showdex/redux/store';// EDITINGNOTE: Build this and fix the import
 import { formatId, nonEmptyObject } from './utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
 import { ToolsDomRenderer } from './ToolsRenderer.jsx';
@@ -17,56 +19,45 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
   // 
   static createToolsRoom(battleId, focus) {
-
-    // 
     if (!battleId) {
       return null;
     }
 
-    // 
+    const { store } = this.Adapter || {};
+
     const side = !window.Dex?.prefs('rightpanelbattles');
 
     const toolsRoomId = this.getToolsRoomId(battleId);
-    const toolsRoom = this.createHtmlRoom(
-      toolsRoomId,
-      'Tools',
-      {
-        side,
-        icon: 'wrench',
-        focus,
-        maxWidth: 650,
-      }
-    );
 
-    // 
+    const toolsRoom = this.createHtmlRoom(toolsRoomId, 'Tools', {
+      side,
+      icon: 'wrench',
+      focus,
+      maxWidth: 650,
+    });
+
     if (!toolsRoom?.el) {
       return toolsRoom;
     }
 
-    // 
     toolsRoom.reactRoot = ReactDOM.createRoot(toolsRoom.el);
 
     // 
     toolsRoom.requestLeave = () => {
       const battle = window.app.rooms?.[battleId]?.battle;
 
-      // 
       if (battle?.id) {
         delete battle.toolsHtmlRoom;
       }
 
-      // 
       toolsRoom.reactRoot?.unmount?.();
 
-      // clean up allocated memory from tools state for this Tools instance
-      this.toolsState = null;
+      store.dispatch(toolsSlice.actions.destroy(battleId));
 
-      // 
       if (battle?.id) {
         battle.toolsDestroyed = true;
       }
 
-      // actually leave the room
       return true;
     };
 
@@ -92,7 +83,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     return this.battleRoom?.request;
   }
 
-  // 
+  // EDITINGNOTE: LEFTOFFHERE
   patchToolsIdentifier() {
 
     // 
@@ -460,7 +451,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       console.error(
         '[Gen 3 OU Tools] The bootstrap completed but the React root has not been initialized.',
         '\nbattleId:', this.battle.id,
-        '\nReact root type:', typeof toolsReactRoot, 
+        '\nReact root type:', typeof toolsReactRoot,
         '\nReact root:', toolsReactRoot,
         '\nbattle:', this.battle,
         '\nbattleRoom:', this.battleRoom,

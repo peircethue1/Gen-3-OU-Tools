@@ -1,5 +1,5 @@
 ﻿/**
- * 
+ * Creates the Tools bootstrapper template
  * EDITINGNOTE: See notes...
  * EDITINGNOTE: Write the order of data in error messages consistently across files
  * EDITINGNOTE: Standardize >-1 to >=0 across files

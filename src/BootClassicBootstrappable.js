@@ -1,5 +1,5 @@
 /**
- * Creates the room template
+ * Creates the classic bootstrapper template
  * EDITINGNOTE: See note...
  * EDITINGNOTE: Do I need to use detectClassicHost? If so, where?
  */
