@@ -12,6 +12,7 @@ package (make sure @reduxjs/toolkit and react-redux are added correctly)
 BootAdapter (see notes)
 BootClassicAdapter (see note)
 BootClassicBootstrappable (see note)
+ToolsBootstrappable (see note)
 
 next up__________
-ToolsBootstrappable (LEFT OFF ON FIRST PASS HERE, WILL FOR SURE NEED ANOTHER PASS)
+ToolsClassicBootstrapper
