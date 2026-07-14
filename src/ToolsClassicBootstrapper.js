@@ -1,12 +1,15 @@
 ﻿/**
  * Creates the classic Tools bootstrapper
- * EDITINGNOTE: Do I need detectAuthPlayerKeyFromBattle in imports?
- * EDITINGNOTE: should I change the top level comments from bootbootstrappable to here to prefer functional utility over divisiuon of responsibilities/inheritance flow
+ * EDITINGNOTE: address notes, then create comments...
+ * EDITINGNOTE: Consider changing top-level comments from bootbootstrappable to this to describe functionality
+ * EDITINGNOTE: check hasSinglePanel across all files and remove if not implemented
+ * toolsIdPatched flag is never set (neither is it set in showdex)
+ * if createToolsRoom fails, calling toolsRoom.reactRoot will crash the page (same in showdex)
  */
 
 import * as ReactDOM from 'react-dom/client';
 import { toolsSlice } from '@showdex/redux/store';// EDITINGNOTE: Build this and fix the import
-import { formatId, nonEmptyObject } from './utilities.js';
+import { formatId, nonEmptyObject, detectAuthPlayerKeyFromBattle } from './utilities.js';// EDITINGNOTE: Build detectAuthPlayerKeyFromBattle
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
 import { ToolsDomRenderer } from './ToolsRenderer.jsx';
 
@@ -83,23 +86,18 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     return this.battleRoom?.request;
   }
 
-  // EDITINGNOTE: LEFTOFFHERE
+  // 
   patchToolsIdentifier() {
-
-    // 
     if (!this.battle?.id) {
       return;
     }
 
-    // 
     if (this.battle.toolsIdPatched) {
       return;
-    }
+    }//EDITINGNOTE: combine duplicate conditions/outputs
 
     // 
     ['p1', 'p2'].forEach((playerKey) => {
-
-      // 
       if (!(playerKey in this.battle) || typeof this.battle[playerKey]?.addPokemon !== 'function') {
         return;
       }
@@ -110,7 +108,6 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
         '\nbattleId:', this.battle.id,
       );
 
-      // 
       const side = this.battle[playerKey];
       const addPokemon = side.addPokemon.bind(side);
 
@@ -119,258 +116,185 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
     console.debug('[Gen 3 OU Tools] Intercepting updateSide for this battle:', this.battle.id);
 
-    // 
     const updateSide = this.battleRoom.updateSide.bind(this.battleRoom);
 
     // 
     this.battleRoom.updateSide = () => {
-
-      // grab a copy of myPokemon[] before updateSide() unleashes valhalla on it
       const myPokemon = [...(this.battleRoom.battle?.myPokemon || [])];
 
-      // now run the original function, which will directly mutate myPokemon[] from the battleRoom.requests.side.pokemon[]
       updateSide();
 
-      // 
       this.patchServerToolsIdentifier(myPokemon);
     };
   }
 
   // 
   preparePanel() {
-
-    // 
     if (!this.battle?.id) {
       return;
     }
 
-    // create the toolsRoom if it doesn't already exist (shouldn't tho)
     if (!this.battle.toolsHtmlRoom) {
       this.battle.toolsHtmlRoom = ToolsClassicBootstrapper.createToolsRoom(this.battleId, true);
+
       this.battle.toolsRoomId = this.battle.toolsHtmlRoom?.id;
     }
 
-    // 
     if (!this.battle.toolsRoomId) {
       return;
     }
 
     const { getToolsRoomId } = ToolsClassicBootstrapper;
 
-    // handle destroying the Tools when leaving the battleRoom
     const requestLeave = this.battleRoom.requestLeave.bind(this.battleRoom);
 
     // 
     this.battleRoom.requestLeave = (event) => {
-
-      // 
       const shouldLeave = requestLeave(event);
 
-      // ForfeitPopup probably appeared
       if (!shouldLeave) {
+        const forfeitPopup = window.app.popups.find((popup) => popup.room === this.battleRoom);
 
-        // similar to the battle overlay, we'll override the submit() handler of the ForfeitPopup
-        const forfeitPopup = window.app.popups.find((popup) => (popup).room === this.battleRoom);
-
-        // 
         if (typeof forfeitPopup?.submit === 'function') {
           console.debug('[Gen 3 OU Tools] Intercepting forfeitPopup.submit for this battle:', this.battle.id);
 
-          // 
           const submitForfeit = forfeitPopup.submit.bind(forfeitPopup);
 
-          // we'll only close if configured to (and destroy if closing the room)
+          // 
           forfeitPopup.submit = (...args) => {
-
-            // 
             const toolsRoomId = getToolsRoomId(this.battleId);
 
             if (toolsRoomId && toolsRoomId in (window.app.rooms || {})) {
-
-              // this will trigger toolsRoom's requestLeave() handler, which may destroy the state depending on the user's settings
               window.app.leaveRoom(toolsRoomId);
             }
 
-            // call ForfeitPopup's original submit() handler
             return submitForfeit(...args);
           };
         }
 
-        // don't actually leave the room, as requested by requestLeave()
         return false;
       }
 
-      // actually leave the room
       return true;
     };
   }
 
   // 
   renderTools(dom) {
-
-    // 
     if (!this.battleId || !dom) {
       return;
     }
 
-    // 
-    ToolsDomRenderer(dom, {
-      state: this.toolsState,
-      updateState: (updates) => {
-        this.toolsState = {
-          ...this.toolsState,
-          ...updates
-        };
+    const { Adapter } = ToolsClassicBootstrapper;
 
-        this.renderTools(dom);
-      }
+    ToolsDomRenderer(dom, {
+      store: Adapter.store,
+      battleId: this.battleId,
     });
   }
 
   // 
   open() {
-
-    // 
-    if (!this.toolsState?.battleId) {
+    if (!this.battleState?.battleId) {
       return;
     }
 
-    // check if the Tools tab is already open
     const toolsRoomId = ToolsClassicBootstrapper.getToolsRoomId(this.battleId);
 
     // 
     if (toolsRoomId in window.app.rooms) {
-
-      // 
       window.app.focusRoomRight(toolsRoomId);
     } else {
-
-      // at this point, we need to recreate the room
       const toolsRoom = ToolsClassicBootstrapper.createToolsRoom(this.battleId, true);
 
-      // 
       this.renderTools(toolsRoom.reactRoot);
 
-      // if the battleRoom exists, attach the created room to the battle object
       if (this.battleRoom?.battle?.id) {
-
-        // 
         this.battleRoom.battle.toolsDestroyed = false;
-
-        // 
         this.battleRoom.battle.toolsHtmlRoom = toolsRoom;
       }
     }
 
-    // refocus the battleRoom that the tabbed Tools pertains to, if still joined
     if ((!window.app.curRoom?.id || window.app.curRoom.id !== this.battleId) && this.battleId in window.app.rooms) {
-
-      // 
       window.app.focusRoom(this.battleId);
     }
   }
 
   // 
   close() {
-
-    // 
     if (!this.battleId || !nonEmptyObject(window.app?.rooms)) {
       return;
     }
 
-    // 
-    const { getToolsRoomId } = ToolsClassicBootstrapper;
+    const { Adapter, getToolsRoomId } = ToolsClassicBootstrapper;
     const toolsRoomId = getToolsRoomId(this.battleId);
 
     if (window.app.rooms[toolsRoomId]) {
       window.app.leaveRoom(toolsRoomId);
     }
 
-    // 
-    if (this.battleRoom?.id && !this.toolsState?.active) {
+    if (this.battleRoom?.id && !Adapter.rootState?.tools?.[this.battleId]?.active) {
       window.app.leaveRoom(this.battleId);
     }
   }
 
   // 
   destroy() {
-
-    // 
     if (!this.battleId) {
       return;
     }
 
-    // 
     const { Adapter } = ToolsClassicBootstrapper;
 
-    // 
     if (this.battle?.toolsStateInit) {
-
-      // 
       this.battle.toolsStateInit = false;
       this.battle.toolsDestroyed = true;
     }
 
-    // 
     this.close();
 
-    // 
     Adapter.removeBattleReceiver(this.battleId);
 
-    // 
-    Adapter.removeColorSchemeReceiver(this.__colorSchemeReceiver);
-
-    // 
-    this.toolsState = null;
-
-    // 
-    this.__colorSchemeReceiver = null;
+    Adapter.store.dispatch(toolsSlice.actions.destroy(this.battleId));
   }
 
   // 
   run() {
     console.debug('[Gen 3 OU Tools] The bootstrapper run() method was called for this battle:', this.battleId);
 
-    // 
     if (!this.battleId?.startsWith?.('battle-')) {
       console.debug('[Gen 3 OU Tools] The bootstrap request was ignored for the battle with this invalid battleId:', this.battleId);
 
       return;
     }
 
-    // 
-    const { getToolsRoomId } = ToolsClassicBootstrapper;
+    const { Adapter, getToolsRoomId } = ToolsClassicBootstrapper;
 
     // 
     if (!this.battle?.id) {
-
-      // we'd typically reach this point when the user forfeits through the popup
-      if (!this.toolsState?.battleId) {
+      if (!this.battleState?.battleId) {
         console.debug('[Gen 3 OU Tools] The bootstrap request was ignored for this battle with no state:', this.battleId);
 
         return;
       }
 
-      // 
-      if (this.toolsState?.active) {
-        this.toolsState = {
+      if (this.battleState?.active) {
+        Adapter.store.dispatch(toolsSlice.actions.update({
           battleId: this.battleId,
           active: false,
-        };
+        }));
       }
 
-      // 
       const toolsRoomId = getToolsRoomId(this.battleId);
 
       if (toolsRoomId in window.app.rooms) {
         console.debug(
-          '[Gen 3 OU Tools] Leaving with a destroyed toolsState.',
+          '[Gen 3 OU Tools] Leaving with a destroyed battle.',
           '\ntoolsRoomId:', toolsRoomId,
           '\nbattleId:', this.battleId,
-          '\nstate:', this.toolsState,
-        );
+          '\nstate:', this.battleState,
+        );//EDITINGNOTE: is this right, destroyed battle?
 
-        // this will destroy the Tools state if configured to, via toolsRoom's requestLeave() handler
         window.app.leaveRoom(toolsRoomId);
 
         return;
@@ -381,18 +305,17 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
         '\nbattleId:', this.battleId,
         '\nbattle:', this.battle,
         '\nbattleRoom:', this.battleRoom,
-        '\nstate:', this.toolsState,
-      );
+        '\nstate:', this.battleState,
+      );//EDITINGNOTE: what does this message mean?
 
       return;
     }
 
-    // 
     if (this.initDisabled) {
       console.debug(
         '[Gen 3 OU Tools] The bootstrap request was ignored because the battle was marked as nonexistent.',
         '\nbattleId:', this.battleId,
-        '\nstep:', this.battle.stepQueue.find((step) => step?.startsWith('|noinit|nonexistent|')),
+        '\nstep:', this.battle.stepQueue?.find((step) => step?.startsWith('|noinit|nonexistent|')),
         '\nbattle:', this.battle,
       );
 
@@ -405,7 +328,6 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       return;
     }
 
-    // delaying initialization if the battle hasn't instantiated all the players yet (which we can quickly determine by the existence of '|player|' steps in the stepQueue)
     if (!this.battle.stepQueue?.length || !this.battle.stepQueue.some((step) => step?.startsWith('|player|'))) {
       console.debug(
         '[Gen 3 OU Tools] Initialization failed due to uninitialized players in the battle',
@@ -417,34 +339,33 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       return;
     }
 
-    // don't process this battle if we've already added (or forcibly prevented) the filth
+    // EDITINGNOTE: showdex comment: (don't process this battle if we've already added (or forcibly prevented) the filth)
     if (this.battle.toolsInit) {
-
-      // force a battle sync if we've received some data, but the active battle is just idling
-      if (this.battle.toolsStateInit && this.battle.atQueueEnd) {
-
-        // 
-        this.battle.subscription('atqueueend');
-      } else {
-
-        // 
-        this.battle.subscription('step');
+      if (this.battle.toolsStateInit) {
+        if (this.battle.atQueueEnd) {
+          this.battle.subscription('atqueueend');
+        } else {
+          this.battle.subscription('step');
+        }
       }
 
       return;
     }
 
-    // anything below here executes once per battle
-    if (!this.battle.toolsStateInit) {
+    const authPlayerKey = detectAuthPlayerKeyFromBattle(this.battle);
 
-      // 
+    this.battle.toolsDisabled = !authPlayerKey;
+
+    if (this.battle.toolsDisabled) {
+      return;
+    }
+
+    if (!this.battle.toolsStateInit) {
       this.initToolsState();
     }
 
-    // 
     this.preparePanel();
 
-    // 
     const toolsReactRoot = this.battle.toolsHtmlRoom?.reactRoot;
 
     if (!toolsReactRoot) {
@@ -460,10 +381,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       return;
     }
 
-    // 
     this.patchToolsIdentifier();
 
-    // 
     this.renderTools(toolsReactRoot);
 
     console.debug(
@@ -473,26 +392,15 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
       '\nbattle:', this.battle,
     );
 
-    // 
     this.prevBattleSubscription = this.battle.subscription?.bind?.(this.battle);
 
-    // 
     this.battle.subscribe(this.battleSubscription);
 
-    // 
     this.battle.toolsInit = true;
 
-    // 
-    if (toolsReactRoot && this.battle.atQueueEnd) {
-
-      // 
+    if (this.battle.atQueueEnd) {
       this.battle.subscription('atqueueend');
-    }
-
-    // 
-    if (toolsReactRoot && !this.battle.atQueueEnd) {
-
-      // 
+    } else {
       this.battle.subscription('step');
     }
   }
