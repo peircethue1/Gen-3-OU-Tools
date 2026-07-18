@@ -1,0 +1,73 @@
+reviewed______________________________
+
+pages
+    BootAdapter (see notes)
+    BootClassicAdapter (see note)
+    BootManager (complete)
+    BootBootstrappable (complete)
+    BootClassicBootstrappable (see note)
+    ToolsBootstrappable (see note)
+    ToolsClassicBootstrapper (see notes)
+
+redux
+    syncBattle (see notes)
+    syncField (see note)
+    syncPokemon (see notes)
+
+public
+    manifest (reevaluate based on how Bakedex is implemented, storage (100% smogon), background(100% smogon), and content (50% smogon))
+
+package (partially-generated, make sure @reduxjs/toolkit and react-redux are added correctly)
+package-lock (generated)
+build (esbuild builds CSS separately, which requires a manifest declaration or a custom inline-style plugin to bundle it inside main.js)
+
+
+to do______________________________
+
+redux
+    createStore
+    gen3OUToolsSlice
+    toolsSlice
+
+src
+    background
+    content
+    main.js
+    utilities (including bakeBakedexBundles and openIndexedDb)
+    hooks
+
+pages
+    ToolsRenderer
+    _STUBS (create a Tools stub for this milestone)
+
+
+next milestone______________________________
+
+src
+    main.css
+
+components
+    FieldCalc
+    PageContainer
+    PiconRackContext
+    PiconRackProvider
+    PlayerCalc
+    SandwichContext
+    SandwichProvider
+
+pages
+    Tools
+    ToolsContext
+    ToolsProvider
+    
+redux
+    syncCalculator
+    syncPrediction
+    syncInformation
+
+
+notes______________________________
+
+Also need to update locations based on final folder scheme
+
+Read through my files, especially with an eye for syncPokemon, and understand my extension. Also understand Showdex on Github, especially their analogous file syncPokemon. Would you suggest any changes to this file (I want you to take other files into account, but I only want to review this file for now)?

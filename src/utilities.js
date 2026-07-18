@@ -1,4 +1,5 @@
 // EDITINGNOTE: Needed final decisions are noted...
+// EDITINGNOTE: pay attention to selectionindex
 
 import { v5 as uuidv5, NIL as uuidnil, v4 as uuidv4 } from 'uuid';
 
@@ -196,8 +197,8 @@ export const calcBattleToolsNonce = (battle, request, toolsState) => {
     paused: String(!!battle?.paused),
     ended: String(!!battle?.ended),
     myPokemon: battle?.myPokemon?.length
-    ? calcToolsId(battle.myPokemon.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';') || 'empty')
-    : null,
+      ? calcToolsId(battle.myPokemon.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';') || 'empty')
+      : null,
     mySide: calcSideToolsNonce(battle?.mySide),
     nearSide: calcSideToolsNonce(battle?.nearSide),
     p1: calcSideToolsNonce(battle?.p1),
@@ -478,11 +479,11 @@ const getDexMoveTrack = (dex, moveTrack, transformed) =>
     !!track[0] &&
     (transformed ? track[0].startsWith('*') : !track[0].startsWith('*'))
   ))
-  .map(([moveName, ppUsed]) => [
-    dex.moves.get(moveName?.replace('*', '')),
-    ppUsed || 0,
-  ])
-  .filter(([move]) => move?.exists && !!move.name);
+    .map(([moveName, ppUsed]) => [
+      dex.moves.get(moveName?.replace('*', '')),
+      ppUsed || 0,
+    ])
+    .filter(([move]) => move?.exists && !!move.name);
 
 // Creates a standardized object for the Pokemon moves
 export const sanitizeMoveTrack = (pokemon, format) => {
@@ -601,7 +602,7 @@ export const sanitizePokemon = (pokemon, format) => {
     serverStats: pokemon?.serverStats || null,
     status: (!!pokemon?.hp && pokemon?.status) || null,
     turnstatuses: Object.entries(pokemon?.turnstatuses || {}).reduce((
-      prev, 
+      prev,
       [effectId, effectState],
     ) => ({
       ...prev,
