@@ -1,7 +1,5 @@
 /**
  * Creates the classic bootstrapper template
- * EDITINGNOTE: See note...
- * EDITINGNOTE: Do I need to use detectClassicHost? If so, where?
  */
 
 import { BootBootstrappable } from './BootBootstrappable.js';
@@ -11,12 +9,6 @@ export class BootClassicBootstrappable extends BootBootstrappable {
 
   // Exposes the adapter class
   static Adapter = BootClassicAdapter;
-
-  // Checks if the client is in the single-panel layout
-  static hasSinglePanel = () => (
-    (window.app.curRoom?.id?.startsWith('battle-') && window.$?.(window).width() < 1275) ||
-    window.Dex?.prefs?.('onepanel')
-  );
 
   // Creates a room in the client
   static createHtmlRoom(roomId, title, options) {

@@ -1,11 +1,6 @@
 /**
  * Syncs the Pokemon state with the battle
- * EDITINGNOTE: See notes...
- * EDITINGNOTE: Investigate the behavior of formes including Castform and Unown
- * EDITINGNOTE: Should boosts default to 0? Check use of 0 as a default throughout all files
- * EDITINGNOTE: Should I remove faintCounter throughout all files since it's been removed here?
- * EDITINGNOTE: Currently, I am not handling cosmeticFormes though Unown may fall in this category. Check Unown's behavior
- * EDITINGNOTE: Check use of format and other constrained values across all files
+ * EDITINGNOTE: See note...
  */
 
 import {
@@ -18,7 +13,7 @@ import {
   sanitizePokemon,
   similarArrays,
   calcPokemonSpreadStats,
-} from './utilities.js';// EDITINGNOTE: detectGenFromFormat has been removed from imports
+} from '@gen-3-ou-tools/utilities.js';
 
 export const syncPokemon = (pokemon, config) => {
   const { format, clientPokemon, serverPokemon } = config || {};
@@ -115,9 +110,19 @@ export const syncPokemon = (pokemon, config) => {
       }
 
       case 'ability': {
-        if (!value || /^\([\w\s]+\)$/.test(value) || formatId(value) === 'noability') {
+        if (!value || /^\([\w\s]+\)$/.test(value)) {
           return;
         }
+
+        break;
+      }
+
+      case 'baseAbility': {
+        if (!value || /^\([\w\s]+\)$/.test(value)) {
+          return;
+        }
+
+        syncedPokemon.dirtyBaseAbility = null;
 
         break;
       }
@@ -128,6 +133,21 @@ export const syncPokemon = (pokemon, config) => {
         }
 
         value = dex?.items.get(value)?.name || value;
+
+        // Syncs the base item with the first revealed item
+        if (!syncedPokemon.baseItem) {
+          if (value && formatId(value) !== 'exists') {
+            syncedPokemon.baseItem = value;
+            syncedPokemon.dirtyBaseItem = null;
+          } else if (clientPokemon?.prevItem) {
+            const prevItem = dex?.items.get(clientPokemon.prevItem)?.name || clientPokemon.prevItem;
+
+            if (prevItem) {
+              syncedPokemon.baseItem = prevItem;
+              syncedPokemon.dirtyBaseItem = null;
+            }
+          }
+        }
 
         break;
       }
@@ -268,12 +288,29 @@ export const syncPokemon = (pokemon, config) => {
       }
     }
 
-    // Applies the server item to the Pokemon
+    const serverBaseAbility = serverPokemon.baseAbility;
+
+    // Applies the server base ability to the Pokemon
+    if (serverBaseAbility) {
+      const dexBaseAbility = dex.abilities.get(serverBaseAbility);
+
+      if (dexBaseAbility?.name) {
+        syncedPokemon.baseAbility = dexBaseAbility.name;
+        syncedPokemon.dirtyBaseAbility = null;
+      }
+    }
+
+    // Applies the server item and base item to the Pokemon
     if (serverPokemon.item) {
       const dexItem = dex.items.get(serverPokemon.item);
 
       if (dexItem?.exists && dexItem.name) {
         syncedPokemon.item = dexItem.name;
+
+        if (!syncedPokemon.baseItem) {
+          syncedPokemon.baseItem = dexItem.name;
+          syncedPokemon.dirtyBaseItem = null;
+        }
       }
     }
 
@@ -305,8 +342,15 @@ export const syncPokemon = (pokemon, config) => {
   if (syncedPokemon.item && formatId(syncedPokemon.itemEffect) === 'knockedoff') {
     syncedPokemon.prevItem = syncedPokemon.item;
     syncedPokemon.prevItemEffect = syncedPokemon.itemEffect;
+
+    if (!syncedPokemon.baseItem) {
+      syncedPokemon.baseItem = syncedPokemon.item;
+      syncedPokemon.dirtyBaseItem = null;
+    }
+
     syncedPokemon.item = null;
     syncedPokemon.itemEffect = null;
+    syncedPokemon.dirtyItem = null;
   }
 
   const {

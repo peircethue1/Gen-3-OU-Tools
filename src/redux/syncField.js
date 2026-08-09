@@ -1,10 +1,8 @@
 /**
  * Syncs the field state with the battle
- * EDITINGNOTE: See note...
- * EDITINGNOTE: Remove syncField from utilities and adjust accordingly
  */
 
-import { nonEmptyObject, cloneField, sanitizeField } from './utilities.js';
+import { nonEmptyObject, cloneField, sanitizeField } from '@gen-3-ou-tools/utilities.js';
 
 export const syncField = (state, battle) => {
   if (!nonEmptyObject(state?.field) || !battle?.p1) {

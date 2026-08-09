@@ -1,13 +1,9 @@
 ﻿/**
  * Creates the Tools bootstrapper template
  * EDITINGNOTE: See notes...
- * EDITINGNOTE: Write the order of data in error messages consistently across files
- * EDITINGNOTE: Standardize >-1 to >=0 across files
  */
 
 import { NIL as uuidnil } from 'uuid';
-import { syncBattle } from './syncBattle.js';
-import { toolsSlice } from '@showdex/redux/store'; // EDITINGNOTE: Build this and fix the import
 import {
   detectGenFromFormat,
   clamp,
@@ -16,8 +12,10 @@ import {
   formatId,
   calcBattleToolsNonce,
   similarPokemon
-} from './utilities.js';
+} from '@gen-3-ou-tools/utilities.js';
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
+import { toolsSlice } from '@gen-3-ou-tools/redux/toolsSlice.js';
+import { syncBattle } from '@gen-3-ou-tools/redux/syncBattle.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
 
@@ -31,7 +29,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nstate:', state,
       '\nbattleId:', this.battle?.id || this.battleId,
       '\nbattle:', this.battle,
-      '\nrequest:', this.battleRequest,
     );
 
     this.prevBattleSubscription?.(state);
@@ -50,10 +47,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
   get battle() {
     throw new Error('Bootstrapper error: get battle() must be overridden.');
   }
-
-  get battleRequest() {
-    throw new Error('Bootstrapper error: get battleRequest() must be overridden.');
-  }// EDITINGNOTE: Check if battleRequest is actually used and remove throughout if not
 
   // Gets the battle state from the store
   get battleState() {
@@ -102,10 +95,9 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       battleNonce: initNonce,
       gen: this.battle.gen,
       format: battleId.split('-').find((part) => detectGenFromFormat(part)),
-      gameType: this.battle.gameType === 'singles' ? 'singles' : 'doubles',
+      gameType: this.battle.gameType,
       turn: clamp(0, this.battle.turn || 0),
       active: !this.battle.ended,
-      switchPlayers: this.battle.viewpointSwitched ?? this.battle.sidesSwitched,
 
       // Creates the initial state for each player
       ...['p1', 'p2'].reduce((prev, playerKey) => {
@@ -132,7 +124,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
     }));
 
     this.battle.toolsStateInit = true;
-  }// EDITINGNOTE: Check paused, authPlayerKey, opponentKey, colorScheme, containerSize, containerWidth, smogonChaos, smogonLeads, sideid, activeIndices, selectionIndex, maxPokemon,pokemonOrder, pokemon
+  }
 
   // Syncs the battle state to the store
   syncTools() {
@@ -164,7 +156,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const { Adapter } = ToolsBootstrappable;
 
-    // EDITINGNOTE: This block can be combined with the one above if we don't reintroduce detectClassicHost. Possibly write a comment once I decide
+    // EDITINGNOTE: If we reintroduce detectClassicHost, fix comment. If not, this block can be combined with the one below.
     if (!this.battle.toolsStateInit) {
       const authUserId = (Adapter?.authUsername && formatId(Adapter.authUsername)) || null;
 
@@ -198,7 +190,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       return;
     }
 
-    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest);
+    this.battle.nonce = calcBattleToolsNonce(this.battle);
 
     if (!this.battleState?.battleNonce) {
       return;
@@ -213,14 +205,12 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nbattleId:', this.battle.id,
       '\nprevious nonce:', this.battleState.battleNonce,
       '\nnew nonce:', this.battle.nonce,
-      '\nrequest:', this.battleRequest,
       '\nbattle:', this.battle,
       '\nstate:', this.battleState,
     );
 
     Adapter.store.dispatch(syncBattle({
       battle: this.battle,
-      request: this.battleRequest,
     }));
   }
 
@@ -346,7 +336,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
 
     const { nonce: prevNonce } = this.battle;
 
-    this.battle.nonce = calcBattleToolsNonce(this.battle, this.battleRequest);
+    this.battle.nonce = calcBattleToolsNonce(this.battle);
 
     console.debug(
       '[Gen 3 OU Tools] Restored toolsId to data from the server.',

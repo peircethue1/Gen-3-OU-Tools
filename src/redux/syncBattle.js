@@ -1,10 +1,6 @@
 /**
  * Syncs the battle state to the store
  * EDITINGNOTE: See notes...
- * EDITINGNOTE: I only want to support Gen 3 OU and not spectating; how do I stop my tool from opening or operating in other contexts?
- * EDITINGNOTE: Should I drop the request argument? I would also need to drop it where syncBattle is called in other files
- * EDITINGNOTE: I removed automatically setting playerState.selectionIndex, so I will need to change the way that is used
- * EDITINGNOTE: Where should I implement syncCalculator, syncPrediction, and syncInformation?
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
@@ -21,14 +17,14 @@ import {
   detectToggledAbility,
   clonePlayerSideConditions,
   sanitizePlayerSide,
-} from './utilities.js';// EDITINGNOTE: Build cloneBattleState and export detectToggledAbility
-import { syncField } from './syncField.js';// EDITINGNOTE: Move syncField to its own file
+} from '@gen-3-ou-tools/utilities.js';
+import { syncField } from './syncField.js';
 import { syncPokemon } from './syncPokemon.js';
 
 export const SyncBattleActionType = 'tools:sync';
 
 export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) => {
-  const { battle, request } = payload || {};
+  const { battle } = payload || {};
 
   const {
     id: battleId,
@@ -78,7 +74,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
     battleState.paused = paused || ended;
   }
 
-  battleState.gameType = gameType === 'singles' ? 'singles' : 'doubles';// EDITINGNOTE: Should I default to single or doubles across all files?
+  battleState.gameType = gameType;
 
   battleState.turn = clamp(0, turn || 0);
 
@@ -89,8 +85,6 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
 
     battleState.opponentKey = detectedAuthPlayerKey === 'p1' ? 'p2' : 'p1';
   }
-
-  battleState.switchPlayers = battle.viewpointSwitched ?? battle.sidesSwitched;// EDITINGNOTE: Is this useful?
 
   const syncedField = syncField(battleState, battle);
 
@@ -157,7 +151,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
       playerState.maxPokemon = maxPokemon;
     }
 
-    const initialPokemon = (battleState.active && isMyPokemonSide ? myPokemon : player.pokemon) || [];// EDITINGNOTE: Should I fall back to the client Pokemon if the server Pokemon are not available, or to empty Pokemon?
+    const initialPokemon = (battleState.active && isMyPokemonSide ? myPokemon : player.pokemon) || [];
 
     // Creates the team order
     const currentOrder = initialPokemon.map((pokemon) => {
@@ -288,7 +282,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
 
       const matchedPokemonIndex = playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === clientPokemon.toolsId);
       const matchedPokemon = playerState.pokemon[matchedPokemonIndex] || null;
-      const basePokemon = matchedPokemon || sanitizePokemon(clientPokemon, battleState.format);// EDITINGNOTE: Should I remove format from sanitizePokemon?
+      const basePokemon = matchedPokemon || sanitizePokemon(clientPokemon, battleState.format);
 
       if ('transform' in basePokemon.volatiles && typeof basePokemon.volatiles.transform[1] !== 'string') {
         basePokemon.volatiles = sanitizeVolatiles(basePokemon);
@@ -298,8 +292,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
         format: battleState.format,
         clientPokemon,
         serverPokemon,
-        weather: syncedField.weather,
-      });// EDITINGNOTE: Are format and weather useful?
+      });
 
       syncedPokemon.slot = index;
 
@@ -443,7 +436,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
       const activeId = activePokemon?.toolsId || player.pokemon.find((pokemon) => pokemon === activePokemon)?.toolsId;
       const activeIndex = activeId ? playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === activeId) : -1;
 
-      if (activeIndex > -1) {
+      if (activeIndex >= 0) {
         return activeIndex;
       }
 
@@ -463,28 +456,16 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
       }
 
       return null;
-    }).filter((number) => typeof number === 'number' && number > -1);
+    }).filter((number) => typeof number === 'number' && number >= 0);
 
     playerState.pokemon.forEach((pokemon, index) => {
       pokemon.active = playerState.activeIndices.includes(index);
     });
 
-    playerState.pokemon.forEach((pokemon, index) => {
-      const opponentState = battleState[battleState.opponentKey];
-      const opponentIndex = opponentState?.selectionIndex;
-      const opponentPokemon = opponentState?.pokemon?.[opponentIndex];
-
-      pokemon.abilityToggled = detectToggledAbility(pokemon, {
-        format: battleState.format,
-        gameType: battleState.gameType,
-        pokemonIndex: index,
-        opponentPokemon,
-        selectionIndex: playerState.selectionIndex,
-        activeIndices: playerState.activeIndices,
-        weather: battleState.field.weather,
-        terrain: battleState.field.terrain,
-      });
-    });//EDITINGNOTE: Make sure my implementation of detectToggledAbility doesn't use selectionIndex or opponentPokemon
+    playerState.pokemon.forEach((pokemon) => {
+      pokemon.abilityToggled = detectToggledAbility(pokemon);
+      pokemon.dirtyAbilityToggled = detectToggledAbility(pokemon, pokemon.dirtyAbility);
+    });
 
     // Creates and sanitizes side conditions
     if (playerState.active) {

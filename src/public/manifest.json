@@ -4,14 +4,15 @@
   "version": "1.0.0",
   "description": "Damage calculator, team prediction, and pokemon information tools for Pokemon Showdown's Gen 3 OU format",
   "author": "",
-  "permissions": [
-    "storage"
-  ],
   "host_permissions": [
-    "*://play.pokemonshowdown.com/*",
-    "*://*.psim.us/*",
     "*://*.smogon.com/*"
   ],
+  "externally_connectable": {
+    "matches": [
+      "*://play.pokemonshowdown.com/*",
+      "*://*.psim.us/*"
+    ]
+  },
   "background": {
     "service_worker": "background.js"
   },

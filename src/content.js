@@ -1,9 +1,9 @@
 ﻿/**
- * Injects the main script into the webpage
+ * Injects the stylesheets and main script into the webpage
  */
 
 // Checks the webpage and extension context
-const runtime = chrome.runtime;
+const { runtime } = chrome;
 
 if (typeof document === 'undefined' || !runtime?.id) {
   console.error('[Gen 3 OU Tools] Missing webpage or extension context.');
@@ -11,154 +11,40 @@ if (typeof document === 'undefined' || !runtime?.id) {
   throw new Error('Missing webpage or extension context.');
 }
 
-// Converts the Smogon leads text table into an object
-function parseSmogonLeads(text) {
-  const lines = text.split('\n');
-  let totalLeads = 0;
-  const leadsData = {};
-
-  for (let index = 0; index < lines.length; index++) {
-    const line = lines[index].trim();
-
-    if (line.startsWith("Total leads:")) {
-      totalLeads = parseInt(line.split(":")[1].trim(), 10);
-      
-      continue;
-    }
-
-    if (!line || line.startsWith("+") || line.includes("| Rank")) {
-      continue;
-    }
-
-    const columns = line.split('|').map(column => column.trim()).filter(Boolean);
-
-    if (columns.length >= 5) {
-      const [rankStr, pokemonName, usagePctStr, rawCountStr] = columns;
-
-      leadsData[pokemonName] = {
-        rank: parseInt(rankStr, 10),
-        usagePercent: parseFloat(usagePctStr.replace('%', '')) / 100,
-        rawCount: parseInt(rawCountStr, 10),
-      };
-    }
-  }
-
-  return {
-    totalLeads: totalLeads,
-    data: leadsData
-  };
-}
-
-// Retrieves Smogon data from the cache or fetches Smogon data to the cache
-async function getSmogonData() {
-  const storage = chrome.storage?.local;
-
-  if (!storage) {
-    throw new Error("Could not find Chrome storage.");
-  }
-
-  const result = await new Promise((resolve) => {
-    storage.get(['smogonCache', 'cacheTimestamp'], (result) => resolve(result));
-  });
-
-  const { smogonCache, cacheTimestamp } = result;
-
-  if (smogonCache && cacheTimestamp && (Date.now() - cacheTimestamp < 43200000)) {
-    return smogonCache;
-  }
-
-  const smogonFetch = (url, isJson) => {
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ type: "SMOGON_FETCH", url, isJson }, (response) => {
-        if (chrome.runtime.lastError) {
-          return reject(new Error(chrome.runtime.lastError.message));
-        }
-
-        if (!response.success) {
-          return reject(new Error(response?.error));
-        }
-
-        resolve(response.data);
-      });
-    });
-  };
-
-  const base = 'https://www.smogon.com/stats/';
-  const indexHtml = await smogonFetch(base, false);
-  const directories = [...indexHtml.matchAll(/href="(\d{4}-\d{2})\//g)].map((match) => match[1]);
-  const latest = directories[directories.length - 1];
-
-  if (!latest) {
-    throw new Error("Could not find any Smogon directories.");
-  }
-
-  const [
-    chaos0Data,
-    chaos1500Data,
-    chaos1630Data,
-    chaos1760Data,
-    leads0Data,
-    leads1500Data,
-    leads1630Data,
-    leads1760Data
-  ] = await Promise.all([
-    smogonFetch(`${base}${latest}/chaos/gen3ou-0.json`, true),
-    smogonFetch(`${base}${latest}/chaos/gen3ou-1500.json`, true),
-    smogonFetch(`${base}${latest}/chaos/gen3ou-1630.json`, true),
-    smogonFetch(`${base}${latest}/chaos/gen3ou-1760.json`, true),
-    smogonFetch(`${base}${latest}/leads/gen3ou-0.txt`, false),
-    smogonFetch(`${base}${latest}/leads/gen3ou-1500.txt`, false),
-    smogonFetch(`${base}${latest}/leads/gen3ou-1630.txt`, false),
-    smogonFetch(`${base}${latest}/leads/gen3ou-1760.txt`, false),
-  ]);
-
-  const newData = {
-    "0": {
-      chaos:chaos0Data,
-      leads:parseSmogonLeads(leads0Data),
-    },
-    "1500": {
-      chaos:chaos1500Data,
-      leads:parseSmogonLeads(leads1500Data),
-    },
-    "1630": {
-      chaos:chaos1630Data,
-      leads:parseSmogonLeads(leads1630Data),
-    },
-    "1760": {
-      chaos:chaos1760Data,
-      leads:parseSmogonLeads(leads1760Data),
-    },
-  };
-
-  await new Promise((resolve) => {
-    storage.set({ smogonCache: newData, cacheTimestamp: Date.now() }, () => resolve());
-  });
-
-  return newData;
-}
-
-// Listens for fetch requests
-window.addEventListener("message", async (event) => {
-  if (event.source !== window || event.data.type !== "SMOGON_FETCH") {
-    return;
-  }
-
-  try {
-    const data = await getSmogonData();
-
-    window.postMessage({ type: "SMOGON_DATA", data: data }, "*");
-  } catch (error) {
-    console.error('[Gen 3 OU Tools] The Smogon fetch could not be processed with this error:', error);
-
-    window.postMessage({ type: "SMOGON_ERROR", error: error.message }, "*");
-  }
-});
-
-// Defines the main script location and settings
+// Defines the stylesheet and main script injectables
 const mainUrl = runtime.getURL('main.js');
 const extensionId = runtime.id;
 const injectables = [
+  {
+    id: 'gen-3-ou-tools-preconnect-googleapis',
+    component: 'link',
+    into: 'head',
+    props: {
+      rel: 'preconnect',
+      href: 'https://fonts.googleapis.com',
+    },
+  },
+
+  {
+    id: 'gen-3-ou-tools-stylesheet-work-sans',
+    component: 'link',
+    into: 'head',
+    props: {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap',
+    },
+  },
+
+  {
+    id: 'gen-3-ou-tools-stylesheet-fira-code',
+    component: 'link',
+    into: 'head',
+    props: {
+      rel: 'stylesheet',
+      href: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap',
+    },
+  },
+
   {
     id: 'gen-3-ou-tools-script-main',
     component: 'script',
@@ -171,11 +57,11 @@ const injectables = [
   },
 ];
 
-console.info('[Gen 3 OU Tools] Starting for chrome with extensionId:', extensionId);
+console.info('[Gen 3 OU Tools] Starting for chrome with this extensionId:', extensionId);
 
-console.debug('[Gen 3 OU Tools] Injecting injectables:', injectables);
+console.debug('[Gen 3 OU Tools] Injecting these injectables:', injectables);
 
-// Creates the element and injects it into the webpage
+// Creates the elements and injects them into the webpage
 injectables.forEach(({ id, component, into, props }) => {
   const source = document.getElementById(id) || document.createElement(component);
   const destination = into === 'head' ? document.head : document.body;

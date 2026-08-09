@@ -1,26 +1,24 @@
 /**
- * 
- * EDITINGNOTE: Reviewed...
+ * Creates the React renderer
  * EDITINGNOTE: Consider adding ErrorBoundary for production
  */
 
 import * as React from 'react';
-import { ToolsProvider } from './ToolsProvider.jsx';
-import { SandwichProvider } from './_SANDWICHPROVIDER.jsx';
-import { Tools } from './Tools.jsx';
+import { Provider as ReduxProvider } from 'react-redux';
+import { SandwichProvider } from '@gen-3-ou-tools/components/_STUBS.jsx';
+import { ToolsProvider } from '@gen-3-ou-tools/components/_STUBS.jsx';
+import { Tools } from '@gen-3-ou-tools/components/_STUBS.jsx';
 
-const ToolsRenderer = ({ state, updateState }) => (
-  <SandwichProvider>
-    <ToolsProvider state={state} updateState={updateState}>
-      <Tools />
-    </ToolsProvider>
-  </SandwichProvider>
+// Provides the Redux store, layout, and battle context to the user interface
+const ToolsRenderer = ({ store, battleId, ...props }) => (
+  <ReduxProvider store={store}>
+    <SandwichProvider>
+      <ToolsProvider battleId={battleId}>
+        <Tools {...props} />
+      </ToolsProvider>
+    </SandwichProvider>
+  </ReduxProvider>
 );
 
-export const ToolsDomRenderer = function(dom, { state, updateState }) {
-  if (!dom || typeof dom.render !== 'function') {
-    return null;
-  }
-
-  void dom.render(<ToolsRenderer state={state} updateState={updateState} />);
-};
+export const ToolsDomRenderer = (dom, props) =>
+  dom.render(<ToolsRenderer {...props} />);

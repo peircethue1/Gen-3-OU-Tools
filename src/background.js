@@ -1,25 +1,67 @@
 /**
- * Fetches Smogon data
+ * Creates the network request proxy and external message listener
  */
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "SMOGON_FETCH") {
-    fetch(message.url)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Smogon fetch failed with status: ${response.status}`);
+// Forwards fetch requests to the network
+const handleFetchMessage = (message, send) => {
+  switch (message?.type) {
+    case 'fetch': {
+      if (!message?.url) {
+        break;
+      }
+
+      // Sends the network request
+      (async () => {
+        try {
+          const response = await fetch(message.url, {
+            method: 'GET',
+            headers: {
+              Accept: '*/*',
+            },
+          });
+
+          const value = await response.text();
+
+          const headers = {};
+
+          for (const [headerName, headerValue] of response.headers) {
+            if (!headerName || !headerValue) {
+              continue;
+            }
+
+            headers[headerName.toLowerCase()] = headerValue;
+          }
+
+          send({
+            ok: response.ok,
+            status: response.status,
+            headers,
+            value,
+          });
+        } catch (error) {
+          send({
+            error: true,
+            name: error.name || 'Error',
+            message: error.message || String(error),
+            stack: error.stack,
+          });
         }
+      })();
 
-        return message.isJson ? response.json() : response.text();
-      })
-      .then((data) => {
-        sendResponse({ success: true, data });
-      })
-      .catch((error) => {
-        console.error('[Gen 3 OU Tools] Failed to fetch data from Smogon with this error:', error);
-        sendResponse({ success: false, error: error.message });
-      });
+      return true;
+    }
 
-    return true;
+    default: {
+      break;
+    }
   }
-});
+};
+
+// Registers the external message listener
+if (typeof chrome !== 'undefined') {
+  chrome.runtime.onMessageExternal.addListener((
+    message,
+    _sender,
+    sendResponse,
+  ) => handleFetchMessage(message, sendResponse));
+}

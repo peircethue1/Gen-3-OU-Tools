@@ -43,7 +43,7 @@ export const PlayerCalc = ({ className, style, position, playerKey, defaultName 
     const pid = extractPokemonId?.(id) || id;
     const party = state?.[pkey]?.pokemon || [];
     const partyIndex = party?.findIndex((pokemon) => pokemon?.toolsId === pid) ?? -1;
-    const targetIndex = partyIndex > -1 ? partyIndex : clamp(0, sortable?.itemIndex ?? party.length, party.length);
+    const targetIndex = partyIndex >= 0 ? partyIndex : clamp(0, sortable?.itemIndex ?? party.length, party.length);
 
     return (
       <PlayerPiconButton

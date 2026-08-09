@@ -1,73 +1,78 @@
 reviewed______________________________
 
-pages
-    BootAdapter (see notes)
-    BootClassicAdapter (see note)
-    BootManager (complete)
-    BootBootstrappable (complete)
-    BootClassicBootstrappable (see note)
-    ToolsBootstrappable (see note)
-    ToolsClassicBootstrapper (see notes)
-
-redux
-    syncBattle (see notes)
-    syncField (see note)
-    syncPokemon (see notes)
-
-public
-    manifest (reevaluate based on how Bakedex is implemented, storage (100% smogon), background(100% smogon), and content (50% smogon))
-
-package (partially-generated, make sure @reduxjs/toolkit and react-redux are added correctly)
+package (partially generated, complete)
 package-lock (generated)
-build (esbuild builds CSS separately, which requires a manifest declaration or a custom inline-style plugin to bundle it inside main.js)
-
-
-to do______________________________
-
-redux
-    createStore
-    gen3OUToolsSlice
-    toolsSlice
+build (complete for this milestone, next milestone: esbuild builds CSS separately, which requires a manifest declaration or a custom inline-style plugin to bundle it inside main.js)
 
 src
-    background
-    content
-    main.js
-    utilities (including bakeBakedexBundles and openIndexedDb)
-    hooks
+  background (complete)
+  content (complete)
+  main.js (complete)
+  utilities (complete for this milestone)
+  hooks (complete for this milestone)
+
+redux
+  showdownApi (complete)
+  gen3OUToolsSlice (complete)
+  toolsSlice (complete)
+  syncSmogonData (complete)
+  syncField (complete)
+  syncPokemon (complete for this milestone)
+  syncBattle (complete for this milestone)
+  createStore (complete)
 
 pages
-    ToolsRenderer
-    _STUBS (create a Tools stub for this milestone)
+  BootAdapter (complete)
+  BootClassicAdapter (complete)
+  BootManager (complete)
+  BootBootstrappable (complete)
+  BootClassicBootstrappable (complete)
+  ToolsBootstrappable (complete for this milestone)
+  ToolsClassicBootstrapper (complete)
+  ToolsRenderer (complete)
+
+public
+  manifest (complete)
 
 
 next milestone______________________________
 
-src
-    main.css
+pages
+  Tools
+  ToolsContext
+  ToolsProvider
 
 components
-    FieldCalc
-    PageContainer
-    PiconRackContext
-    PiconRackProvider
-    PlayerCalc
-    SandwichContext
-    SandwichProvider
+  FieldCalc
+  PageContainer
+  PiconRackContext
+  PiconRackProvider
+  PlayerCalc
+  SandwichContext
+  SandwichProvider
 
-pages
-    Tools
-    ToolsContext
-    ToolsProvider
-    
+src
+  main.css
+
 redux
-    syncCalculator
-    syncPrediction
-    syncInformation
+  syncCalculator
+  syncPrediction
+  syncInformation
 
-
-notes______________________________
-
-Also need to update locations based on final folder scheme
-
-Read through my files, especially with an eye for syncPokemon, and understand my extension. Also understand Showdex on Github, especially their analogous file syncPokemon. Would you suggest any changes to this file (I want you to take other files into account, but I only want to review this file for now)?
+Notes______________________________
+  Consider wrapping database calls in try/catch blocks to enable a memory-only fallback, alleviating IndexedDB as a hard dependency
+  Investigate the behavior of formes including Castform and Unown. I am not handling cosmeticFormes, though Unown may be in this category.
+  Check the use of format and other constrained values across all files
+  I only want to support Gen 3 OU and not spectating. How should I prevent my tool from opening/operating in other contexts?
+  I removed automatically setting playerState.selectionIndex. It should be used as a manual override for the active Pokemon, like a dirty property
+  Should activeindices become activeindex since I am only supporting gen 3 ou?
+  Where should I implement syncCalculator, syncPrediction, and syncInformation?
+  I have split abilities and items into ability, baseability, dirtyability, and dirtybaseability, and item, baseitem, dirtyitem, and dirtybaseitem
+  window.app.receive is validated in main, but there is no validation for window.Battle.prototype.run. Should I add that validation to main?
+  Where do I need to use detectClassicHost?
+  Write the order of data in error messages consistently across files
+  Consider changing top-level comments from BootBootstrappable to ToolsClassicBootstrapper to describe functionality
+  Check use of void
+  Check use of fetch in comments
+  Check fallback values for potentially valid-looking data
+  Consider removing dirty props from the nonce since the nonce only handles battle object rerenders

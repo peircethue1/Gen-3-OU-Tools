@@ -1,7 +1,5 @@
 /**
  * Creates the data receiver lifecycle
- * EDITINGNOTE: See note...
- * EDITINGNOTE: window.app.receive is validated in main, but there is no validation for window.Battle.prototype.run
  */
 
 import { BootAdapter } from './BootAdapter.js';

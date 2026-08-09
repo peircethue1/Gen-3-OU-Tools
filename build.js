@@ -17,10 +17,11 @@ const baseConfig = {
   bundle: true,
   outdir: 'dist',
   target: ['chrome100'],
-  minify: !isWatch,
-  sourcemap: isWatch ? 'inline' : false,
+  alias: { '@gen-3-ou-tools': './src' },
   loader: { '.png': 'dataurl' },
   define: { 'process.env.NODE_ENV': isWatch ? '"development"' : '"production"' },
+  minify: !isWatch,
+  sourcemap: isWatch ? 'inline' : false,
 };
 
 const mainConfig = {

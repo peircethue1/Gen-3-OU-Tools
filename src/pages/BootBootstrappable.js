@@ -11,9 +11,6 @@ export class BootBootstrappable {
   static Adapter = BootAdapter;
   static Manager = BootManager;
 
-  // Defines the default client layout
-  static hasSinglePanel = () => false;
-
   // Checks if a lifecycle method is executed without being overridden
   open() {
     throw new Error('Bootstrapper error: open() must be overridden.');

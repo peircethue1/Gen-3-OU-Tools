@@ -1,7 +1,38 @@
-//EDITINGNOTE: Building...
+//EDITINGNOTE: See notes...
 
-import * as React from 'react';
+import {
+  useSelector as useReduxSelector,
+  useDispatch as useReduxDispatch,
+} from 'react-redux';
+
+// Selects the state from the store
+export const useSelector = useReduxSelector;
+
+// Retrieves the dispatch function from the store
+export const useDispatch = () => useReduxDispatch();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// EDITINGNOTE: This is the beginning of React component hooks. These are unreviewed and unordered.
 import useSize from '@react-hook/size';
+import * as React from 'react';
 import { ToolsContext } from './ToolsContext.js';
 
 const ElementSizeDefaultBreakpoints = {
@@ -13,35 +44,24 @@ const ElementSizeDefaultBreakpoints = {
 };
 
 const useElementSize = (target, options) => {
-  const {
-    initialWidth = 0,
-    initialHeight = 0,
-  } = options || {};
+  const { initialWidth = 0, initialHeight = 0 } = options || {};
 
-  const [
-    width,
-    height,
-  ] = useSize(target, {
+  const [width, height] = useSize(target, {
     initialWidth,
     initialHeight,
   });
 
-  const breakpoints = {
-    ...ElementSizeDefaultBreakpoints,
-  };
-
+  const breakpoints = { ...ElementSizeDefaultBreakpoints };
   const sizes = Object.entries(breakpoints).sort(([, a], [, b]) => b - a);
   const size = (sizes.find(([, breakpoint]) => width >= breakpoint) || sizes.slice(-1)[0])?.[0];
 
-  return {
-    width,
-    height,
-    size,
-  };
+  return { width, height, size };
 };
 
 const tolerance = (value, deviation) => {
-  const validFactoryArgs = [value, deviation].every((target) => typeof target === 'number' && !Number.isNaN(target)) && deviation >= 0;
+  const validFactoryArgs = [value, deviation].every(
+    (target) => typeof target === 'number' && !Number.isNaN(target)
+  ) && deviation >= 0;
 
   if (!validFactoryArgs) {
     return () => false;
@@ -50,32 +70,33 @@ const tolerance = (value, deviation) => {
   const minValue = value - deviation;
   const maxValue = value + deviation;
 
-  return (candidate) => typeof candidate === 'number' && !Number.isNaN(candidate) && candidate >= minValue && candidate <= maxValue;
+  return (candidate) =>
+    typeof candidate === 'number' &&
+    !Number.isNaN(candidate) &&
+    candidate >= minValue &&
+    candidate <= maxValue;
 };
 
 export const useToolsSize = (containerRef) => {
   const { state, updateState } = React.useContext(ToolsContext);
 
-  const {
-    width,
-    height,
-    size,
-  } = useElementSize(containerRef, {
+  const { width, height, size } = useElementSize(containerRef, {
     initialWidth: 320,
     initialHeight: 700,
   });
 
   React.useEffect(() => {
-    const shouldIgnore = !width || !height || !size || (size === state?.containerSize && tolerance(state?.containerWidth, 10)(width));
+    const shouldIgnore =
+      !width ||
+      !height ||
+      !size ||
+      (size === state?.containerSize && tolerance(state?.containerWidth, 10)(width));
 
     if (shouldIgnore) {
       return;
     }
 
-    updateState({
-      containerSize: size,
-      containerWidth: width,
-    });
+    updateState({ containerSize: size, containerWidth: width });
   }, [state?.containerSize, state?.containerWidth, updateState, width, height, size]);
 };
 
@@ -85,7 +106,6 @@ export const useToolsContext = () => {
 
   return {
     ...ctx,
-
     updateSide: (playerKey, updates) => console.log(`[Stub updateSide] ${playerKey}:`, updates),
     updateField: (updates) => console.log('[Stub updateField]:', updates),
     selectPokemon: (playerKey, index) => console.log(`[Stub selectPokemon] ${playerKey} index:`, index),

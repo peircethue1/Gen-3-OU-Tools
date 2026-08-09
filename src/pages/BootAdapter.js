@@ -1,11 +1,11 @@
 /**
  * Creates the initialization lifecycle
- * EDITINGNOTE: See notes...
  */
 
-import { createStore, gen3OUToolsSlice } from '@showdex/redux/store'; // EDITINGNOTE: Build these and fix the import
-import { bakeBakedexBundles } from '@showdex/utils/app'; // EDITINGNOTE: Build this, fix the import, and rename this to avoid Bakedex
-import { openIndexedDb } from '@showdex/utils/storage'; // EDITINGNOTE: Build this and fix the import
+import { openIndexedDb } from '@gen-3-ou-tools/utilities.js';
+import { createStore } from '@gen-3-ou-tools/redux/createStore.js';
+import { syncSmogonData } from '@gen-3-ou-tools/redux/syncSmogonData.js';
+import { gen3OUToolsSlice } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 
 export class BootAdapter {
 
@@ -18,7 +18,7 @@ export class BootAdapter {
   static hook = null;
   static ready = null;
 
-  // EDITINGNOTE: Add comment once it's clear what Bakedex does
+  // Initializes the database and syncs Smogon data to the store
   static async __init() {
     if (this.__initialized) {
       return;
@@ -28,7 +28,7 @@ export class BootAdapter {
       this.db = await openIndexedDb();
     }
 
-    void bakeBakedexBundles({ db: this.db, store: this.store }); // EDITINGNOTE: Rename this to avoid Bakedex. Should this await instead?
+    await syncSmogonData({ db: this.db, store: this.store });
 
     this.__initialized = true;
   }

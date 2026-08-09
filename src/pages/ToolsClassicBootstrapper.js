@@ -1,16 +1,11 @@
 ﻿/**
  * Creates the classic Tools bootstrapper
- * EDITINGNOTE: See notes...
- * EDITINGNOTE: Consider changing top-level comments from BootBootstrappable to this to describe functionality
- * EDITINGNOTE: Check hasSinglePanel across all files and remove if not implemented
- * EDITINGNOTE: The toolsIdPatched flag is never set, both in my code and in Showdex
- * EDITINGNOTE: If createToolsRoom fails, calling toolsRoom.reactRoot will crash the page, both in my code and in Showdex
  */
 
 import * as ReactDOM from 'react-dom/client';
-import { toolsSlice } from '@showdex/redux/store';// EDITINGNOTE: Build this and fix the import
-import { formatId, nonEmptyObject, detectAuthPlayerKeyFromBattle } from './utilities.js';// EDITINGNOTE: Re-sort detectAuthPlayerKeyFromBattle in utilities
+import { formatId, nonEmptyObject, detectAuthPlayerKeyFromBattle } from '@gen-3-ou-tools/utilities.js';
 import { ToolsBootstrappable } from './ToolsBootstrappable.js';
+import { toolsSlice } from '@gen-3-ou-tools/redux/toolsSlice.js';
 import { ToolsDomRenderer } from './ToolsRenderer.jsx';
 
 export class ToolsClassicBootstrapper extends ToolsBootstrappable {
@@ -79,11 +74,6 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     return this.battleRoom?.battle;
   }
 
-  // Gets the request
-  get battleRequest() {
-    return this.battleRoom?.request;
-  }
-
   // Restores the identifier to client and server Pokemon
   patchToolsIdentifier() {
     if (!this.battle?.id || this.battle.toolsIdPatched) {
@@ -120,6 +110,8 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
 
       this.patchServerToolsIdentifier(myPokemon);
     };
+
+    this.battle.toolsIdPatched = true;
   }
 
   // Prepares the panel
@@ -201,7 +193,7 @@ export class ToolsClassicBootstrapper extends ToolsBootstrappable {
     } else {
       const toolsRoom = ToolsClassicBootstrapper.createToolsRoom(this.battleId, true);
 
-      this.renderTools(toolsRoom.reactRoot);
+      this.renderTools(toolsRoom?.reactRoot);
 
       if (this.battleRoom?.battle?.id) {
         this.battleRoom.battle.toolsDestroyed = false;
