@@ -14,12 +14,14 @@ console.debug('[Gen 3 OU Tools] Starting.');
 if (
   typeof window?.Dex?.gen !== 'number' ||
   typeof window.Dex.forGen !== 'function' ||
-  typeof window.app?.receive !== 'function'
+  typeof window.app?.receive !== 'function' ||
+  typeof window.Battle?.prototype?.run !== 'function'
 ) {
   console.error(
     '[Gen 3 OU Tools] Executed on an unsupported webpage or before the webpage finished loading.',
     '\nwindow.Dex:', typeof window?.Dex,
     '\nwindow.app:', typeof window?.app,
+    '\nwindow.Battle:', typeof window?.Battle,
   );
 
   throw new Error('Attempted to start in an unsupported webpage.');

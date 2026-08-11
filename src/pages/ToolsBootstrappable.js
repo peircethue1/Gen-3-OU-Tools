@@ -1,6 +1,6 @@
 ﻿/**
  * Creates the Tools bootstrapper template
- * EDITINGNOTE: See notes...
+ * EDITINGNOTE: See note...
  */
 
 import { NIL as uuidnil } from 'uuid';
@@ -184,7 +184,6 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         battleId: this.battle.id,
         battleNonce: this.battle.nonce,
         active: false,
-        paused: true,
       }));
 
       return;
@@ -264,7 +263,7 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         similarPokemon(
           { details },
           pokemon,
-          { format: this.battleState.format },// EDITINGNOTE: Check that normalizeformes can be removed
+          { format: this.battleState.format },
         )
       ));
 

@@ -1,4 +1,4 @@
-// EDITINGNOTE: See notes...
+// EDITINGNOTE: See note...
 
 import { v5 as uuidv5, NIL as uuidnil } from 'uuid';
 
@@ -118,23 +118,6 @@ export const nonEmptyObject = (object) => {
   }
 
   return !!Object.keys(object || {}).length;
-};
-
-// Retrieves the default level for a format
-export const determineDefaultLevel = (formatId) => {
-  if (!formatId || !nonEmptyObject(BattleFormats)) {
-    return null;
-  }
-
-  const matchedFormat = Object.values(BattleFormats).find((format) => {
-    return format?.id === formatId;
-  });
-
-  if (matchedFormat?.teambuilderLevel) {
-    return matchedFormat.teambuilderLevel;
-  }
-
-  return 100;
 };
 
 // Converts an object to a string
@@ -739,7 +722,7 @@ export const sanitizePokemon = (pokemon, format) => {
     details: pokemon?.details || null,
     searchid: pokemon?.searchid || null,
     active: pokemon?.active || false,
-    speciesForme: detectSpeciesForme(pokemon)?.replace('-*', '') || null,//EDITINGNOTE: does this need wildcard removal?
+    speciesForme: detectSpeciesForme(pokemon) || null,
     transformedForme: (transformed
       ? typeof pokemon.volatiles.transform[1] === 'object'
         ? pokemon.volatiles.transform[1]?.speciesForme
@@ -1017,10 +1000,6 @@ const clonePlayerSide = (side) => {
 const clonePlayer = (player) => {
   const output = { ...player };
 
-  if (Array.isArray(output.activeIndices)) {
-    output.activeIndices = [...output.activeIndices];
-  }
-
   if (Array.isArray(output.pokemonOrder)) {
     output.pokemonOrder = [...output.pokemonOrder];
   }
@@ -1088,7 +1067,7 @@ const parsePokemonDetails = (details) => {
   return { speciesForme };
 };
 
-// Checks if two Pokemon are the same species EDITINGNOTE: normalizeformes wildcard has been removed here
+// Checks if two Pokemon are the same species
 export const similarPokemon = (pokemonA, pokemonB, config) => {
   if (!pokemonA?.details || !pokemonB?.details) {
     return false;
@@ -1385,7 +1364,6 @@ export const calcBattleToolsNonce = (battle) => {
     gen: battle?.gen?.toString(),
     tier: battle?.tier,
     gameType: battle?.gameType,
-    paused: String(!!battle?.paused),
     ended: String(!!battle?.ended),
     myPokemon: battle?.myPokemon?.length
       ? calcToolsId(battle.myPokemon.map((pokemon) => calcPokemonToolsNonce(pokemon)).join(';') || 'empty')

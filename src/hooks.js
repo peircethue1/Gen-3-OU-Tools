@@ -1,4 +1,4 @@
-//EDITINGNOTE: See notes...
+// EDITINGNOTE: See notes...
 
 import {
   useSelector as useReduxSelector,
@@ -33,7 +33,7 @@ export const useDispatch = () => useReduxDispatch();
 // EDITINGNOTE: This is the beginning of React component hooks. These are unreviewed and unordered.
 import useSize from '@react-hook/size';
 import * as React from 'react';
-import { ToolsContext } from './ToolsContext.js';
+// import { ToolsContext } from './ToolsContext.js';
 
 const ElementSizeDefaultBreakpoints = {
   xs: 380,

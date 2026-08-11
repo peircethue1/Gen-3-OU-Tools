@@ -1,6 +1,5 @@
 /**
  * Syncs the Pokemon state with the battle
- * EDITINGNOTE: See note...
  */
 
 import {
@@ -57,8 +56,6 @@ export const syncPokemon = (pokemon, config) => {
 
     switch (key) {
       case 'speciesForme': {
-        value = value.replace('-*', '');// EDITINGNOTE: Check if Gen 3 OU has the wildcard forme
-
         if (prevValue === value) {
           return;
         }

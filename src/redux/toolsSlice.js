@@ -6,7 +6,6 @@ import { createSlice, current } from '@reduxjs/toolkit';
 import {
   detectGenFromFormat,
   sanitizeField,
-  determineDefaultLevel,
   nonEmptyObject,
   calcPokemonToolsId,
 } from '@gen-3-ou-tools/utilities.js';
@@ -29,10 +28,8 @@ export const toolsSlice = createSlice({
         gen: genFromPayload,
         format: formatFromPayload,
         gameType,
-        defaultLevel,
         turn = 0,
         active = true,
-        paused = false,
         containerSize = 'xs',
         containerWidth = 320,
         authPlayerKey,
@@ -67,10 +64,8 @@ export const toolsSlice = createSlice({
         gen,
         format: formatFromPayload,
         gameType,
-        defaultLevel,
         turn,
         active,
-        paused,
         containerSize,
         containerWidth,
         authPlayerKey,
@@ -83,7 +78,7 @@ export const toolsSlice = createSlice({
             active: currentPlayerKey in payload,
             name: null,
             rating: null,
-            activeIndices: [],
+            activeIndex: null,
             selectionIndex: null,
             maxPokemon: 0,
             side: null,
@@ -100,10 +95,6 @@ export const toolsSlice = createSlice({
         field: field || sanitizeField(),
         cached,
       };
-
-      if (!state[battleId].defaultLevel) {
-        state[battleId].defaultLevel = determineDefaultLevel(state[battleId].format);
-      }
 
       console.debug(
         '[Gen 3 OU Tools] Initialized the Tools battle state.',
@@ -122,9 +113,7 @@ export const toolsSlice = createSlice({
         gen,
         format,
         gameType,
-        defaultLevel,
         active,
-        paused,
         containerSize,
         containerWidth,
         authPlayerKey,
@@ -166,8 +155,6 @@ export const toolsSlice = createSlice({
         gen: typeof gen === 'number' && gen > 0 ? gen : currentState.gen,
         format: format || currentState.format,
         gameType: gameType || currentState.gameType,
-        defaultLevel: defaultLevel || currentState.defaultLevel,
-        paused: typeof paused === 'boolean' ? paused : currentState.paused,
         containerSize: containerSize || currentState.containerSize,
         containerWidth: containerWidth || currentState.containerWidth,
         authPlayerKey: authPlayerKey || currentState.authPlayerKey,
@@ -378,8 +365,8 @@ export const toolsSlice = createSlice({
   },
 
   // Handles external actions
-  extraReducers: (build) => void build
-    .addCase(syncBattle.fulfilled, (state, action) => {
+  extraReducers: (build) => {
+    build.addCase(syncBattle.fulfilled, (state, action) => {
       const { battleId } = action.payload || {};
 
       if (!battleId) {
@@ -396,6 +383,7 @@ export const toolsSlice = createSlice({
         '\nstate:', current(state)[battleId],
       );
     })
+  }
 });
 
 // Retrieves the Tools state

@@ -1,6 +1,5 @@
 /**
  * Syncs the battle state to the store
- * EDITINGNOTE: See notes...
  */
 
 import { createAsyncThunk } from '@reduxjs/toolkit';
@@ -32,7 +31,6 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
     gen,
     gameType,
     turn,
-    paused,
     ended,
     myPokemon,
   } = battle || {};
@@ -68,10 +66,6 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
 
   if (battleState.active && typeof ended === 'boolean' && ended) {
     battleState.active = false;
-  }
-
-  if (typeof paused === 'boolean' || typeof ended === 'boolean') {
-    battleState.paused = paused || ended;
   }
 
   battleState.gameType = gameType;
@@ -166,7 +160,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
         ].find((existingPokemon) => (
           !!existingPokemon?.toolsId &&
           !!existingPokemon.details &&
-          similarPokemon(pokemon, existingPokemon, { format: battleState.format })// EDITINGNOTE: Check whether normalizeFormes: 'fucked' is needed
+          similarPokemon(pokemon, existingPokemon, { format: battleState.format })
         ))?.toolsId) || calcPokemonToolsId(pokemon, playerKey);
 
         console.debug(
@@ -189,7 +183,7 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
         const clientPokemon = player.pokemon.find((clientPokemon) =>
           !clientPokemon.toolsId &&
           !!clientPokemon.details &&
-          similarPokemon(pokemon, clientPokemon, { format: battleState.format })// EDITINGNOTE: Check whether normalizeFormes: 'fucked' is needed
+          similarPokemon(pokemon, clientPokemon, { format: battleState.format })
         );
 
         if (clientPokemon) {
@@ -427,20 +421,18 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
       }
     }
 
+    const activePokemon = player.active?.[0];
+
+    let activeIndex = null;
+
     // Maps the active Pokemon to its team order
-    playerState.activeIndices = (player.active || []).map((activePokemon) => {
-      if (!activePokemon?.details || detectPlayerKeyFromPokemon(activePokemon) !== playerKey) {
-        return null;
-      }
-
+    if (activePokemon?.details && detectPlayerKeyFromPokemon(activePokemon) === playerKey) {
       const activeId = activePokemon?.toolsId || player.pokemon.find((pokemon) => pokemon === activePokemon)?.toolsId;
-      const activeIndex = activeId ? playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === activeId) : -1;
+      const index = activeId ? playerState.pokemon.findIndex((pokemon) => pokemon.toolsId === activeId) : -1;
 
-      if (activeIndex >= 0) {
-        return activeIndex;
-      }
-
-      if (activePokemon) {
+      if (index >= 0) {
+        activeIndex = index;
+      } else {
         console.warn(
           '[Gen 3 OU Tools] Could not find the active Pokemon.',
           '\nactiveId:', activeId,
@@ -454,15 +446,12 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
           '\nstate:', battleState,
         );
       }
+    }
 
-      return null;
-    }).filter((number) => typeof number === 'number' && number >= 0);
+    playerState.activeIndex = activeIndex;
 
     playerState.pokemon.forEach((pokemon, index) => {
-      pokemon.active = playerState.activeIndices.includes(index);
-    });
-
-    playerState.pokemon.forEach((pokemon) => {
+      pokemon.active = index === playerState.activeIndex;
       pokemon.abilityToggled = detectToggledAbility(pokemon);
       pokemon.dirtyAbilityToggled = detectToggledAbility(pokemon, pokemon.dirtyAbility);
     });

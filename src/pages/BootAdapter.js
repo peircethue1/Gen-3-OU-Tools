@@ -63,7 +63,7 @@ export class BootAdapter {
     console.debug('[Gen 3 OU Tools] Starting the initialization sequence.');
 
     try {
-      void this.hook?.();
+      this.hook?.();
     } catch (error) {
       console.error('[Gen 3 OU Tools] Initialization failed: An error occurred while executing hook setup.', error);
     }

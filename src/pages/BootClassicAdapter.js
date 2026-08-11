@@ -184,7 +184,7 @@ export class BootClassicAdapter extends BootAdapter {
     return this.__battleReceivers;
   }
 
-  // Fetches the battle receiver for the battle room
+  // Retrieves the battle receiver for the battle room
   static battleReceiverNamed(key) {
     if (!key || !this.__battleReceivers.length) {
       return null;
