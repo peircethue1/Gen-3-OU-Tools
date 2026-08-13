@@ -4,6 +4,10 @@ import {
   useSelector as useReduxSelector,
   useDispatch as useReduxDispatch,
 } from 'react-redux';
+import useSize from '@react-hook/size';
+import * as React from 'react';
+import { ToolsContext } from '@gen-3-ou-tools/pages/ToolsContext.js';
+import { toolsSlice } from '@gen-3-ou-tools/redux/toolsSlice.js';
 
 // Selects the state from the store
 export const useSelector = useReduxSelector;
@@ -11,30 +15,7 @@ export const useSelector = useReduxSelector;
 // Retrieves the dispatch function from the store
 export const useDispatch = () => useReduxDispatch();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// EDITINGNOTE: This is the beginning of React component hooks. These are unreviewed and unordered.
-import useSize from '@react-hook/size';
-import * as React from 'react';
-// import { ToolsContext } from './ToolsContext.js';
-
+// 
 const ElementSizeDefaultBreakpoints = {
   xs: 380,
   sm: 550,
@@ -43,8 +24,9 @@ const ElementSizeDefaultBreakpoints = {
   xl: 1100,
 };
 
+// 
 const useElementSize = (target, options) => {
-  const { initialWidth = 0, initialHeight = 0 } = options || {};
+  const { initialWidth = 0, initialHeight = 0 } = options || {};// EDITINGNOTE: do I need these defaults?
 
   const [width, height] = useSize(target, {
     initialWidth,
@@ -58,6 +40,7 @@ const useElementSize = (target, options) => {
   return { width, height, size };
 };
 
+// 
 const tolerance = (value, deviation) => {
   const validFactoryArgs = [value, deviation].every(
     (target) => typeof target === 'number' && !Number.isNaN(target)
@@ -77,8 +60,11 @@ const tolerance = (value, deviation) => {
     candidate <= maxValue;
 };
 
+// 
 export const useToolsSize = (containerRef) => {
-  const { state, updateState } = React.useContext(ToolsContext);
+  const { state } = React.useContext(ToolsContext);
+
+  const dispatch = useDispatch();
 
   const { width, height, size } = useElementSize(containerRef, {
     initialWidth: 320,
@@ -96,25 +82,31 @@ export const useToolsSize = (containerRef) => {
       return;
     }
 
-    updateState({ containerSize: size, containerWidth: width });
-  }, [state?.containerSize, state?.containerWidth, updateState, width, height, size]);
+    dispatch(toolsSlice.actions.update({
+      battleId: state.battleId,
+      containerSize: size,
+      containerWidth: width,
+    }));
+  }, [
+    dispatch,
+    height,
+    size,
+    state?.battleId,
+    state?.containerSize,
+    state?.containerWidth,
+    width,
+  ]);
 };
 
-// EDITINGNOTE: This is a stub
+// EDITINGNOTE: This is a stub, check which functions are actually used before building
 export const useToolsContext = () => {
   const ctx = React.useContext(ToolsContext);
 
   return {
     ...ctx,
-    updateSide: (playerKey, updates) => console.log(`[Stub updateSide] ${playerKey}:`, updates),
-    updateField: (updates) => console.log('[Stub updateField]:', updates),
-    selectPokemon: (playerKey, index) => console.log(`[Stub selectPokemon] ${playerKey} index:`, index),
-    updateBattle: (updates, source) => console.log(`[Stub updateBattle] from ${source}:`, updates)
+    updateSide: (playerKey, side) => console.log('[Stub updateSide]\n', playerKey, '\n', side),
+    updateField: (field) => console.log('[Stub updateField]\n', field),
+    selectPokemon: (playerKey, pokemonIndex) => console.log('[Stub selectPokemon]\n', playerKey, '\n', pokemonIndex),
+    updateBattle: (battle) => console.log('[Stub updateBattle]\n', battle),
   };
-};
-
-export const useColorScheme = () => {
-  const { state } = useToolsContext();
-
-  return state?.colorScheme || 'light'
 };

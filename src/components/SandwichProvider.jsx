@@ -1,8 +1,8 @@
 // EDITINGNOTE: Reviewed, see note...
-// EDITINGNOTE: Do I really need active = true or can I collapse that logic?
+// EDITINGNOTE: Do I need active = true?
 
 import * as React from 'react';
-import { SandwichContext } from './_SANDWICHCONTEXT.js';
+import { SandwichContext } from './SandwichContext.js';
 
 export const SandwichProvider = ({ children }) => {
   const [ids, setIds] = React.useState([]);

@@ -30,26 +30,27 @@ pages
   ToolsBootstrappable (complete for this milestone)
   ToolsClassicBootstrapper (complete)
   ToolsRenderer (complete)
+  ToolsProvider (reviewed...)
+  ToolsContext (reviewed...)
+  Tools (reviewed...)
 
 public
   manifest (complete)
 
+components
+  SandwichProvider (reviewed...)
+  SandwichContext (reviewed...)
+  PiconRackProvider (reviewed...)
+  PiconRackContext (reviewed...)
+  PageContainer (reviewed...)
+  Scrollable (reviewed...)
+  PlayerCalc (reviewed, see note...)
+  PlayerPiconButton...
 
 next milestone______________________________
 
-pages
-  Tools
-  ToolsContext
-  ToolsProvider
-
 components
   FieldCalc
-  PageContainer
-  PiconRackContext
-  PiconRackProvider
-  PlayerCalc
-  SandwichContext
-  SandwichProvider
 
 src
   main.css
@@ -58,6 +59,8 @@ redux
   syncCalculator
   syncPrediction
   syncInformation
+
+usetoolscontext stub in hooks
 
 Notes______________________________
   Next milestone
@@ -92,3 +95,9 @@ Notes______________________________
 
 The async nature of createAsyncThunk in syncBattle causes race conditions and stale state reads during Showdown's synchronous playback loops, preventing us from capturing intermediate battle states; we need to refactor it to run synchronously.
 Re nature, IVs and EVs: We need to parse and sync the player's own Nature/EVs/IVs from the client's battle.myPokemon array to display them, and implement a dual-input stat system in the store using a dirtyStats object for direct final-stat overrides alongside standard formula-computed stats.
+
+I changed playerOrdering and how render timings work with it in piconrackprovider, so if renders are an issue, this is a prime suspect
+
+// EDITINGNOTE: GridSpecs can be moved to CSS stylesheets since it is now constant
+
+check all files that import main.css for consistent naming

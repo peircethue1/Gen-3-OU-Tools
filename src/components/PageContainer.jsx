@@ -1,10 +1,10 @@
-// EDITINGNOTE: Reviewed, needs import and styles...
+// EDITINGNOTE: Reviewed...
 
 import * as React from 'react';
 import cx from 'classnames';
-import { Scrollable } from './_STUBS.jsx';
-import { useColorScheme } from './hooks.js';
-import './main.css';
+import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
+import { Scrollable } from './Scrollable.jsx';
+import '@gen-3-ou-tools/main.css';
 
 export const PageContainer = React.forwardRef(({
   name,

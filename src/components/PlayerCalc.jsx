@@ -1,45 +1,39 @@
-// EDITINGNOTE: Reviewed, needs imports and styles, see notes...
+// EDITINGNOTE: Reviewed, see note...
 
 import * as React from 'react';
 import cx from 'classnames';
-import { PlayerPiconButton } from './_STUBS.jsx';
-import { DroppableGrid } from './_STUBS.jsx';
-import { PiconRackContext } from './_PICONRACKCONTEXT.js';
-import { useColorScheme } from './hooks.js';
-import { clamp } from './utilities.js';
-import { ToolsPokeProvider } from './_STUBS.jsx';
-import { useToolsContext } from './hooks.js';
-import { PlayerInfo } from './_STUBS.jsx';
-import { PokeCalc } from './_STUBS.jsx';
-import './main.css';
+import { useToolsContext } from '@gen-3-ou-tools/hooks.js';
+import { clamp } from '@gen-3-ou-tools/utilities.js';
+import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
+import { PiconRackContext } from './PiconRackContext.js';
+import { PlayerPiconButton } from './PlayerPiconButton.jsx';
+import { PlayerInfo } from './+STUBS.jsx';
+import { DroppableGrid } from './+STUBS.jsx';
+import { ToolsPokeProvider } from './+STUBS.jsx';
+import { PokeCalc } from './+STUBS.jsx';
+import '@gen-3-ou-tools/main.css';
 
-export const PlayerCalc = ({ className, style, position, playerKey, defaultName }) => {
+export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();
 
   const { state, selectPokemon } = useToolsContext();
   const { containerSize, containerWidth, format } = state;
 
-  const playerState = React.useMemo(() => state[playerKey] || {}, [state, playerKey]);
+  const playerState = React.useMemo(() => state[playerKey] || {}, [playerKey, state]);
   const { maxPokemon } = playerState;
-
-  const [contextPiconId, setContextPiconId] = React.useState(null);
 
   const rackCtx = React.useContext(PiconRackContext);
   const itemIds = rackCtx[playerKey] || [];
 
-  // EDITINGNOTE: check on lastAddedId, gridSpecs, makeItemId once DroppableGrid is built
   const {
-    lastAddedId,
     gridSpecs,
     makeItemId,
     extractPlayerKey,
     extractPokemonId,
   } = rackCtx;
 
-  // EDITINGNOTE: check on sortable once PlayerPiconButton is built
-  const renderItem = React.useCallback((id, sortable) => {
-    // EDITINGNOTE: check on this second argument once PiconRackContext is built
-    const pkey = extractPlayerKey?.(id, true);
+  const renderItem = React.useCallback((id, sortable) => {// EDITINGNOTE: I need to evaluate a way to pass unrevealed to PlayerPiconButton to determine whether to render a pokeball or grey box. Also, targetindex supports unrevealed when it doesn't need to as it's disabled in playerpiconbutton
+    const pkey = extractPlayerKey?.(id);
     const pid = extractPokemonId?.(id) || id;
     const party = state?.[pkey]?.pokemon || [];
     const partyIndex = party?.findIndex((pokemon) => pokemon?.toolsId === pid) ?? -1;
@@ -49,19 +43,17 @@ export const PlayerCalc = ({ className, style, position, playerKey, defaultName 
       <PlayerPiconButton
         key={`PlayerCalc:PlayerPiconButton:${playerKey}:${pid}`}
         player={state?.[pkey]}
-        pokemon={party[partyIndex]}
+        partyIndex={partyIndex}
         format={format}
-        itemIndex={partyIndex < 0 ? sortable?.itemIndex : undefined}
         onPress={() => selectPokemon(playerKey, targetIndex)}
       />
     );
-  }, [extractPlayerKey, extractPokemonId, state, playerKey, format, selectPokemon]);
+  }, [extractPlayerKey, extractPokemonId, format, playerKey, selectPokemon, state]);
 
   return (
     <div
       className={cx(
         'playercalc-container',
-        // EDITINGNOTE: check on the use of colorScheme as a style once main.css is built
         !!colorScheme && `playercalc-${colorScheme}`,
         containerWidth < 380 && 'playercalc-slim',
         containerSize === 'xs' && 'playercalc-extraSmall',
@@ -70,7 +62,6 @@ export const PlayerCalc = ({ className, style, position, playerKey, defaultName 
         (containerSize === 'xl' || containerWidth > 990) && 'playercalc-extraLarge',
         className,
       )}
-      style={style}
     >
       <div className={'playercalc-playerBar'}>
         <PlayerInfo
@@ -83,23 +74,22 @@ export const PlayerCalc = ({ className, style, position, playerKey, defaultName 
         <DroppableGrid
           containerClassName={'playercalc-teamList'}
           itemIds={itemIds}
-          // EDITINGNOTE: check on makeItemId once DroppableGrid is built
           itemKeyPrefix={makeItemId(playerKey, 'droppable')}
           renderItem={renderItem}
-          lastAddedId={lastAddedId}
-          focusedId={contextPiconId}
           gridSpecs={gridSpecs}
         >
           {(
-            // EDITINGNOTE: Rewrite this array to differentiate between unrevealed and missing pokemon
-            Array(clamp(0, clamp(maxPokemon || 0, 6) - itemIds.length))
+            Array(clamp(0, 6 - itemIds.length))
               .fill(null)
-              .map((_, i) => {
-                const itemIndex = itemIds.length + i;
+              .map((_, index) => {
+                const itemIndex = itemIds.length + index;
 
                 return renderItem(
                   makeItemId(playerKey, String(itemIndex)),
-                  { itemIndex },
+                  {
+                    itemIndex,
+                    unrevealed: itemIndex < maxPokemon,
+                  },
                 );
               })
           )}

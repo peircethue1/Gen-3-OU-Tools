@@ -1,15 +1,19 @@
-// EDITINGNOTE: Reviewed, see notes...
-// EDITINGNOTE: What parts of this are only related to drag and drop, a feature I'm removing?
+// EDITINGNOTE: Reviewed...
 
 import * as React from 'react';
-import { useToolsContext } from './hooks.js';
-import { nonEmptyObject, similarArrays } from './utilities.js';
-import { PiconRackContext } from './_PICONRACKCONTEXT.js';
+import { useToolsContext } from '@gen-3-ou-tools/hooks.js';
+import { PiconRackContext } from './PiconRackContext.js';
+
+const makeItemId = (playerKey, pokemonId) => `picon:${playerKey}:${pokemonId}`;
+
+const dndMuxTest = /^picon:(p\d):/;
+
+const extractPlayerKey = (id) => dndMuxTest.exec(String(id || ''))?.[1];
+
+const extractPokemonId = (id) => String(id || '').replace(dndMuxTest, '') || null;
 
 export const PiconRackProvider = ({ children }) => {
   const { state } = useToolsContext();
-
-  const makeItemId = (playerKey, pokemonId) => `picon:${playerKey}:${pokemonId}`;
 
   const parsePlayerParty = React.useCallback((playerKey) => (
     (state?.[playerKey]?.pokemon || [])
@@ -17,78 +21,15 @@ export const PiconRackProvider = ({ children }) => {
       .filter(Boolean)
   ), [state]);
 
-  // EDITINGNOTE: This is implemented as containerIds.current, which is defined in their code but not in ours. Should we remove this or simplify it?
-  const containerIds = React.useRef(
-    ['p1', 'p2'].reduce((prev, key) => {
-      prev[key] = `picon:${key}`;
-
-      return prev;
-    }, {}),
-  );
-
-  const [playerOrdering, setPlayerOrdering] = React.useState(
+  const playerOrdering = React.useMemo(() => (
     ['p1', 'p2'].reduce((prev, key) => {
       prev[key] = parsePlayerParty(key);
 
       return prev;
-    }, {}),
-  );
+    }, {})
+  ), [parsePlayerParty]);
 
-  React.useEffect(() => {
-    const mutations = ['p1', 'p2'].reduce((prev, key) => {
-      const current = playerOrdering[key];
-      const next = parsePlayerParty(key);
-
-      if (similarArrays(current, next)) {
-        return prev;
-      }
-
-      prev[key] = next;
-
-      return prev;
-    }, {});
-
-    if (!nonEmptyObject(mutations)) {
-      return;
-    }
-
-    setPlayerOrdering((prev) => ({
-      ...prev,
-      ...mutations,
-    }));
-  }, [
-    state?.p1?.pokemon,
-    state?.p2?.pokemon,
-  ]);
-
-  // EDITINGNOTE: Should I move this to utilities? I'm suspecting so because of React dependencies
-  const dndMuxTest = /^picon:(p\d):/;
-
-  const extractPlayerKey = React.useCallback((id, detectOnly) => {
-    const detectedKey = dndMuxTest.exec(String(id || ''))?.[1];
-    const pid = String(id || '').replace(dndMuxTest, '') || null;
-
-    if (!pid || detectOnly) {
-      return detectedKey;
-    }
-
-    const matchedKey = Object.entries(playerOrdering)
-      .find(([, oids]) => oids.some((oid) => oid?.includes(pid)))?.[0];
-
-    return matchedKey || detectedKey;
-  }, [playerOrdering]);
-
-  const extractPokemonId = (id) => String(id || '').replace(dndMuxTest, '') || null;
-
-  // EDITINGNOTE: This setter has been removed. How should this be handled now that it can no longer change?
-  const [lastAddedId] = React.useState(null);
-
-  // EDITINGNOTE: gridSpecs is used by a component that I have stripped out. How can I determine which properties to remove?
   const value = React.useMemo(() => ({
-    itemKeyPrefix: 'picon',
-    containerIds: containerIds.current,
-    lastAddedId,
-
     gridSpecs: {
       columns: 6,
       gridSize: 40,
@@ -100,11 +41,11 @@ export const PiconRackProvider = ({ children }) => {
     makeItemId,
     extractPlayerKey,
     extractPokemonId,
-  }), [lastAddedId, playerOrdering, makeItemId, extractPlayerKey]);
+  }), [playerOrdering]);
 
   return (
-      <PiconRackContext.Provider value={value}>
-          {children}
-      </PiconRackContext.Provider>
+    <PiconRackContext.Provider value={value}>
+      {children}
+    </PiconRackContext.Provider>
   );
 };
