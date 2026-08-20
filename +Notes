@@ -45,7 +45,11 @@ components
   PageContainer (reviewed...)
   Scrollable (reviewed...)
   PlayerCalc (reviewed, see note...)
-  PlayerPiconButton...
+  PlayerPiconButton (reviewed, see note...)
+  PiconButton (reviewed...)
+  BaseButton (reviewed...)
+  Picon (reviewed...)
+  ItemIcon (reviewed...)
 
 next milestone______________________________
 

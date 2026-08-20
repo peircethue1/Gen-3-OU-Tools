@@ -1395,7 +1395,53 @@ export const calcBattleToolsNonce = (battle) => {
 
 
 
-// EDITINGNOTE: This is the beginning of React component utilities. These are unreviewed and unordered.
+// EDITINGNOTE: This is the beginning of React component utilities.
+export const knownPokemonHp = (pokemon) => (
+  !!pokemon?.speciesForme &&
+  typeof pokemon.maxhp === 'number' &&
+  (pokemon.maxhp || 0) > 1 &&
+  (pokemon.source === 'server' || (pokemon.maxhp === 100 && pokemon.spreadStats?.hp === pokemon.maxhp))
+);
+
+// 
+export const calcPokemonCurrentHp = (pokemon) => {
+  if (!pokemon?.speciesForme || (!pokemon.hp && !pokemon.dirtyHp)) {
+    return 0;
+  }
+
+  const {
+    hp: currentHp,
+    dirtyHp,
+    maxhp: rawMaxHp,
+    spreadStats,
+  } = pokemon;
+
+  const known = knownPokemonHp(pokemon);
+  const maxHp = known ? rawMaxHp : (spreadStats?.hp || 100);
+  const hp = dirtyHp ?? (known ? currentHp : ((currentHp / (rawMaxHp || 1)) * maxHp));
+
+  return Math.floor(hp);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const PlayerSideConditionsDexMap = {
   isLightScreen: ['moves', 'lightscreen'],
   isReflect: ['moves', 'reflect'],

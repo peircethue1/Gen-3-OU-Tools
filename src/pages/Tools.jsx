@@ -33,27 +33,24 @@ export const Tools = () => {
           containerSize === 'xs' && 'tools-extraSmall',
           containerWidth < 380 && 'tools-slim',
         )}
-        contentClassName={'tools-content'}
+        contentClassName="tools-content"
         contentScrollable
       >
         <PlayerCalc
-          className={'tools-authPlayerCalc'}
+          className="tools-authPlayerCalc"
           position="top"
           playerKey={authPlayerKey}
           defaultName="Player 1"
         />
 
         <FieldCalc
-          className={cx(
-            'tools-fieldCalc',
-            'tools-expanded',
-          )}
+          className="tools-fieldCalc"//EDITINGNOTE: just pulled expanded out of fieldcalc
           authPlayerKey={authPlayerKey}
           opponentKey={opponentKey}
         />
 
         <PlayerCalc
-          className={'tools-opponentCalc'}
+          className="tools-opponentCalc"
           position="bottom"
           playerKey={opponentKey}
           defaultName="Player 2"

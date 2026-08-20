@@ -1,10 +1,11 @@
-// fix imports
+// EDITINGNOTE: Reviewed, see note...
 
 import * as React from 'react';
 import cx from 'classnames';
-import { PiconButton, PokeGlance } from '@showdex/components/app';
-import { useColorScheme } from '@showdex/redux/store';
-import { calcPokemonCurrentHp } from '@showdex/utils/calc';
+import { calcPokemonCurrentHp } from '@gen-3-ou-tools/utilities.js';
+import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
+import { PiconButton } from './PiconButton.jsx';
+import { PokeGlance } from './+STUBS.jsx';
 import '@gen-3-ou-tools/main.css';
 
 export const PlayerPiconButton = ({ player, partyIndex, format, onPress }) => {
@@ -32,12 +33,13 @@ export const PlayerPiconButton = ({ player, partyIndex, format, onPress }) => {
     || pokemonKey;
 
   const hp = calcPokemonCurrentHp(pokemon);
+
   const item = pokemon?.dirtyItem ?? pokemon?.item;
 
   const selected = (
-    !!pokemon?.calcdexId
-    && !!selectedPokemon?.calcdexId
-    && selectedPokemon.calcdexId === pokemon.calcdexId
+    !!pokemon?.toolsId
+    && !!selectedPokemon?.toolsId
+    && selectedPokemon.toolsId === pokemon.toolsId
   );
 
   const disabled = !pokemon?.speciesForme;
@@ -45,26 +47,25 @@ export const PlayerPiconButton = ({ player, partyIndex, format, onPress }) => {
   return (
     <PiconButton
       className={cx(
-        styles.container,
-        !!colorScheme && styles[colorScheme],
-        pokemon?.active && styles.active,
-        selected && styles.selected,
-        !hp && styles.fainted,
+        'playerpiconbutton-container',
+        !!colorScheme && `playerpiconbutton-${colorScheme}`,
+        pokemon?.active && 'playerpiconbutton-active',
+        selected && 'playerpiconbutton-selected',
+        !hp && 'playerpiconbutton-fainted',
       )}
       piconClassName={cx(
-        styles.picon,
-        !pokemon?.speciesForme && styles.none,
+        'playerpiconbutton-picon',
+        !pokemon?.speciesForme && 'playerpiconbutton-none',
       )}
       display="block"
-      aria-label={t('player.party.aria', { pokemon: friendlyPokemonName })}
+      aria-label={`Select ${friendlyPokemonName}`}
       pokemon={pokemon?.speciesForme ? {
-        // don't show transformedForme here, as requested by camdawgboi
-        speciesForme: (pokemon.cosmeticForme || pokemon.speciesForme)?.replace(pokemon.useMax ? '' : '-Gmax', ''),
+        speciesForme: pokemon.speciesForme,
         item,
-      } : 'pokeball-none'}
+      } : 'pokeball-none'}// EDITINGNOTE: is this where pokeball vs grey box?
       tooltip={pokemon?.speciesForme ? (
         <PokeGlance
-          className={styles.glanceTooltip}
+          className={'playerpiconbutton-glanceTooltip'}
           pokemon={pokemon}
           format={format}
           showAbility={pokemon?.abilityToggled}
@@ -80,8 +81,8 @@ export const PlayerPiconButton = ({ player, partyIndex, format, onPress }) => {
     >
       <div
         className={cx(
-          styles.piconBackground,
-          !!colorScheme && styles[colorScheme],
+          'playerpiconbutton-piconBackground',
+          !!colorScheme && `playerpiconbutton-${colorScheme}`,
         )}
       />
     </PiconButton>

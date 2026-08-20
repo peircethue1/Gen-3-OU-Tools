@@ -1,0 +1,19 @@
+@use 'mixins/spacing';
+
+.tools-content {
+  @include spacing.p($a: 16px, $t: 12px);
+}
+
+.tools-fieldCalc {
+  max-width: 448px;
+  @include spacing.mx-auto;
+  @include spacing.mt(16px);
+
+  .tools-container:not(.tools-slim) & {
+    @include spacing.px(24px);
+  }
+}
+
+.tools-opponentCalc {
+  @include spacing.mt(12px);
+}
