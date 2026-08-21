@@ -32,13 +32,13 @@ pages
   ToolsRenderer (complete)
   ToolsProvider (reviewed...)
   ToolsContext (reviewed...)
-  Tools (reviewed...)
+  Tools (reviewed, see note...)
 
 public
   manifest (complete)
 
 components
-  SandwichProvider (reviewed...)
+  SandwichProvider (reviewed, see note...)
   SandwichContext (reviewed...)
   PiconRackProvider (reviewed...)
   PiconRackContext (reviewed...)
@@ -105,3 +105,7 @@ I changed playerOrdering and how render timings work with it in piconrackprovide
 // EDITINGNOTE: GridSpecs can be moved to CSS stylesheets since it is now constant
 
 check all files that import main.css for consistent naming
+
+there are some unused styles... strip and strip supporting logic?
+
+We are using SCSS in a single master file (src/main.scss) with Showdex's static helper library in src/styles/, consolidating all @use imports at the very top. This eliminates the "translation tax" by letting you copy Showdex's mixins and color variables directly without manual CSS rewrites. Instead of CSS Modules, components use explicitly prefixed class names (e.g., .pagecontainer-container, .scrollable-wrapper, .tools-fieldCalc) in plain strings for clean DevTools inspection, while PageContainer.jsx provides the root sandbox (gen-3-ou-tools-module) and global theme switching (data-gen-3-ou-tools-scheme="dark"). When copying styles, all unused Showdex features (floating overlay mode, Mina themes, glassy terrain, and FFA dropdowns) are stripped out.

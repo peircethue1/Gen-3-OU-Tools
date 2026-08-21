@@ -1,4 +1,4 @@
-//EDITINGNOTE: Reviewed...
+//EDITINGNOTE: Reviewed, see note...
 
 import * as React from 'react';
 import cx from 'classnames';
@@ -6,7 +6,7 @@ import { useToolsSize, useToolsContext } from '@gen-3-ou-tools/hooks.js';
 import { PiconRackProvider } from '@gen-3-ou-tools/components/PiconRackProvider.jsx';
 import { PageContainer } from '@gen-3-ou-tools/components/PageContainer.jsx';
 import { PlayerCalc } from '@gen-3-ou-tools/components/PlayerCalc.jsx';
-import { FieldCalc } from '@gen-3-ou-tools/components/+STUBS.jsx';//'@gen-3-ou-tools/components/FieldCalc.jsx';
+import { FieldCalc } from '@gen-3-ou-tools/components/+STUBS.jsx';// EDITINGNOTE: This has already been started
 import '@gen-3-ou-tools/main.css';
 
 export const Tools = () => {
@@ -44,7 +44,7 @@ export const Tools = () => {
         />
 
         <FieldCalc
-          className="tools-fieldCalc"//EDITINGNOTE: just pulled expanded out of fieldcalc
+          className="tools-fieldCalc"
           authPlayerKey={authPlayerKey}
           opponentKey={opponentKey}
         />

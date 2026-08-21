@@ -19,13 +19,13 @@ export const PageContainer = React.forwardRef(({
     <div
       ref={forwardedRef}
       className={cx(
-        'tools-module',
+        'gen-3-ou-tools-module',
         'pagecontainer-container',
         className,
       )}
-      {...(!!name && { 'data-tools-module': name })}
-      {...(!!colorScheme && { 'data-tools-scheme': colorScheme })}
-      data-tools-theme="sic"
+      {...(!!name && { 'data-gen-3-ou-tools-module': name })}
+      {...(!!colorScheme && { 'data-gen-3-ou-tools-scheme': colorScheme })}
+      data-gen-3-ou-tools-theme="sic"
     >
       {contentScrollable ? (
         <Scrollable

@@ -1,4 +1,11 @@
 @use 'mixins/spacing';
+@use 'config/colors';
+@use 'functions/color';
+@use 'mixins/font';
+@use 'mixins/position';
+@use 'mixins/transition';
+@use 'mixins/flex';
+@use 'config/fonts';
 
 .tools-content {
   @include spacing.p($a: 16px, $t: 12px);
@@ -16,4 +23,377 @@
 
 .tools-opponentCalc {
   @include spacing.mt(12px);
+}
+
+.pagecontainer-container {
+  @include position.abs-fill;
+  overflow: hidden;
+  z-index: 15;
+
+  &::before {
+    content: '';
+    @include position.abs-fill;
+    @include transition.apply(background-color);
+    pointer-events: none;
+  }
+
+  &[data-gen-3-ou-tools-scheme='light'] {
+    color: colors.$black;
+
+    &::before {
+      background-color: color.alpha(colors.$showdown-background-light, 0.8);
+    }
+  }
+
+  &[data-gen-3-ou-tools-scheme='dark'] {
+    color: colors.$white;
+
+    &::before {
+      background-color: color.alpha(colors.$gray-darkest, 0.88);
+    }
+  }
+}
+
+.pagecontainer-content {
+  @include position.abs-fill;
+  @include spacing.p(16px);
+  @include font.mono;
+  font-size: 10px;
+}
+
+.scrollable-container {
+  position: relative;
+  @include flex.column($justify: flex-start, $align: flex-start);
+  flex-wrap: wrap;
+  align-content: flex-start;
+
+  &.scrollable-dragging {
+    user-select: none;
+    pointer-events: none;
+  }
+
+  &::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    display: none !important;
+
+    &:vertical {
+      width: 0 !important;
+    }
+
+    &:horizontal {
+      height: 0 !important;
+    }
+  }
+}
+
+.scrollable-wrapper {
+  width: inherit;
+  max-width: inherit;
+  height: inherit;
+  max-height: inherit;
+  overflow: hidden;
+}
+
+.scrollable-mask {
+  @include position.absolute-fill;
+  width: auto;
+  height: auto;
+  @include spacing.margin-none;
+  @include spacing.padding-none;
+  direction: inherit;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.scrollable-offset {
+  @include position.absolute-fill;
+  @include spacing.margin-none;
+  @include spacing.padding-none;
+  direction: inherit;
+  resize: none;
+}
+
+.scrollable-contentWrapper {
+  position: relative;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  direction: inherit;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+.scrollable-content {
+  position: relative;
+
+  .scrollable-dragging & {
+    user-select: none;
+    pointer-events: none;
+  }
+}
+
+.scrollable-placeholder {
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.scrollable-heightObserverWrapper {
+  position: relative;
+  flex-grow: inherit;
+  flex-shrink: 0;
+  flex-basis: 0;
+  float: left;
+  width: 100%;
+  max-width: 1px;
+  height: 100%;
+  max-height: 1px;
+  @include spacing.margin-none;
+  @include spacing.padding-none;
+  box-sizing: inherit;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.scrollable-heightObserver {
+  @include position.absolute-anchor($x: 0, $y: 0);
+  display: block;
+  width: 1000%;
+  min-width: 1px;
+  height: 1000%;
+  min-height: 1px;
+  opacity: 0;
+  box-sizing: inherit;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.scrollable-track {
+  @include position.absolute-anchor($x: 0, $y: 0, $x-prop: right, $y-prop: bottom);
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+
+  &.scrollable-horizontal {
+    left: 0;
+    height: 11px;
+  }
+
+  &.scrollable-vertical {
+    top: 0;
+    width: 11px;
+  }
+
+  .scrollable-dragging & {
+    pointer-events: all;
+  }
+}
+
+.scrollable-scrollbar {
+  @include position.absolute($right: 0, $left: 0);
+  min-height: 10px;
+
+  .scrollable-horizontal & {
+    top: 2px;
+    right: auto;
+    left: 0;
+    width: auto;
+    min-width: 10px;
+    height: 7px;
+    min-height: 0;
+  }
+
+  &::before {
+    content: '';
+    @include position.absolute($right: 2px, $left: 2px);
+    border-radius: 16px;
+    opacity: 0;
+    @include transition.apply((background-color, 0.3s, linear), (opacity, 0.3s, linear));
+  }
+
+  &.scrollable-visible::before {
+    opacity: 0.4;
+  }
+
+  &:hover.scrollable-visible::before {
+    opacity: 0.8;
+  }
+
+  .scrollable-horizontal &::before {
+    height: 100%;
+  }
+
+  .scrollable-vertical &::before {
+    top: 2px;
+    bottom: 2px;
+  }
+
+  .scrollable-light &::before {
+    background-color: colors.$black;
+  }
+
+  .scrollable-dark &::before {
+    background-color: colors.$white;
+  }
+}
+
+.simplebar-hide-scrollbar {
+  @include position.fixed($left: 0);
+  overflow-y: scroll;
+  visibility: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+.playercalc-container {
+  width: 100%;
+}
+
+.playercalc-playerBar {
+  @include flex.row-between;
+  width: 100%;
+}
+
+.playercalc-playerInfo {
+  @include spacing.margin($top: 7px);
+  width: 100%;
+  flex: 1;
+
+  .playercalc-slim & {
+    max-width: 20%;
+  }
+}
+
+.playercalc-teamList {
+  @include flex.row-end;
+  flex: 2;
+}
+
+.playercalc-pokeCalc {
+  @include spacing.padding($top: 4px);
+}
+
+.playerpiconbutton-container {
+  align-self: center;
+}
+
+.playerpiconbutton-picon {
+  @include transition.apply(opacity, filter);
+
+  &.playerpiconbutton-none {
+    transform: translateY(-4px);
+  }
+
+  .playerpiconbutton-fainted & {
+    opacity: 0.3;
+    filter: grayscale(1);
+  }
+}
+
+.playerpiconbutton-glanceTooltip {
+  max-width: 256px;
+}
+
+.playerpiconbutton-piconBackground {
+  @include position.absolute-center;
+  width: 38px;
+  height: 38px;
+  border: 2px solid colors.$transparent;
+  border-radius: 100px;
+  @include transition.apply(background-color, border-color);
+  pointer-events: none;
+
+  .playerpiconbutton-container:not(.playerpiconbutton-selected):hover & {
+    &.playerpiconbutton-light {
+      border-color: color.alpha(colors.$black, 0.16);
+    }
+
+    &.playerpiconbutton-dark {
+      border-color: color.alpha(colors.$white, 0.16);
+    }
+  }
+
+  .playerpiconbutton-active & {
+    &.playerpiconbutton-light {
+      background-color: color.alpha(color.shade(colors.$blue, 16%), 0.24);
+    }
+
+    &.playerpiconbutton-dark {
+      background-color: color.alpha(colors.$blue, 0.24);
+    }
+  }
+
+  .playerpiconbutton-selected & {
+    &.playerpiconbutton-light {
+      border-color: color.alpha(colors.$black, 0.32);
+    }
+
+    &.playerpiconbutton-dark {
+      border-color: color.alpha(colors.$white, 0.32);
+    }
+  }
+
+  .playerpiconbutton-selected:hover & {
+    border-color: color.alpha(colors.$blue, 0.8);
+  }
+}
+
+.piconbutton-container {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  user-select: none;
+}
+
+.piconbutton-picon {
+  z-index: 1;
+}
+
+.basebutton-container {
+  @include flex.row-center($inline: true);
+  @include spacing.padding-none;
+  @include font.apply(fonts.$mono);
+  background: none;
+  border: none;
+  outline: none;
+  user-select: none;
+  cursor: pointer;
+
+  &.basebutton-disabled {
+    pointer-events: none;
+  }
+}
+
+.picon-container {
+  position: relative;
+  width: 40px;
+  height: 30px;
+  image-rendering: pixelated;
+}
+
+.picon-itemIcon {
+  @include position.absolute-anchor($x: -7%, $y: -17%, $x-prop: right, $y-prop: bottom);
+  opacity: 0.8;
+  transform: scale(0.75);
+}
+
+.itemicon-container {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
 }
