@@ -6,7 +6,7 @@ import { detectClassicHost } from '@gen-3-ou-tools/utilities.js';
 import { BootManager } from '@gen-3-ou-tools/pages/BootManager.js';
 import { ToolsClassicBootstrapper } from '@gen-3-ou-tools/pages/ToolsClassicBootstrapper.js';
 import { BootClassicAdapter } from '@gen-3-ou-tools/pages/BootClassicAdapter.js';
-import './main.css';
+import './main.scss';
 
 console.debug('[Gen 3 OU Tools] Starting.');
 

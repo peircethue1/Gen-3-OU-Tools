@@ -6,7 +6,6 @@ import { calcPokemonCurrentHp } from '@gen-3-ou-tools/utilities.js';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { PiconButton } from './PiconButton.jsx';
 import { PokeGlance } from './+STUBS.jsx';
-import '@gen-3-ou-tools/main.css';
 
 export const PlayerPiconButton = ({ player, partyIndex, format, onPress }) => {
   const colorScheme = useColorScheme();

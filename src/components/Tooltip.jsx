@@ -1,0 +1,137 @@
+// 
+
+import * as React from 'react';
+import { animated, useSpring } from '@react-spring/web';
+import Tippy from '@tippyjs/react/headless';
+import cx from 'classnames';
+import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
+
+const springConfig = {
+    mass: 1,
+    tension: 300,
+    friction: 27,
+};
+
+const springProps = {
+    show: {
+        opacity: 1,
+        scale: 1,
+    },
+
+    hide: {
+        opacity: 0,
+        scale: 0.9,
+    },
+};
+
+const AnimatedDiv = animated.div;
+
+export const Tooltip = ({//LEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERELEFTOFFHERE
+    className,
+    style,
+    arrowClassName,
+    arrowStyle,
+    appendTo = () => document.body,
+    popperOptions: {
+        modifiers: popperModifiers = [],
+        ...popperOptions
+    } = {},
+    content,
+    trigger,
+    derender,
+    onMount,
+    onHidden,
+    children,
+    ...props
+}) => {
+    const colorScheme = useColorScheme();
+
+    // animations (required for "headless" Tippy -- i.e., we're not using the default plug-n-play version)
+    // note: the [] deps arg is REQUIRED -- w/o it, react-spring v10 treats the factory result as continuous
+    // props and re-applies `springProps.hide` on every render via its internal flushUpdate loop, silently
+    // animating the tooltip back to opacity=0/scale=0.9 right after handleMount's show animation finishes
+    const [animationStyles, springApi] = useSpring(() => ({
+        from: springProps.hide,
+        config: springConfig,
+    }), []);
+
+    const handleMount = (instance) => {
+        onMount?.(instance);
+
+        void springApi.start({
+            ...springProps.show,
+            config: { ...springConfig, clamp: false },
+            onRest: () => { },
+        });
+    };
+
+    const handleHide = (instance) => void springApi.start({
+        ...springProps.hide,
+        config: { ...springConfig, clamp: true },
+        onRest: ({ cancelled }) => void (cancelled ? 0 : instance?.unmount()),
+    });
+
+    const handleHidden = (instance) => {
+        springApi.set(springProps.hide);
+        onHidden?.(instance);
+    };
+
+    // custom tooltip arrow
+    const [arrow, setArrow] = React.useState(null);
+
+    return (
+        <Tippy
+            {...props}
+            appendTo={appendTo}
+            animation
+            popperOptions={{
+                strategy: 'fixed',
+                ...popperOptions,
+                modifiers: [...popperModifiers, {
+                    name: 'arrow',
+                    options: {
+                        element: arrow,
+                        // padding: 15,
+                    },
+                }].filter(Boolean),
+            }}
+            trigger={Array.isArray(trigger) ? trigger.join(' ') : trigger}
+            zIndex={99}
+            render={(
+                attributes,
+                renderContent,
+            ) => (
+                <AnimatedDiv
+                    className={cx(
+                        styles.container,
+                        !!colorScheme && styles[colorScheme],
+                        className,
+                    )}
+                    style={{
+                        ...style,
+                        ...animationStyles,
+                        ...(derender && { display: 'none' }),
+                    }}
+                    tabIndex={-1}
+                    {...attributes}
+                >
+                    {renderContent || content}
+
+                    <div
+                        ref={setArrow}
+                        className={cx(
+                            styles.arrow,
+                            arrowClassName,
+                        )}
+                        style={arrowStyle}
+                    />
+                </AnimatedDiv>
+            )}
+            onMount={handleMount}
+            onHide={handleHide}
+            onHidden={handleHidden}
+        >
+            {children}
+        </Tippy>
+    );
+};

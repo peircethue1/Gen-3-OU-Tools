@@ -1,4 +1,5 @@
 import * as esbuild from 'esbuild';
+import { sassPlugin } from 'esbuild-sass-plugin';
 import { existsSync, rmSync, mkdirSync, cpSync, watch } from 'fs';
 
 const isWatch = process.argv.includes('--watch');
@@ -19,6 +20,12 @@ const baseConfig = {
   target: ['chrome100'],
   alias: { '@gen-3-ou-tools': './src' },
   loader: { '.png': 'dataurl' },
+  plugins: [
+    sassPlugin({
+      type: 'style',
+      loadPaths: ['src/+STYLES'],
+    }),
+  ],
   define: { 'process.env.NODE_ENV': isWatch ? '"development"' : '"production"' },
   minify: !isWatch,
   sourcemap: isWatch ? 'inline' : false,

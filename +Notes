@@ -50,6 +50,7 @@ components
   BaseButton (reviewed...)
   Picon (reviewed...)
   ItemIcon (reviewed...)
+  Tooltip...
 
 next milestone______________________________
 
@@ -57,7 +58,7 @@ components
   FieldCalc
 
 src
-  main.css
+  main.scss...
 
 redux
   syncCalculator

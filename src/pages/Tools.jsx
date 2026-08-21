@@ -7,7 +7,6 @@ import { PiconRackProvider } from '@gen-3-ou-tools/components/PiconRackProvider.
 import { PageContainer } from '@gen-3-ou-tools/components/PageContainer.jsx';
 import { PlayerCalc } from '@gen-3-ou-tools/components/PlayerCalc.jsx';
 import { FieldCalc } from '@gen-3-ou-tools/components/+STUBS.jsx';// EDITINGNOTE: This has already been started
-import '@gen-3-ou-tools/main.css';
 
 export const Tools = () => {
   const containerRef = React.useRef(null);

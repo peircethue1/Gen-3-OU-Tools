@@ -18,7 +18,6 @@ import {
   getDexForFormat,
   getWeatherConditions,
 } from './utilities.js';
-import './main.css';
 
 export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
   const { state, updateSide, updateField } = useToolsContext();
@@ -88,7 +87,7 @@ export const FieldCalc = ({ className, style, authPlayerKey, opponentKey }) => {
     const active = !!currentSide?.[sideKey];
 
     const desc = formatDexDescription((dexToggle?.shortDesc || dexToggle?.desc)
-        ?.replace("This Pokemon's allies", 'Allies')
+      ?.replace("This Pokemon's allies", 'Allies')
     );
 
     const tooltipContent = desc ? (

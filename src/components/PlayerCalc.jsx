@@ -11,7 +11,6 @@ import { PlayerInfo } from './+STUBS.jsx';
 import { DroppableGrid } from './+STUBS.jsx';
 import { ToolsPokeProvider } from './+STUBS.jsx';
 import { PokeCalc } from './+STUBS.jsx';
-import '@gen-3-ou-tools/main.css';
 
 export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();

@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useSpring, animated } from '@react-spring/web';
 import { useGesture } from '@use-gesture/react';
 import cx from 'classnames';
-import '@gen-3-ou-tools/main.css';
 
 export const BaseButton = React.forwardRef(({
   className,

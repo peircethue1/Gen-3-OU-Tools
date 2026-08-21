@@ -4,7 +4,6 @@ import * as React from 'react';
 import cx from 'classnames';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { Scrollable } from './Scrollable.jsx';
-import '@gen-3-ou-tools/main.css';
 
 export const PageContainer = React.forwardRef(({
   name,

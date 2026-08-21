@@ -4,7 +4,6 @@ import * as React from 'react';
 import SimpleBar from 'simplebar';
 import cx from 'classnames';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
-import '@gen-3-ou-tools/main.css';
 
 export const Scrollable = ({ className, children }) => {
   const simpleBarRef = React.useRef(null);

@@ -5,8 +5,7 @@ import cx from 'classnames';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { BaseButton } from './BaseButton.jsx';
 import { Picon } from './Picon.jsx';
-import { Tooltip } from './+STUBS.jsx';
-import '@gen-3-ou-tools/main.css';
+import { Tooltip } from './Tooltip.jsx';
 
 export const PiconButton = ({
   className,

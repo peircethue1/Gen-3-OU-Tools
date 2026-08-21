@@ -1,0 +1,353 @@
+///
+/// @group flex
+/// @access public
+/// @author Keith Choison <keith@tize.io>
+/// @since 0.1.0
+///
+
+///
+/// @access private
+///
+@mixin -flex(
+  $direction: null,
+  $justify: null,
+  $align: null,
+  $inline: false,
+) {
+  display: if(sass($inline): inline-flex; else: flex);
+
+  @if $direction and $direction != row {
+    flex-direction: $direction;
+  }
+
+  @if $justify and $justify != flex-start {
+    justify-content: $justify;
+  }
+
+  @if $align and $align != stretch {
+    align-items: $align;
+  }
+}
+
+// rows
+
+@mixin row(
+  $justify: null,
+  $align: null,
+  $reverse: false,
+  $inline: false,
+) {
+  @include -flex(
+    if(sass($reverse): row-reverse; else: row),
+    $justify,
+    $align,
+    $inline,
+  );
+}
+
+@mixin row-stretch($reverse: false, $inline: false) {
+  @include row(stretch, stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-stretch()
+///
+@mixin stretch($reverse: false, $inline: false) {
+  @include row-stretch($reverse, $inline);
+}
+
+@mixin row-start($align: center, $reverse: false, $inline: false) {
+  @include row(flex-start, $align, $reverse, $inline);
+}
+
+///
+/// @alias row-start()
+///
+@mixin start($align: center, $reverse: false, $inline: false) {
+  @include row-start($align, $reverse, $inline);
+}
+
+@mixin row-start-stretch($reverse: false, $inline: false) {
+  @include row-start(stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-start-stretch()
+///
+@mixin start-stretch($reverse: false, $inline: false) {
+  @include row-start-stretch($reverse, $inline);
+}
+
+@mixin row-center($align: center, $reverse: false, $inline: false) {
+  @include row(center, $align, $reverse, $inline);
+}
+
+///
+/// @alias row-center()
+///
+@mixin center($align: center, $reverse: false, $inline: false) {
+  @include row-center($align, $reverse, $inline);
+}
+
+@mixin row-center-stretch($reverse: false, $inline: false) {
+  @include row-center(stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-center-stretch()
+///
+@mixin center-stretch($reverse: false, $inline: false) {
+  @include row-center-stretch($reverse, $inline);
+}
+
+@mixin row-end($align: center, $reverse: false, $inline: false) {
+  @include row(flex-end, $align, $reverse, $inline);
+}
+
+///
+/// @alias row-end()
+///
+@mixin end($align: center, $reverse: false, $inline: false) {
+  @include row-end($align, $reverse, $inline);
+}
+
+@mixin row-end-stretch($reverse: false, $inline: false) {
+  @include row-end(stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-end-stretch()
+///
+@mixin end-stretch($reverse: false, $inline: false) {
+  @include row-end-stretch($reverse, $inline);
+}
+
+@mixin row-between($align: center, $reverse: false, $inline: false) {
+  @include row(space-between, $align, $reverse, $inline);
+}
+
+///
+/// @alias row-between()
+///
+@mixin between($align: center, $reverse: false, $inline: false) {
+  @include row-between($align, $reverse, $inline);
+}
+
+@mixin row-between-stretch($reverse: false, $inline: false) {
+  @include row-between(stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-between-stretch()
+///
+@mixin between-stretch($reverse: false, $inline: false) {
+  @include row-between-stretch($reverse, $inline);
+}
+
+@mixin row-around($align: center, $reverse: false, $inline: false) {
+  @include row(space-around, $align, $reverse, $inline);
+}
+
+///
+/// @alias row-around()
+///
+@mixin around($align: center, $reverse: false, $inline: false) {
+  @include row-around($align, $reverse, $inline);
+}
+
+@mixin row-around-stretch($reverse: false, $inline: false) {
+  @include row-around(stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-around-stretch()
+///
+@mixin around-stretch($reverse: false, $inline: false) {
+  @include row-around-stretch($reverse, $inline);
+}
+
+@mixin row-evenly($align: center, $reverse: false, $inline: false) {
+  @include row(space-evenly, $align, $reverse, $inline);
+}
+
+///
+/// @alias row-evenly()
+///
+@mixin evenly($align: center, $reverse: false, $inline: false) {
+  @include row-evenly($align, $reverse, $inline);
+}
+
+@mixin row-evenly-stretch($reverse: false, $inline: false) {
+  @include row-evenly(stretch, $reverse, $inline);
+}
+
+///
+/// @alias row-evenly-stretch()
+///
+@mixin evenly-stretch($reverse: false, $inline: false) {
+  @include row-evenly-stretch($reverse, $inline);
+}
+
+// columns
+
+@mixin column(
+  $justify: null,
+  $align: null,
+  $reverse: false,
+  $inline: false,
+) {
+  @include -flex(
+    if(sass($reverse): column-reverse; else: column),
+    $justify,
+    $align,
+    $inline,
+  );
+}
+
+///
+/// @alias column()
+///
+@mixin col(
+  $justify: null,
+  $align: null,
+  $reverse: false,
+  $inline: false,
+) {
+  @include column($justify, $align, $reverse, $inline);
+}
+
+@mixin column-stretch($reverse: false, $inline: false) {
+  @include column(stretch, stretch, $reverse, $inline);
+}
+
+///
+/// @alias column-stretch()
+///
+@mixin col-stretch($reverse: false, $inline: false) {
+  @include column-stretch($reverse, $inline);
+}
+
+@mixin column-start($align: center, $reverse: false, $inline: false) {
+  @include column(flex-start, $align, $reverse, $inline);
+}
+
+///
+/// @alias column-start()
+///
+@mixin col-start($align: center, $reverse: false, $inline: false) {
+  @include column-start($align, $reverse, $inline);
+}
+
+@mixin column-start-stretch($reverse: false, $inline: false) {
+  @include column-start(stretch, $reverse, $inline);
+}
+
+///
+/// @alias column-start-stretch()
+///
+@mixin col-start-stretch($reverse: false, $inline: false) {
+  @include column-start-stretch($reverse, $inline);
+}
+
+@mixin column-center($align: center, $reverse: false, $inline: false) {
+  @include column(center, $align, $reverse, $inline);
+}
+
+///
+/// @alias column-center()
+///
+@mixin col-center($align: center, $reverse: false, $inline: false) {
+  @include column-center($align, $reverse, $inline);
+}
+
+@mixin column-center-stretch($reverse: false, $inline: false) {
+  @include column-center(stretch, $reverse, $inline);
+}
+
+///
+/// @alias column-center-stretch()
+///
+@mixin col-center-stretch($reverse: false, $inline: false) {
+  @include column-center-stretch($reverse, $inline);
+}
+
+@mixin column-end($align: center, $reverse: false, $inline: false) {
+  @include column(flex-end, $align, $reverse, $inline);
+}
+
+///
+/// @alias column-end()
+///
+@mixin col-end($align: center, $reverse: false, $inline: false) {
+  @include column-end($align, $reverse, $inline);
+}
+
+@mixin column-end-stretch($reverse: false, $inline: false) {
+  @include column-end(stretch, $reverse, $inline);
+}
+
+///
+/// @alias column-end-stretch()
+///
+@mixin col-end-stretch($reverse: false, $inline: false) {
+  @include column-end-stretch($reverse, $inline);
+}
+
+@mixin column-between($align: center, $reverse: false, $inline: false) {
+  @include column(space-between, $align, $reverse, $inline);
+}
+
+///
+/// @alias column-between()
+///
+@mixin col-between($align: center, $reverse: false, $inline: false) {
+  @include column-between($align, $reverse, $inline);
+}
+
+@mixin column-between-stretch($reverse: false, $inline: false) {
+  @include column-between(stretch, $reverse, $inline);
+}
+
+///
+/// @alias column-between-stretch()
+///
+@mixin col-between-stretch($reverse: false, $inline: false) {
+  @include column-between-stretch($reverse, $inline);
+}
+
+@mixin column-around($align: center, $reverse: false, $inline: false) {
+  @include column(space-around, $align, $reverse, $inline);
+}
+
+///
+/// @alias column-around()
+///
+@mixin col-around($align: center, $reverse: false, $inline: false) {
+  @include column-around($align, $reverse, $inline);
+}
+
+@mixin column-around-stretch($reverse: false, $inline: false) {
+  @include column-around(stretch, $reverse, $inline);
+}
+
+///
+/// @alias column-around-stretch()
+///
+@mixin col-around-stretch($reverse: false, $inline: false) {
+  @include column-around-stretch($reverse, $inline);
+}
+
+@mixin column-evenly($align: center, $reverse: false, $inline: false) {
+  @include column(space-evenly, $align, $reverse, $inline);
+}
+
+///
+/// @alias column-evenly()
+///
+@mixin col-evenly($align: center, $reverse: false, $inline: false) {
+  @include column-evenly($align, $reverse, $inline);
+}
+
+@mixin column-evenly-stretch($reverse: false, $inline: false) {
+  @include column-evenly(stretch, $reverse, $inline);
+}
