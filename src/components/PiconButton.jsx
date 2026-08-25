@@ -16,7 +16,6 @@ export const PiconButton = ({
   tooltipOffset,
   tooltipDelay = [150, 50],
   tooltipTrigger = 'mouseenter',
-  tooltipTouch = ['hold', 500],
   activeScale = 0.95,
   disabled,
   children,
@@ -57,7 +56,6 @@ export const PiconButton = ({
         offset={tooltipOffset}
         delay={tooltipDelay}
         trigger={tooltipTrigger}
-        touch={tooltipTouch}
         disabled={!tooltip || disabled}
       />
     </>

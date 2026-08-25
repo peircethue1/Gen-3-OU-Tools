@@ -5,7 +5,7 @@ import cx from 'classnames';
 import { calcPokemonCurrentHp } from '@gen-3-ou-tools/utilities.js';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { PiconButton } from './PiconButton.jsx';
-import { PokeGlance } from './+STUBS.jsx';
+import { PokeGlance } from './PokeGlance.jsx';
 
 export const PlayerPiconButton = ({ player, partyIndex, format, onPress }) => {
   const colorScheme = useColorScheme();

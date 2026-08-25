@@ -1,3 +1,5 @@
+@use 'sass:map';
+@use 'sass:math';
 @use 'global';
 @use 'mixins/spacing';
 @use 'config/colors';
@@ -397,4 +399,241 @@
   width: 24px;
   height: 24px;
   image-rendering: pixelated;
+}
+
+$tooltip-arrow: (
+  size: 8px,
+
+  placements: (
+    top: bottom,
+    right: left,
+    bottom: top,
+    left: right,
+  ),
+);
+
+.tooltip-container {
+  @include spacing.padding-xy($x: 10px, $y: 7px);
+  @include font.apply(fonts.$primary);
+  font-size: 10px;
+  white-space: pre;
+  border-radius: 12px;
+  @include transition.apply(color, background-color);
+
+  &.tooltip-light {
+    color: colors.$white;
+    background-color: colors.$gray-darker;
+  }
+
+  &.tooltip-dark {
+    color: colors.$black;
+    background-color: colors.$white;
+  }
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+@each $placement, $prop in map.get($tooltip-arrow, placements) {
+  .tooltip-container[data-placement^='#{$placement}'] > .tooltip-arrow {
+    #{$prop}: math.div(map.get($tooltip-arrow, size), 2) * -1 + 1px;
+
+    &::before {
+      @if $placement == top {
+        top: -1px;
+      } @else if ($placement == right) {
+        right: -1px;
+      } @else if ($placement == bottom) {
+        bottom: -1px;
+      } @else if ($placement == left) {
+        left: -1px;
+      }
+    }
+  }
+}
+
+@mixin tooltip-arrow-styles {
+  @include position.absolute;
+  width: map.get($tooltip-arrow, size);
+  height: map.get($tooltip-arrow, size);
+  background: inherit;
+}
+
+.tooltip-arrow {
+  @include tooltip-arrow-styles;
+  visibility: hidden;
+
+  &::before {
+    content: '';
+    @include tooltip-arrow-styles;
+    transform: rotate(45deg);
+    visibility: visible;
+  }
+}
+
+$pokeglance-active-color: (
+  light: color.shade(colors.$blue, 16%),
+  dark: colors.$blue,
+);
+
+.pokeglance-container {
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content;
+  grid-auto-rows: auto;
+  row-gap: 6px;
+}
+
+.pokeglance-activeBadge {
+  @include position.absolute($top: -17px, $left: 50%);
+  white-space: nowrap;
+}
+
+.pokeglance-top {
+  @include flex.row($align: center);
+  grid-area: span 1 / 1;
+}
+
+.pokeglance-picon {
+  position: relative;
+  @include flex.row-center;
+  @include spacing.margin($left: -6px);
+  z-index: 1;
+
+  .pokeglance-circularHp {
+    @include position.absolute-center;
+    width: 36px;
+    height: 36px;
+    @include transition.apply(color);
+
+    .pokeglance-light & {
+      color: color.alpha(map.get($pokeglance-active-color, light), 0.64);
+    }
+
+    .pokeglance-dark & {
+      color: color.alpha(map.get($pokeglance-active-color, dark), 0.64);
+    }
+  }
+}
+
+.pokeglance-details {
+  @include spacing.margin($left: 2px);
+  @include font.apply(fonts.$mono);
+}
+
+.pokeglance-detailsRow {
+  @include flex.row($align: center);
+
+  &:not(:first-child) {
+    @include spacing.margin($top: 2px);
+  }
+
+  &.pokeglance-spaced > *:not(:last-child) {
+    @include spacing.margin($right: 4px);
+  }
+}
+
+.pokeglance-detailsRow.pokeglance-name {
+  @include font.apply(fonts.$primary);
+  font-size: 10px;
+  line-height: 11px;
+
+  .pokeglance-status {
+    @include spacing.margin($right: 4px);
+    @include font.apply(fonts.$mono);
+  }
+
+  .pokeglance-species {
+    font-weight: 600;
+  }
+
+  .pokeglance-forme {
+    opacity: 0.8;
+  }
+
+  .pokeglance-level {
+    @include spacing.margin($left: 4px);
+    @include font.apply(fonts.$mono);
+    font-size: 8px;
+    text-transform: uppercase;
+    line-height: 9px;
+    opacity: 0.64;
+  }
+}
+
+.pokeglance-types {
+  @include flex.row($align: center);
+
+  .pokeglance-type:not(:last-child) {
+    @include spacing.margin($right: 2px);
+  }
+}
+
+.pokeglance-specs {
+  display: grid;
+  grid-area: span 1 / 1;
+  grid-template-columns: max-content minmax(0, 1fr);
+  grid-auto-rows: max-content;
+  column-gap: 8px;
+  row-gap: 2px;
+
+  .pokeglance-specName {
+    @include font.apply(fonts.$primary, ( font-weight: 600 ));
+    font-size: 8px;
+    text-transform: uppercase;
+    text-align: right;
+    line-height: 13px;
+    opacity: 0.64;
+    @include transition.apply(color, opacity);
+
+    &.pokeglance-centered {
+      align-self: center;
+    }
+
+    &.pokeglance-active {
+      opacity: 0.8;
+    }
+
+    .pokeglance-light &.pokeglance-active {
+      color: map.get($pokeglance-active-color, light);
+    }
+
+    .pokeglance-dark &.pokeglance-active {
+      color: map.get($pokeglance-active-color, dark);
+    }
+  }
+
+  .pokeglance-specValues {
+    @include flex.row($align: center);
+    @include font.apply(fonts.$mono);
+    font-size: 10px;
+    line-height: 13px;
+    @include transition.apply(color);
+
+    &.pokeglance-active {
+      font-weight: 600;
+    }
+
+    .pokeglance-light &.pokeglance-active {
+      color: map.get($pokeglance-active-color, light);
+    }
+
+    .pokeglance-dark &.pokeglance-active {
+      color: map.get($pokeglance-active-color, dark);
+    }
+
+    &.pokeglance-prev {
+      filter: grayscale(1);
+
+      span {
+        text-decoration: line-through;
+        opacity: 0.64;
+      }
+    }
+
+    & > *:not(:last-child) {
+      @include spacing.margin($right: 4px);
+    }
+  }
 }

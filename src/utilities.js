@@ -1423,6 +1423,41 @@ export const calcPokemonCurrentHp = (pokemon) => {
   return Math.floor(hp);
 };
 
+//
+export const determineColorScheme = (colorScheme, reverse) => (
+  (!reverse && colorScheme) ||
+  (reverse && ((colorScheme === 'light' && 'dark') || 'light')) ||
+  null
+);
+
+// 
+const calcPokemonMaxHp = (pokemon) => {
+  if (!pokemon?.speciesForme || !pokemon.maxhp) {
+    return 0;
+  }
+
+  const { maxhp, spreadStats } = pokemon;
+
+  return Math.floor(spreadStats?.hp || maxhp || 0);
+};
+
+// 
+export const calcPokemonHpPercentage = (pokemon) => {
+  if (!pokemon?.speciesForme) {
+    return 0;
+  }
+
+  const maxHp = calcPokemonMaxHp(pokemon);
+
+  if (!maxHp) {
+    return 0;
+  }
+
+  const currentHp = calcPokemonCurrentHp(pokemon);
+
+  return clamp(0, currentHp / maxHp, 1);
+};
+
 
 
 
