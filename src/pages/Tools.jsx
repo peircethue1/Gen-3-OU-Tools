@@ -1,4 +1,4 @@
-//EDITINGNOTE: Reviewed, see note...
+//EDITINGNOTE: Reviewed, see notes...
 
 import * as React from 'react';
 import cx from 'classnames';
@@ -37,7 +37,6 @@ export const Tools = () => {
       >
         <PlayerCalc
           className="tools-authPlayerCalc"
-          position="top"
           playerKey={authPlayerKey}
           defaultName="Player 1"
         />
@@ -50,7 +49,6 @@ export const Tools = () => {
 
         <PlayerCalc
           className="tools-opponentCalc"
-          position="bottom"
           playerKey={opponentKey}
           defaultName="Player 2"
         />

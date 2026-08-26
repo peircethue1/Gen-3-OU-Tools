@@ -10,11 +10,11 @@ import {
   formatId,
 } from '@gen-3-ou-tools/utilities.js';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
-import { Badge } from './+STUBS.jsx';
-import { CircularBar } from './+STUBS.jsx';
+import { Badge } from './Badge.jsx';
+import { CircularBar } from './CircularBar.jsx';
 import { Picon } from './Picon.jsx';
-import { PokeStatus } from './+STUBS.jsx';
-import { PokeType } from './+STUBS.jsx';
+import { PokeStatus } from './PokeStatus.jsx';
+import { PokeType } from './PokeType.jsx';
 import { ItemIcon } from './ItemIcon.jsx';
 
 const EFFECTS = {
@@ -133,7 +133,6 @@ export const PokeGlance = ({
               (showStatus && (status !== 'ok' || !hpPercentage || hpPercentage !== 1)) &&
               <PokeStatus
                 className={'pokeglance-status'}
-                containerSize="xs"
                 status={status === 'ok' ? undefined : status}
                 override={status === 'ok' ? `${Math.round(hpPercentage * 100)}%` : undefined}
                 fainted={!hpPercentage}
@@ -169,7 +168,6 @@ export const PokeGlance = ({
                   <PokeType
                     key={`PokeGlanceContent:${id}:PokeType:${type}`}
                     className={'pokeglance-type'}
-                    containerSize="xl"
                     type={type}
                     highlight
                     reverseColorScheme={reverseColorScheme}

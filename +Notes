@@ -32,7 +32,7 @@ pages
   ToolsRenderer (complete)
   ToolsProvider (reviewed...)
   ToolsContext (reviewed...)
-  Tools (reviewed, see note...)
+  Tools (reviewed, see notes...)
 
 public
   manifest (complete)
@@ -52,7 +52,12 @@ components
   ItemIcon (reviewed...)
   Tooltip (reviewed...)
   PokeGlance (reviewed...)
-  Badge...
+  Badge (reviewed...)
+  CircularBar (reviewed...)
+  CircularBarPath (reviewed...)
+  PokeStatus (reviewed...)
+  PokeType (reviewed...)
+  PlayerInfo...
 
 next milestone______________________________
 

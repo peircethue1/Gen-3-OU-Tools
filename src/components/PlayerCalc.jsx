@@ -7,12 +7,12 @@ import { clamp } from '@gen-3-ou-tools/utilities.js';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { PiconRackContext } from './PiconRackContext.js';
 import { PlayerPiconButton } from './PlayerPiconButton.jsx';
-import { PlayerInfo } from './+STUBS.jsx';
+import { PlayerInfo } from './PlayerInfo.jsx';
 import { DroppableGrid } from './+STUBS.jsx';
 import { ToolsPokeProvider } from './+STUBS.jsx';
 import { PokeCalc } from './+STUBS.jsx';
 
-export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
+export const PlayerCalc = ({ className, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();
 
   const { state, selectPokemon } = useToolsContext();
@@ -65,7 +65,6 @@ export const PlayerCalc = ({ className, position, playerKey, defaultName }) => {
       <div className={'playercalc-playerBar'}>
         <PlayerInfo
           className={'playercalc-playerInfo'}
-          position={position}
           playerKey={playerKey}
           defaultName={defaultName}
         />

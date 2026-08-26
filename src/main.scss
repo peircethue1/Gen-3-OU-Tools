@@ -637,3 +637,371 @@ $pokeglance-active-color: (
     }
   }
 }
+
+.badge-container {
+  @include spacing.padding-xy($x: 10px, $y: 3px);
+  @include font.apply(fonts.$primary, ( font-weight: 500 ));
+  font-size: 10px;
+  color: colors.$white;
+  text-transform: uppercase;
+  border-radius: 50px;
+  box-shadow: 0 0 3px color.alpha(colors.$black, 0.3);
+  opacity: 0;
+  transform: translate(-50%, 5px);
+  @include transition.apply(background-color, opacity, transform);
+  user-select: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.badge-blue {
+  background-color: color.alpha(color.shade(colors.$blue, 15%), 0.95);
+}
+
+.badge-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.circularbar-container {
+  width: 100%;
+}
+
+.circularbar-pathArc {
+  stroke: currentColor;
+  stroke-linecap: round;
+  opacity: 0.24;
+  @include transition.apply(stroke);
+}
+
+.circularbar-valueArc {
+  stroke: currentColor;
+  stroke-linecap: round;
+  @include transition.apply(stroke, stroke-dashoffset);
+}
+
+$pokestatus-statuses: (
+  default-color: (
+    light: colors.$black,
+    dark: colors.$white,
+  ),
+
+  colors: (
+    unknown: #424242,
+    brn: #A84331,
+    frz: #2C9191,
+    par: #DBCB37,
+    psn: #A735A7,
+    slp: #304E7C,
+    tox: #802480,
+    fnt: #607883,
+  ),
+
+  adjustment: (
+    light: 10%,
+    dark: 50%,
+  ),
+);
+
+$pokestatus-container: (
+  width: 26px,
+  height: 13px,
+  border-radius: 5px,
+
+  default-background-color: (
+    light: #DADDDE,
+    dark: #2D2B2A,
+  ),
+
+  background-opacity: (
+    default: (
+      light: 0.88,
+      dark: 0.88,
+    ),
+
+    highlight: (
+      light: 0.8,
+      dark: 0.64,
+    ),
+
+    fnt: (
+      light: 0.4,
+      dark: 0.32,
+    ),
+  ),
+);
+
+$pokestatus-label: (
+  font-size: 8px,
+
+  text-shadow: (
+    default: 1px 1px 0 color.alpha(colors.$black, 0.1),
+    highlight: 1px 1px 0 color.alpha(colors.$black, 0.3),
+  ),
+
+  opacity: (
+    default: (
+      light: 0.75,
+      dark: 0.85,
+    ),
+
+    highlight: (
+      light: 1,
+      dark: 1,
+    ),
+  ),
+);
+
+.pokestatus-container {
+  @include flex.row-center($inline: true);
+  width: map.get($pokestatus-container, width);
+  height: map.get($pokestatus-container, height);
+  border-radius: map.get($pokestatus-container, border-radius);
+  @include transition.apply(background-color);
+  user-select: none;
+
+  &.pokestatus-light {
+    background-color: color.alpha(map.get($pokestatus-container, default-background-color, light), map.get($pokestatus-container, background-opacity, default, light));
+
+    &.pokestatus-highlight {
+      background-color: color.alpha(map.get($pokestatus-statuses, colors, unknown), map.get($pokestatus-container, background-opacity, highlight, light));
+    }
+  }
+
+  &.pokestatus-dark {
+    background-color: color.alpha(map.get($pokestatus-container, default-background-color, dark), map.get($pokestatus-container, background-opacity, default, dark));
+
+    &.pokestatus-highlight {
+      background-color: color.alpha(map.get($pokestatus-statuses, colors, unknown), map.get($pokestatus-container, background-opacity, highlight, dark));
+    }
+  }
+}
+
+.pokestatus-label {
+  font-size: map.get($pokestatus-label, font-size);
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: map.get($pokestatus-label, text-shadow, default);
+  @include transition.apply(color, text-shadow);
+
+  .pokestatus-light & {
+    color: color.alpha(map.get($pokestatus-statuses, default-color, light), map.get($pokestatus-label, opacity, default, light));
+  }
+
+  .pokestatus-dark & {
+    color: color.alpha(map.get($pokestatus-statuses, default-color, dark), map.get($pokestatus-label, opacity, default, dark));
+  }
+
+  .pokestatus-highlight & {
+    text-shadow: map.get($pokestatus-label, text-shadow, highlight);
+  }
+
+  .pokestatus-highlight.pokestatus-light & {
+    color: color.alpha(colors.$white, map.get($pokestatus-label, opacity, highlight, light));
+  }
+
+  .pokestatus-highlight.pokestatus-dark & {
+    color: color.alpha(colors.$white, map.get($pokestatus-label, opacity, highlight, dark));
+  }
+}
+
+@each $status, $color in map.get($pokestatus-statuses, colors) {
+  @if $status != unknown {
+    $light-color: color.shade($color, map.get($pokestatus-statuses, adjustment, light));
+    $light-highlight-color: $light-color;
+    $dark-color: color.tint($color, map.get($pokestatus-statuses, adjustment, dark));
+    $dark-highlight-color: $color;
+
+    $opacity-light: map.get($pokestatus-container, background-opacity, highlight, light);
+    $opacity-dark: map.get($pokestatus-container, background-opacity, highlight, dark);
+
+    @if $status == fnt {
+      $opacity-light: map.get($pokestatus-container, background-opacity, fnt, light);
+      $opacity-dark: map.get($pokestatus-container, background-opacity, fnt, dark);
+    }
+
+    .pokestatus-status-#{$status} {
+      &:not(.pokestatus-highlight) {
+        &.pokestatus-light .pokestatus-label {
+          color: color.alpha($light-color, map.get($pokestatus-label, opacity, default, light));
+        }
+
+        &.pokestatus-dark .pokestatus-label {
+          color: color.alpha($dark-color, map.get($pokestatus-label, opacity, default, dark));
+        }
+      }
+
+      &.pokestatus-highlight {
+        &.pokestatus-light {
+          background-color: color.alpha($light-highlight-color, $opacity-light);
+        }
+
+        &.pokestatus-dark {
+          background-color: color.alpha($dark-highlight-color, $opacity-dark);
+        }
+      }
+    }
+  }
+}
+
+$poketype-types: (
+  default-color: (
+    light: colors.$black,
+    dark: colors.$white,
+  ),
+
+  colors: (
+    unknown: #424242,
+    normal: #90905D,
+    fighting: #81201B,
+    flying: #8563EA,
+    poison: #7C317C,
+    ground: #D1A42B,
+    rock: #917E2C,
+    bug: #808D18,
+    ghost: #584578,
+    steel: #9999BC,
+    fire: #DD6510,
+    water: #3A6EEB,
+    grass: #549B31,
+    electric: color.shade(#FDD835, 5%),
+    psychic: color.shade(#F62765, 10%),
+    ice: color.shade(#73CACA, 10%),
+    dragon: #4D09F4,
+    dark: #41332A,
+  ),
+
+  adjustment: (
+    light: 8%,
+    dark: 32%,
+  ),
+);
+
+$poketype-container: (
+  width: 36px,
+  height: 13px,
+);
+
+$poketype-label: (
+  font-size: 8px,
+  border-radius: 5px,
+
+  text-shadow: (
+    default: 1px 1px 0 color.alpha(colors.$black, 0.1),
+    highlight: 1px 1px 0 color.alpha(colors.$black, 0.3),
+  ),
+
+  label-opacity: (
+    default: (
+      light: 0.75,
+      dark: 0.85,
+    ),
+
+    highlight: (
+      light: 1,
+      dark: 1,
+    ),
+  ),
+
+  default-background-color: (
+    light: #DCDFE1,
+    dark: #2D2B2A,
+  ),
+
+  background-opacity: (
+    default: (
+      light: 0.88,
+      dark: 0.88,
+    ),
+
+    highlight: (
+      light: 1,
+      dark: 1,
+    ),
+  ),
+);
+
+.poketype-container {
+  position: relative;
+  display: inline-block;
+  width: map.get($poketype-container, width);
+  height: map.get($poketype-container, height);
+  @include transition.apply(width);
+}
+
+.poketype-label {
+  @include position.absolute-fill;
+  @include flex.row-center($inline: true);
+  @include font.apply(fonts.$mono);
+  font-size: map.get($poketype-label, font-size);
+  text-align: center;
+  text-transform: uppercase;
+  text-shadow: map.get($poketype-label, text-shadow, default);
+  border-radius: map.get($poketype-label, border-radius);
+  @include transition.apply(color, text-shadow, background-color);
+  user-select: none;
+  z-index: 1;
+
+  .poketype-light & {
+    color: color.alpha(map.get($poketype-types, default-color, light), map.get($poketype-label, label-opacity, default, light));
+    background-color: color.alpha(map.get($poketype-label, default-background-color, light), map.get($poketype-label, background-opacity, default, light));
+  }
+
+  .poketype-dark & {
+    color: color.alpha(map.get($poketype-types, default-color, dark), map.get($poketype-label, label-opacity, default, dark));
+    background-color: color.alpha(map.get($poketype-label, default-background-color, dark), map.get($poketype-label, background-opacity, default, dark));
+  }
+
+  .poketype-highlight & {
+    text-shadow: map.get($poketype-label, text-shadow, highlight);
+  }
+
+  .poketype-highlight.poketype-light & {
+    color: color.alpha(colors.$white, map.get($poketype-label, label-opacity, highlight, light));
+    background-color: color.alpha(map.get($poketype-types, colors, unknown), map.get($poketype-label, background-opacity, default, light));
+  }
+
+  .poketype-highlight.poketype-dark & {
+    color: color.alpha(colors.$white, map.get($poketype-label, label-opacity, highlight, dark));
+    background-color: color.alpha(map.get($poketype-types, colors, unknown), map.get($poketype-label, background-opacity, default, dark));
+  }
+}
+
+@each $type, $color in map.get($poketype-types, colors) {
+  @if $type != unknown {
+    $light-shade: map.get($poketype-types, adjustment, light);
+    $dark-tint: map.get($poketype-types, adjustment, dark);
+
+    .poketype-type-#{$type} {
+      $light-default-color: color.shade($color, $light-shade);
+      $dark-default-color: color.tint($color, $dark-tint);
+
+      &:not(.poketype-highlight) {
+        &.poketype-light .poketype-label {
+          color: color.alpha($light-default-color, map.get($poketype-label, label-opacity, default, light));
+        }
+
+        &.poketype-dark .poketype-label {
+          color: color.alpha($dark-default-color, map.get($poketype-label, label-opacity, default, dark));
+        }
+      }
+
+      $light-highlight-color: $light-default-color;
+      $dark-highlight-color: $color;
+
+      &.poketype-highlight {
+        &.poketype-light {
+          .poketype-label {
+            background-color: color.alpha($light-highlight-color, map.get($poketype-label, background-opacity, highlight, light));
+          }
+        }
+
+        &.poketype-dark {
+          .poketype-label {
+            background-color: color.alpha($dark-highlight-color, map.get($poketype-label, background-opacity, highlight, dark));
+          }
+        }
+      }
+    }
+  }
+}
