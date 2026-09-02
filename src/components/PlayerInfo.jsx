@@ -1,76 +1,23 @@
-// EDITINGNOTE: do styles and scss
+// EDITINGNOTE: Reviewed...
 
 import * as React from 'react';
 import cx from 'classnames';
 import { useToolsContext } from '@gen-3-ou-tools/hooks.js';
-import { formatId } from '@gen-3-ou-tools/utilities.js';
 import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
-import { Button } from './+STUBS.jsx';
+import { Button } from './Button.jsx';
 import { Tooltip } from './Tooltip.jsx';
-
-import { useUserLadderQuery } from '';// EDITINGNOTE
 
 export const PlayerInfo = ({ className, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();
 
   const { state } = useToolsContext();
-
-  const {
-    containerSize,
-    containerWidth,
-    format,
-  } = state;
+  const { containerSize, containerWidth } = state;
 
   const {
     name,
     rating: ratingFromBattle,
+    ladder,
   } = state[playerKey] || {};
-
-  const playerId = formatId(name);
-
-
-
-
-
-  // only fetch the rating if the battle didn't provide it to us
-  // (with a terribly-implemented delay timer to give some CPU time for drawing the UI)
-  const [delayedQuery, setDelayedQuery] = React.useState(true);
-
-  const delayedQueryTimeout = React.useRef(null);
-
-  const skipLadderQuery = !playerId || !format || !!ratingFromBattle;
-
-  React.useEffect(() => {
-
-    // checking `playerId` in case the component hasn't received its props yet;
-    // once `delayedQuery` is `false`, we no longer bother refetching
-    if (!playerId || !delayedQuery || skipLadderQuery) {
-      return;
-    }
-
-    delayedQueryTimeout.current = setTimeout(
-      () => setDelayedQuery(false),
-      6996, // arbitrary af
-    );
-
-    return () => {
-      if (!delayedQueryTimeout.current) {
-        return;
-      }
-
-      clearTimeout(delayedQueryTimeout.current);
-
-      delayedQueryTimeout.current = null;
-    };
-  }, [delayedQuery, playerId, skipLadderQuery]);
-
-  const { ladder } = useUserLadderQuery(playerId, {
-    skip: skipLadderQuery || delayedQuery,
-
-    selectFromResult: ({ data }) => ({
-      ladder: data?.find?.((entry) => entry?.userid === playerId && entry.formatid === format),
-    }),
-  });
 
   const rating = ratingFromBattle || (!!ladder?.elo && Math.round(parseFloat(ladder.elo)));
 
@@ -80,49 +27,44 @@ export const PlayerInfo = ({ className, playerKey, defaultName }) => {
     glicko1Deviation: ladder?.rprd ? Math.round(parseFloat(ladder.rprd)) : null,
   };
 
-
-
-
-
   return (
     <div
       className={cx(
-        styles.container,
-        !!colorScheme && styles[colorScheme],
-        containerSize === 'xs' && styles.verySmol,
+        'playerinfo-container',
+        !!colorScheme && `playerinfo-${colorScheme}`,
+        containerSize === 'xs' && 'playerinfo-extraSmall',
         className,
       )}
     >
       <Button
-        className={styles.usernameButton}
-        labelClassName={styles.usernameButtonLabel}
+        className={'playerinfo-usernameButton'}
+        labelClassName={'playerinfo-usernameButtonLabel'}
         label={name || defaultName}
-        hoverScale={1}
         absoluteHover
         disabled
       />
 
-      <div className={styles.playerActions}>
+      <div className={'playerinfo-playerActions'}>
         {
           !!rating &&
           <Tooltip
             content={(
-              <div className={styles.tooltipContent}>
+              <div className={'playerinfo-tooltipContent'}>
                 {
                   !!ladder?.formatid &&
-                  <div className={styles.ladderFormat}>
+                  <div className={'playerinfo-ladderFormat'}>
                     {ladder.formatid}
                   </div>
                 }
 
-                <div className={styles.ladderStats}>
+                <div className={'playerinfo-ladderStats'}>
                   {
                     !!additionalRatings.gxe &&
                     <>
-                      <div className={styles.ladderStatLabel}>
+                      <div className={'playerinfo-ladderStatLabel'}>
                         GXE
                       </div>
-                      <div className={styles.ladderStatValue}>
+                      <div className={'playerinfo-ladderStatValue'}>
                         {additionalRatings.gxe}
                       </div>
                     </>
@@ -131,10 +73,10 @@ export const PlayerInfo = ({ className, playerKey, defaultName }) => {
                   {
                     !!additionalRatings.glicko1Rating &&
                     <>
-                      <div className={styles.ladderStatLabel}>
+                      <div className={'playerinfo-ladderStatLabel'}>
                         Glicko-1
                       </div>
-                      <div className={styles.ladderStatValue}>
+                      <div className={'playerinfo-ladderStatValue'}>
                         {additionalRatings.glicko1Rating}
                         {
                           !!additionalRatings.glicko1Deviation &&
@@ -153,7 +95,7 @@ export const PlayerInfo = ({ className, playerKey, defaultName }) => {
             trigger="mouseenter"
             disabled={!ladder?.id}
           >
-            <div className={cx(styles.rating, styles.visible)}>
+            <div className={"playerinfo-rating playerinfo-visible"}>
               &nbsp;{rating}{containerWidth > 360 && ' ELO'}
             </div>
           </Tooltip>

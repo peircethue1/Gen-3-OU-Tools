@@ -15,6 +15,7 @@ import {
 } from '@gen-3-ou-tools/utilities.js';
 import { BootClassicBootstrappable } from './BootClassicBootstrappable.js';
 import { toolsSlice } from '@gen-3-ou-tools/redux/toolsSlice.js';
+import { syncLadder } from '@gen-3-ou-tools/redux/syncLadder.js';
 import { syncBattle } from '@gen-3-ou-tools/redux/syncBattle.js';
 
 export class ToolsBootstrappable extends BootClassicBootstrappable {
@@ -89,12 +90,14 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
       '\nbattle:', this.battle,
     );
 
+    const format = battleId.split('-').find((part) => detectGenFromFormat(part));
+
     // Dispatches the initial state to the store
     Adapter.store.dispatch(toolsSlice.actions.init({
       battleId,
       battleNonce: initNonce,
       gen: this.battle.gen,
-      format: battleId.split('-').find((part) => detectGenFromFormat(part)),
+      format,
       gameType: this.battle.gameType,
       turn: clamp(0, this.battle.turn || 0),
       active: !this.battle.ended,
@@ -122,6 +125,20 @@ export class ToolsBootstrappable extends BootClassicBootstrappable {
         return prev;
       }, {}),
     }));
+
+    // Syncs the ladder data to the store
+    ['p1', 'p2'].forEach((playerKey) => {
+      const player = this.battle[playerKey];
+
+      if (player?.name) {
+        Adapter.store.dispatch(syncLadder({
+          battleId,
+          playerKey,
+          name: player.name,
+          format,
+        }));
+      }
+    });
 
     this.battle.toolsStateInit = true;
   }

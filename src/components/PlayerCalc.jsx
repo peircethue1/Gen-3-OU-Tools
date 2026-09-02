@@ -8,7 +8,7 @@ import { useColorScheme } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { PiconRackContext } from './PiconRackContext.js';
 import { PlayerPiconButton } from './PlayerPiconButton.jsx';
 import { PlayerInfo } from './PlayerInfo.jsx';
-import { DroppableGrid } from './+STUBS.jsx';
+import { DroppableGrid } from './DroppableGrid.jsx';
 import { ToolsPokeProvider } from './+STUBS.jsx';
 import { PokeCalc } from './+STUBS.jsx';
 

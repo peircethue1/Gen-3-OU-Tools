@@ -1,5 +1,4 @@
 // EDITINGNOTE: Reviewed, see note...
-// EDITINGNOTE: Do I need active = true?
 
 import * as React from 'react';
 import { SandwichContext } from './SandwichContext.js';
@@ -22,7 +21,7 @@ export const SandwichProvider = ({ children }) => {
       return true;
     },
 
-    activate: (id, active = true) => {
+    activate: (id, active = true) => {// EDITINGNOTE: Do I need active = true?
       if (!id || !ids.includes(id) || (!active && activeId !== id)) {
         return false;
       }

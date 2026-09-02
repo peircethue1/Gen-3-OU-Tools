@@ -1,4 +1,4 @@
-// EDITINGNOTE: See notes...
+// EDITINGNOTE: See note...
 
 import {
   useSelector as useReduxSelector,
@@ -26,7 +26,7 @@ const ElementSizeDefaultBreakpoints = {
 
 // 
 const useElementSize = (target, options) => {
-  const { initialWidth = 0, initialHeight = 0 } = options || {};// EDITINGNOTE: do I need these defaults?
+  const { initialWidth, initialHeight } = options || {};
 
   const [width, height] = useSize(target, {
     initialWidth,

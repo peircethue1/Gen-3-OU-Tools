@@ -18,6 +18,7 @@ import {
   sanitizePlayerSide,
 } from '@gen-3-ou-tools/utilities.js';
 import { syncField } from './syncField.js';
+import { syncLadder } from './syncLadder.js';
 import { syncPokemon } from './syncPokemon.js';
 
 export const SyncBattleActionType = 'tools:sync';
@@ -111,6 +112,13 @@ export const syncBattle = createAsyncThunk(SyncBattleActionType, (payload, api) 
 
     if (player.name && playerState.name !== player.name) {
       playerState.name = player.name;
+
+      api.dispatch(syncLadder({
+        battleId,
+        playerKey,
+        name: player.name,
+        format: battleState.format,
+      }));
     }
 
     if (player.rating && playerState.rating !== player.rating) {

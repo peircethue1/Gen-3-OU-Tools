@@ -78,6 +78,7 @@ export const toolsSlice = createSlice({
             active: currentPlayerKey in payload,
             name: null,
             rating: null,
+            ladder: null,
             activeIndex: null,
             selectionIndex: null,
             maxPokemon: 0,

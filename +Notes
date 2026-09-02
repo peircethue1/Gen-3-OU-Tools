@@ -1,15 +1,13 @@
-this milestone______________________________
-
 package (partially generated, complete)
 package-lock (generated)
-build (complete for this milestone, next milestone: esbuild builds CSS separately, which requires a manifest declaration or a custom inline-style plugin to bundle it inside main.js)
+build (complete)
 
 src
   background (complete)
   content (complete)
   main.js (complete)
-  utilities (complete for this milestone)
-  hooks (complete for this milestone)
+  utilities...
+  hooks...
 
 redux
   showdownApi (complete)
@@ -20,6 +18,8 @@ redux
   syncPokemon (complete)
   syncBattle (complete)
   createStore (complete)
+  actionApi (reviewed... can also be resorted here)
+  syncLadder (reviewed... can also be resorted here)
 
 pages
   BootAdapter (complete)
@@ -27,12 +27,12 @@ pages
   BootManager (complete)
   BootBootstrappable (complete)
   BootClassicBootstrappable (complete)
-  ToolsBootstrappable (complete for this milestone)
+  ToolsBootstrappable (see note...)
   ToolsClassicBootstrapper (complete)
   ToolsRenderer (complete)
   ToolsProvider (reviewed...)
   ToolsContext (reviewed...)
-  Tools (reviewed, see notes...)
+  Tools (see note...)
 
 public
   manifest (complete)
@@ -57,22 +57,25 @@ components
   CircularBarPath (reviewed...)
   PokeStatus (reviewed...)
   PokeType (reviewed...)
-  PlayerInfo...
+  PlayerInfo (reviewed...)
+  Button (reviewed...)
+  DroppableGrid (reviewed...)
+  SortableModule (reviewed...)
+  Module (reviewed...)
+  Grid (reviewed...)
+  ToolsPokeProvider...
 
-next milestone______________________________
+To Do______________________________
 
 components
   FieldCalc
 
-src
-  main.scss...
+usetoolscontext stub in hooks
 
 redux
   syncCalculator
   syncPrediction
   syncInformation
-
-usetoolscontext stub in hooks
 
 Notes______________________________
   Next milestone
@@ -117,3 +120,5 @@ check all files that import main.css for consistent naming
 there are some unused styles... strip and strip supporting logic?
 
 We are using SCSS in a single master file (src/main.scss) with Showdex's static helper library in src/styles/, consolidating all @use imports at the very top. This eliminates the "translation tax" by letting you copy Showdex's mixins and color variables directly without manual CSS rewrites. Instead of CSS Modules, components use explicitly prefixed class names (e.g., .pagecontainer-container, .scrollable-wrapper, .tools-fieldCalc) in plain strings for clean DevTools inspection, while PageContainer.jsx provides the root sandbox (gen-3-ou-tools-module) and global theme switching (data-gen-3-ou-tools-scheme="dark"). When copying styles, all unused Showdex features (floating overlay mode, Mina themes, glassy terrain, and FFA dropdowns) are stripped out.
+
+Add "*://*.pokemonshowdown.com/*" to "host_permissions" so Chrome's background service worker is allowed to fetch ladder data from Showdown:

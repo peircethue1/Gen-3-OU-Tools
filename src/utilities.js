@@ -1,4 +1,4 @@
-// EDITINGNOTE: See note...
+// EDITINGNOTE: See notes...
 
 import { v5 as uuidv5, NIL as uuidnil } from 'uuid';
 
@@ -190,7 +190,7 @@ const isJsonLike = (value) => (
 );
 
 // Safely parses a JSON string
-const safeJsonParse = (value) => {
+export const safeJsonParse = (value) => {
   if (!isJsonLike(value)) {
     return null;
   }
@@ -1395,7 +1395,7 @@ export const calcBattleToolsNonce = (battle) => {
 
 
 
-// EDITINGNOTE: This is the beginning of React component utilities.
+// EDITINGNOTE: Add notes to React component utilities
 export const knownPokemonHp = (pokemon) => (
   !!pokemon?.speciesForme &&
   typeof pokemon.maxhp === 'number' &&
@@ -1458,6 +1458,13 @@ export const calcPokemonHpPercentage = (pokemon) => {
   return clamp(0, currentHp / maxHp, 1);
 };
 
+// 
+export const createModuleLayoutUtils = ({ gridSize, gridGap }) => {
+  const toPixels = (units) =>
+    (units * gridSize) + ((units < 0 ? -1 : 1) * (Math.max(Math.abs(units), 1) - 1) * gridGap);
+
+  return { toPixels };
+};
 
 
 
@@ -1477,6 +1484,8 @@ export const calcPokemonHpPercentage = (pokemon) => {
 
 
 
+
+// EDITINGNOTE: Review FieldCalc utilities when building
 export const PlayerSideConditionsDexMap = {
   isLightScreen: ['moves', 'lightscreen'],
   isReflect: ['moves', 'reflect'],

@@ -9,6 +9,7 @@
 @use 'mixins/transition';
 @use 'mixins/flex';
 @use 'config/fonts';
+@use 'mixins/aria';
 
 .tools-content {
   @include spacing.p($a: 16px, $t: 12px);
@@ -1004,4 +1005,236 @@ $poketype-label: (
       }
     }
   }
+}
+
+.playerinfo-usernameButton {
+  justify-content: initial;
+  max-width: 100%;
+  @include font.apply(fonts.$primary, ( font-weight: 500 ));
+
+  .playerinfo-light & {
+    color: color.alpha(colors.$black, 0.75);
+  }
+
+  .playerinfo-dark & {
+    color: color.alpha(colors.$white, 0.75);
+  }
+}
+
+.playerinfo-usernameButtonLabel {
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.playerinfo-playerActions {
+  @include flex.row($align: center);
+  @include spacing.margin($top: 2px);
+  font-size: 8px;
+}
+
+.playerinfo-rating {
+  opacity: 0;
+  @include transition.apply(opacity);
+
+  &.playerinfo-visible {
+    opacity: 0.65;
+  }
+}
+
+.playerinfo-tooltipContent {
+  max-width: 175px;
+  text-align: center;
+  white-space: normal;
+  user-select: none;
+}
+
+.playerinfo-ladderFormat {
+  @include spacing.margin($bottom: 2px);
+  font-size: 8px;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.playerinfo-ladderStats {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.5em;
+}
+
+.playerinfo-ladderStatLabel {
+  grid-area: span 1 / span 1;
+  font-weight: 500;
+  font-size: 8px;
+  text-align: right;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+
+.playerinfo-ladderStatValue {
+  grid-area: span 1 / span 1;
+  @include font.apply(fonts.$mono);
+  font-size: 10px;
+  text-align: left;
+}
+
+$button-padding-x: 5px;
+$button-padding-y: 1px;
+
+$button-background-color-light: colors.$transparent;
+$button-background-color-dark: colors.$transparent;
+$button-background-color-light-hover: color.alpha(colors.$black, 0.05);
+$button-background-color-dark-hover: color.alpha(colors.$white, 0.075);
+$button-background-color-light-active: color.alpha(colors.$black, 0.15);
+$button-background-color-dark-active: color.alpha(colors.$white, 0.15);
+
+$button-border-radius: 15px;
+
+$button-label-color-light-hover: color.shade(colors.$blue, 15%);
+
+.button-container {
+  position: relative;
+  font-size: 10px;
+  border-radius: $button-border-radius;
+  @include transition.apply(color, background-color);
+
+  &.button-light {
+    background-color: $button-background-color-light;
+  }
+
+  &.button-dark {
+    background-color: $button-background-color-dark;
+  }
+
+  &:hover {
+    &.button-light {
+      color: $button-label-color-light-hover;
+      background-color: $button-background-color-light-hover;
+    }
+
+    &.button-dark {
+      color: colors.$blue;
+      background-color: $button-background-color-dark-hover;
+    }
+  }
+
+  &:active {
+    &.button-light {
+      color: color.alpha($button-label-color-light-hover, 0.85);
+      background-color: $button-background-color-light-active;
+    }
+
+    &.button-dark {
+      color: color.alpha(colors.$blue, 0.85);
+      background-color: $button-background-color-dark-active;
+    }
+  }
+
+  &.button-disabled {
+    opacity: 0.3;
+  }
+}
+
+.button-absoluteHover {
+  background-color: colors.$transparent;
+
+  &::before {
+    content: '';
+    @include position.absolute-xy(-$button-padding-x, -$button-padding-y);
+    border-radius: $button-border-radius;
+    @include transition.apply(background-color);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  &.button-light {
+    background-color: colors.$transparent;
+
+    &::before {
+      background-color: $button-background-color-light;
+    }
+  }
+
+  &.button-dark {
+    background-color: colors.$transparent;
+
+    &::before {
+      background-color: $button-background-color-dark;
+    }
+  }
+
+  &:hover {
+    &.button-light {
+      background-color: colors.$transparent;
+
+      &::before {
+        background-color: $button-background-color-light-hover;
+      }
+    }
+
+    &.button-dark {
+      background-color: colors.$transparent;
+
+      &::before {
+        background-color: $button-background-color-dark-hover;
+      }
+    }
+  }
+
+  &:active {
+    &.button-light {
+      background-color: colors.$transparent;
+
+      &::before {
+        background-color: $button-background-color-light-active;
+      }
+    }
+
+    &.button-dark {
+      background-color: colors.$transparent;
+
+      &::before {
+        background-color: $button-background-color-dark-active;
+      }
+    }
+  }
+}
+
+.button-label {
+  display: inline-block;
+  @include spacing.margin-xy($button-padding-x, $button-padding-y);
+  font-weight: inherit;
+  font-size: inherit;
+  color: inherit;
+  user-select: none;
+  pointer-events: none;
+
+  .button-absoluteHover & {
+    @include spacing.margin-none;
+  }
+}
+
+.module-container {
+  position: relative;
+}
+
+$grid-grid-border-radius: 12px;
+
+.grid-container {
+  display: grid;
+  grid-auto-flow: row dense;
+  justify-content: center;
+  border-radius: $grid-grid-border-radius;
+}
+
+.grid-interactive {
+  @include transition.apply((background-color, 500ms));
+
+  @include aria.outline(
+    $offset: 6px,
+    $radius: $grid-grid-border-radius,
+    $z-index: -1,
+  );
 }
