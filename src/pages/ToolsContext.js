@@ -3,5 +3,9 @@
 import * as React from 'react';
 
 export const ToolsContext = React.createContext({
-    state: {},
+  state: {},
+  presets: {
+    loading: false,
+    usages: {},
+  },
 });

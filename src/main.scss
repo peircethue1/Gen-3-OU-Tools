@@ -1238,3 +1238,27 @@ $grid-grid-border-radius: 12px;
     $z-index: -1,
   );
 }
+
+.pokecalc-tablesContainer {
+  @include flex.column($justify: stretch, $align: stretch);
+  @include spacing.margin($top: 16px);
+
+  .pokecalc-large & {
+    flex-direction: row;
+    align-items: center;
+
+    .pokecalc-moves {
+      flex: 2;
+    }
+
+    .pokecalc-stats {
+      flex: 1;
+      @include spacing.margin($top: 0);
+      @include spacing.padding($all: 12px, $right: 0);
+    }
+  }
+}
+
+.pokecalc-stats {
+  @include spacing.margin($top: 12px);
+}

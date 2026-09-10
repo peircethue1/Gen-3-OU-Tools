@@ -9,8 +9,8 @@ import { PiconRackContext } from './PiconRackContext.js';
 import { PlayerPiconButton } from './PlayerPiconButton.jsx';
 import { PlayerInfo } from './PlayerInfo.jsx';
 import { DroppableGrid } from './DroppableGrid.jsx';
-import { ToolsPokeProvider } from './+STUBS.jsx';
-import { PokeCalc } from './+STUBS.jsx';
+import { ToolsPokeProvider } from './ToolsPokeProvider.jsx';
+import { PokeCalc } from './PokeCalc.jsx';
 
 export const PlayerCalc = ({ className, playerKey, defaultName }) => {
   const colorScheme = useColorScheme();

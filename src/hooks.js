@@ -4,8 +4,9 @@ import {
   useSelector as useReduxSelector,
   useDispatch as useReduxDispatch,
 } from 'react-redux';
-import useSize from '@react-hook/size';
 import * as React from 'react';
+import { useSmogonData } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
+import useSize from '@react-hook/size';
 import { ToolsContext } from '@gen-3-ou-tools/pages/ToolsContext.js';
 import { toolsSlice } from '@gen-3-ou-tools/redux/toolsSlice.js';
 
@@ -14,6 +15,20 @@ export const useSelector = useReduxSelector;
 
 // Retrieves the dispatch function from the store
 export const useDispatch = () => useReduxDispatch();
+
+// 
+export const useToolsPresets = () => {
+  const smogonData = useSmogonData();
+
+  const metagame = Object.values(smogonData || {})
+    .find((bracket) => bracket?.chaos?.info?.metagame)
+    ?.chaos?.info?.metagame;
+
+  return {
+    loading: !metagame,
+    usages: smogonData || {},
+  };
+};
 
 // 
 const ElementSizeDefaultBreakpoints = {

@@ -1466,6 +1466,82 @@ export const createModuleLayoutUtils = ({ gridSize, gridGap }) => {
   return { toPixels };
 };
 
+// 
+const detectUsageAlt = (alt) =>
+  Array.isArray(alt) &&
+  !!alt[0] &&
+  typeof alt[1] === 'number';
+
+// 
+const percentage = (value, precision) => {
+  if (!value && typeof value !== 'number') {
+    return null;
+  }
+
+  const valueStr = (value * 100).toLocaleString(undefined, {
+    minimumFractionDigits: precision,
+    maximumFractionDigits: precision,
+  });
+
+  return `${valueStr}%`;
+};
+
+// 
+export const usagePercentFinder = (alts) => {
+  const usageAlts = alts?.filter?.(detectUsageAlt);
+
+  if (!usageAlts?.length) {
+    return () => null;
+  }
+
+  const altIds = usageAlts.map((alt) => [formatId(alt?.[0]), alt?.[1]]);
+
+  return (name) => {
+    const nameId = formatId(name);
+
+    if (!nameId) {
+      return null;
+    }
+
+    const [, usage] = altIds.find((alt) => alt?.[0] === nameId) || [];
+
+    if (!usage) {
+      return null;
+    }
+
+    return String(percentage(usage, usage === 1 ? 0 : 2));
+  };
+};
+
+// 
+export const usagePercentSorter = (findUsagePercent) => (a, b) => {
+  if (typeof findUsagePercent !== 'function') {
+    return 0;
+  }
+
+  const usageA = parseFloat(findUsagePercent(a)) || 0;
+
+  const usageB = parseFloat(findUsagePercent(b)) || 0;
+
+  if (usageA > usageB) {
+    return -1;
+  }
+
+  if (usageA < usageB) {
+    return 1;
+  }
+
+  if (a < b) {
+    return -1;
+  }
+
+  if (a > b) {
+    return 1;
+  }
+
+  return 0;
+};
+
 
 
 

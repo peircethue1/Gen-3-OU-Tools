@@ -17,12 +17,10 @@ export const gen3OUToolsSlice = createSlice({
       colorScheme: getColorScheme(),
     },
     smogonData: {
-      rating: {
-        0: { chaos: null, leads: null },
-        1500: { chaos: null, leads: null },
-        1630: { chaos: null, leads: null },
-        1760: { chaos: null, leads: null },
-      },
+      0: { chaos: null, leads: null },
+      1500: { chaos: null, leads: null },
+      1630: { chaos: null, leads: null },
+      1760: { chaos: null, leads: null },
     }
   },
 

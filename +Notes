@@ -63,7 +63,10 @@ components
   SortableModule (reviewed...)
   Module (reviewed...)
   Grid (reviewed...)
-  ToolsPokeProvider...
+  ToolsPokeProvider (reviewed, see notes...)
+  ToolsPokeContext (reviewed...)
+  PokeCalc (reviewed...)
+  PokeInfo...
 
 To Do______________________________
 
@@ -122,3 +125,20 @@ there are some unused styles... strip and strip supporting logic?
 We are using SCSS in a single master file (src/main.scss) with Showdex's static helper library in src/styles/, consolidating all @use imports at the very top. This eliminates the "translation tax" by letting you copy Showdex's mixins and color variables directly without manual CSS rewrites. Instead of CSS Modules, components use explicitly prefixed class names (e.g., .pagecontainer-container, .scrollable-wrapper, .tools-fieldCalc) in plain strings for clean DevTools inspection, while PageContainer.jsx provides the root sandbox (gen-3-ou-tools-module) and global theme switching (data-gen-3-ou-tools-scheme="dark"). When copying styles, all unused Showdex features (floating overlay mode, Mina themes, glassy terrain, and FFA dropdowns) are stripped out.
 
 Add "*://*.pokemonshowdown.com/*" to "host_permissions" so Chrome's background service worker is allowed to fetch ladder data from Showdown:
+
+  const { presets } = ctx || {};
+  const { loading, usages } = presets || {};
+
+  const calculateMatchup = useSmogonMatchup(state, {
+    playerKey,
+    opponentKey,
+  });
+
+  const matchups = React.useMemo(() => upsizeArray(
+    playerPokemon.moves || [],
+    null,
+    true,
+  ).map((moveName) => calculateMatchup(moveName) || null), [
+    calculateMatchup,
+    playerPokemon,
+  ]);
