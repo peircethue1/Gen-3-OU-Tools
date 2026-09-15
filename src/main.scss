@@ -364,6 +364,27 @@
   user-select: none;
 }
 
+.piconbutton-shadow {
+  &::before {
+    content: '';
+    @include position.absolute-fill;
+    background-color: colors.$transparent;
+    border-radius: 45px;
+    @include transition.apply(background-color);
+    pointer-events: none;
+  }
+
+  &:hover {
+    &.piconbutton-light::before {
+      background-color: color.alpha(colors.$black, 0.05);
+    }
+
+    &.piconbutton-dark::before {
+      background-color: color.alpha(colors.$white, 0.075);
+    }
+  }
+}
+
 .piconbutton-picon {
   z-index: 1;
 }
@@ -705,7 +726,11 @@ $pokestatus-statuses: (
 );
 
 $pokestatus-container: (
-  width: 26px,
+  width: (
+    default: 36px,
+    small: 26px,
+  ),
+
   height: 13px,
   border-radius: 5px,
 
@@ -755,11 +780,15 @@ $pokestatus-label: (
 
 .pokestatus-container {
   @include flex.row-center($inline: true);
-  width: map.get($pokestatus-container, width);
+  width: map.get($pokestatus-container, width, default);
   height: map.get($pokestatus-container, height);
   border-radius: map.get($pokestatus-container, border-radius);
   @include transition.apply(background-color);
   user-select: none;
+
+  &.pokestatus-small {
+    width: map.get($pokestatus-container, width, small);
+  }
 
   &.pokestatus-light {
     background-color: color.alpha(map.get($pokestatus-container, default-background-color, light), map.get($pokestatus-container, background-opacity, default, light));

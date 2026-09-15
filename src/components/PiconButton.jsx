@@ -10,6 +10,7 @@ import { Tooltip } from './Tooltip.jsx';
 export const PiconButton = ({
   className,
   piconClassName,
+  piconStyle,
   pokemon,
   tooltip,
   tooltipPlacement,
@@ -17,6 +18,7 @@ export const PiconButton = ({
   tooltipDelay = [150, 50],
   tooltipTrigger = 'mouseenter',
   activeScale = 0.95,
+  shadow,
   disabled,
   children,
   ...props
@@ -32,6 +34,7 @@ export const PiconButton = ({
         {...props}
         className={cx(
           'piconbutton-container',
+          shadow && 'piconbutton-shadow',
           !!colorScheme && `piconbutton-${colorScheme}`,
           className,
         )}
@@ -43,6 +46,7 @@ export const PiconButton = ({
             'piconbutton-picon',
             piconClassName,
           )}
+          style={piconStyle}
           pokemon={pokemon}
         />
 
@@ -50,7 +54,7 @@ export const PiconButton = ({
       </BaseButton>
 
       <Tooltip
-        reference={ref.current}
+        reference={ref}
         content={tooltip}
         placement={tooltipPlacement}
         offset={tooltipOffset}

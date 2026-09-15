@@ -16,14 +16,14 @@ const POKEMON_STATUSES = [
 ];
 
 const NONVOLATILES = {
-  ok: 'OK',
-  fnt: 'FNT',
-  brn: 'BRN',
-  frz: 'FRZ',
-  par: 'PAR',
-  psn: 'PSN',
-  slp: 'SLP',
-  tox: 'TOX',
+  ok: ['OK', 'OK'],
+  fnt: ['FAINT', 'FNT'],
+  brn: ['BURNED', 'BRN'],
+  frz: ['FROZEN', 'FRZ'],
+  par: ['PARLYZ', 'PAR'],
+  psn: ['POISON', 'PSN'],
+  slp: ['ASLEEP', 'SLP'],
+  tox: ['TOXIC', 'TOX'],
 };
 
 export const PokeStatus = ({
@@ -32,21 +32,21 @@ export const PokeStatus = ({
   override,
   fainted,
   reverseColorScheme,
+  containerSize,
   highlight,
 }) => {
   const currentColorScheme = useColorScheme();
   const colorScheme = determineColorScheme(currentColorScheme, reverseColorScheme);
 
-  const statusId = formatId(status);
-
-  if (!POKEMON_STATUSES.includes(statusId) && !fainted && !override) {
+  if (!POKEMON_STATUSES.includes(status) && !fainted && !override) {
     return null;
   }
 
+  const labelIndex = ['xs', 'sm'].includes(containerSize) ? 1 : 0;
+
   const label = (fainted && 'FNT') ||
     override ||
-    NONVOLATILES[statusId] ||
-    status ||
+    (status !== '???' && (NONVOLATILES[formatId(status)]?.[labelIndex] || status)) ||
     '???';
 
   return (
@@ -54,9 +54,10 @@ export const PokeStatus = ({
       className={cx(
         'pokestatus-container',
         !!colorScheme && `pokestatus-${colorScheme}`,
-        !fainted && !override && `pokestatus-status-${statusId}`,
+        !fainted && !override && `pokestatus-status-${status.toLowerCase()}`,
         fainted && 'pokestatus-status-fnt',
         highlight && 'pokestatus-highlight',
+        labelIndex === 1 && 'pokestatus-small',
         className,
       )}
     >

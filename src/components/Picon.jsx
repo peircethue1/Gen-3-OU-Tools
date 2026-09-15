@@ -4,7 +4,7 @@ import * as React from 'react';
 import cx from 'classnames';
 import { ItemIcon } from './ItemIcon.jsx';
 
-export const Picon = ({ className, pokemon }) => {
+export const Picon = ({ className, style, pokemon }) => {
   const css = Dex?.getPokemonIcon((pokemon) || 'pokeball-none').split(';')[0];
   const background = css?.replace(/^background:/, '');
 
@@ -13,7 +13,10 @@ export const Picon = ({ className, pokemon }) => {
   return (
     <div
       className={cx('picon-container', className)}
-      style={{ background }}
+      style={{
+        ...style,
+        ...(!!background && { background }),
+      }}
     >
       {
         !!item &&

@@ -880,7 +880,7 @@ export const similarArrays = (arrayA, arrayB) => {
 };
 
 // Defines Pokemon nature stat modifiers
-const POKEMON_NATURE_BOOSTS = {
+export const PokemonNatureBoosts = {
   Adamant: ['atk', 'spa'],
   Bashful: [],
   Bold: ['def', 'atk'],
@@ -933,8 +933,8 @@ const calcPokemonStat = (stat, base, iv, ev, level, nature) => {
 
   const value = truncate(((2 * base + actualIv + truncate(actualEv / 4)) * actualLevel) / 100) + 5;
 
-  if (nature && nature in POKEMON_NATURE_BOOSTS) {
-    const [plus, minus] = POKEMON_NATURE_BOOSTS[nature];
+  if (nature && nature in PokemonNatureBoosts) {
+    const [plus, minus] = PokemonNatureBoosts[nature];
 
     if (plus && stat === plus) {
       return truncate(truncate(value * 110, 16) / 100);
@@ -1540,6 +1540,249 @@ export const usagePercentSorter = (findUsagePercent) => (a, b) => {
   }
 
   return 0;
+};
+
+// 
+const flattenAlt = (alt) => (Array.isArray(alt) ? alt[0] : alt);
+
+// 
+export const buildAbilityOptions = (pokemon, config) => {
+  const options = [];
+
+  if (!pokemon?.speciesForme) {
+    return options;
+  }
+
+  const {
+    usage,
+    usageFinder: findUsagePercent,
+    usageSorter,
+    showAll,
+  } = config || {};
+
+  const {
+    source,
+    baseAbility,
+    ability,
+    abilities,
+    transformedAbilities,
+    transformedForme,
+  } = pokemon;
+
+  const filterAbilities = [];
+
+  if (showAll && !transformedForme && ability && baseAbility && ability !== baseAbility && !/^\([\w\s]+\)$/.test(ability)) {
+    options.push({
+      label: 'Inherited',
+      options: [{
+        label: ability,
+        rightLabel: findUsagePercent(ability),
+        value: ability,
+      }],
+    });
+
+    filterAbilities.push(ability);
+  }
+
+  if (showAll && transformedForme) {
+    const transformed = (
+      (source === 'server' && ability && !/^\([\w\s]+\)$/.test(ability))
+        ? [ability]
+        : transformedAbilities
+    ).filter((name) => !!name && !filterAbilities.includes(name)).sort(usageSorter);
+
+    if (transformed.length) {
+      options.push({
+        label: 'Transformed',
+        options: transformed.map((name) => {
+          filterAbilities.push(name);
+
+          return {
+            label: name,
+            rightLabel: findUsagePercent(name),
+            value: name,
+          };
+        }),
+      });
+    }
+  }
+
+  const usageAbilities = usage?.filter((alt) => (
+    detectUsageAlt(alt) && !filterAbilities.includes(alt[0])
+  ));
+
+  if (usageAbilities?.length) {
+    options.push({
+      label: 'Usage',
+      options: usageAbilities.map((alt) => {
+        const flat = flattenAlt(alt);
+
+        filterAbilities.push(flat);
+
+        return {
+          label: flat,
+          rightLabel: percentage(alt[1], alt[1] === 1 ? 0 : 2),
+          value: flat,
+        };
+      }),
+    });
+  }
+
+  if (showAll && abilities?.length) {
+    const legalAbilities = abilities
+      .filter((name) => !!name && !filterAbilities.includes(name))
+      .sort(usageSorter);
+
+    if (legalAbilities.length) {
+      options.push({
+        label: 'Legal',
+        options: legalAbilities.map((name) => {
+          filterAbilities.push(name);
+
+          return {
+            label: name,
+            rightLabel: findUsagePercent(name),
+            value: name,
+          };
+        }),
+      });
+    }
+  }
+
+  if (showAll) {
+    const otherAbilities = Object.values(BattleAbilities || {})
+      .filter((ability) => (
+        ability?.num >= 1 &&
+        ability.num <= 76 &&
+        !filterAbilities.includes(ability.name)
+      ))
+      .map((ability) => ability.name)
+      .sort(usageSorter);
+
+    if (otherAbilities.length) {
+      options.push({
+        label: 'All',
+        options: otherAbilities.map((name) => ({
+          label: name,
+          rightLabel: findUsagePercent(name),
+          value: name,
+        })),
+      });
+    }
+  }
+
+  return options;
+};
+
+// 
+const PokemonToggleAbilities = {
+  singles: [
+    'Flash Fire',
+  ],
+};
+
+// 
+export const toggleableAbility = (pokemon, gameType) => {
+  if (!pokemon?.speciesForme || !PokemonToggleAbilities[gameType]?.length) {
+    return false;
+  }
+
+  const ability = pokemon.dirtyAbility || pokemon.ability;
+
+  if (!ability) {
+    return false;
+  }
+
+  return PokemonToggleAbilities[gameType].includes(ability);
+};
+
+// 
+export const PokemonCommonNatures = [
+  'Adamant',
+  'Modest',
+  'Jolly',
+  'Timid',
+  'Bold',
+  'Brave',
+  'Calm',
+  'Careful',
+  'Gentle',
+  'Hasty',
+  'Impish',
+  'Lax',
+  'Lonely',
+  'Mild',
+  'Naive',
+  'Naughty',
+  'Quiet',
+  'Rash',
+  'Relaxed',
+  'Sassy',
+  'Hardy',
+];
+
+// 
+export const buildItemOptions = (pokemon, config) => {
+  const options = [];
+
+  if (!pokemon?.speciesForme) {
+    return options;
+  }
+
+  const {
+    usage,
+    usageFinder: findUsagePercent,
+    usageSorter,
+    showAll,
+  } = config || {};
+
+  const filterItems = [];
+
+  const usageItems = usage?.filter((alt) => (
+    detectUsageAlt(alt) && !filterItems.includes(alt[0])
+  ));
+
+  if (usageItems?.length) {
+    options.push({
+      label: 'Usage',
+      options: usageItems.map((alt) => {
+        const flat = flattenAlt(alt);
+
+        filterItems.push(flat);
+
+        return {
+          label: flat,
+          rightLabel: percentage(alt[1], alt[1] === 1 ? 0 : 2),
+          value: flat,
+        };
+      }),
+    });
+  }
+
+  if (showAll) {
+    const otherItems = Object.values(BattleItems || {})
+      .filter((item) => (
+        item?.name &&
+        item.gen <= 3 &&
+        !item.isNonstandard &&
+        !filterItems.includes(item.name)
+      ))
+      .map((item) => item.name)
+      .sort(usageSorter);
+
+    if (otherItems.length) {
+      options.push({
+        label: 'All',
+        options: otherItems.map((name) => ({
+          label: name,
+          rightLabel: findUsagePercent(name),
+          value: name,
+        })),
+      });
+    }
+  }
+
+  return options;
 };
 
 

@@ -5,10 +5,13 @@ import {
   useDispatch as useReduxDispatch,
 } from 'react-redux';
 import * as React from 'react';
-import { useSmogonData } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import useSize from '@react-hook/size';
+import { v5 as uuidv5, v1 as uuidv1, v4 as uuidv4, NIL as uuidnil } from 'uuid';
+import { useSmogonData } from '@gen-3-ou-tools/redux/gen3OUToolsSlice.js';
 import { ToolsContext } from '@gen-3-ou-tools/pages/ToolsContext.js';
 import { toolsSlice } from '@gen-3-ou-tools/redux/toolsSlice.js';
+import { ToolsPokeContext } from '@gen-3-ou-tools/components/ToolsPokeContext.js';
+import { SandwichContext } from '@gen-3-ou-tools/components/SandwichContext.js';
 
 // Selects the state from the store
 export const useSelector = useReduxSelector;
@@ -119,9 +122,80 @@ export const useToolsContext = () => {
 
   return {
     ...ctx,
+
+    updateBattle: (battle) => console.log('[Stub updateBattle]\n', battle),
+    updatePokemon: (playerKey, pokemon) => console.log('[Stub updatePokemon]\n', playerKey, '\n', pokemon),
     updateSide: (playerKey, side) => console.log('[Stub updateSide]\n', playerKey, '\n', side),
     updateField: (field) => console.log('[Stub updateField]\n', field),
     selectPokemon: (playerKey, pokemonIndex) => console.log('[Stub selectPokemon]\n', playerKey, '\n', pokemonIndex),
-    updateBattle: (battle) => console.log('[Stub updateBattle]\n', battle),
+
   };
+};
+
+// 
+export const useToolsPokeContext = () => {
+  const ctx = React.useContext(ToolsPokeContext);
+  const { playerKey, playerPokemon } = ctx;
+
+  const {
+    updatePokemon: updatePlayerPokemon,
+    selectPokemon,
+  } = useToolsContext();
+
+  const updatePokemon = (pokemon) => updatePlayerPokemon(
+    playerKey,
+    {
+      ...pokemon,
+      toolsId: playerPokemon?.toolsId,
+    },
+  );
+
+  return {
+    ...ctx,
+
+    updatePokemon,
+    selectPokemon: (index) => selectPokemon(playerKey, index),
+  };
+};
+
+// 
+export const useRandomUuid = () => {
+  const uuidRef = React.useRef(uuidv5(
+    `${uuidv1()}-${uuidv4()}`,
+    uuidnil,
+  ));
+
+  return uuidRef.current;
+};
+
+// 
+export const useSandwich = () => {
+  const {
+    activeId,
+    mount,
+    activate,
+    unmount,
+  } = React.useContext(SandwichContext);
+
+  const id = useRandomUuid();
+
+  React.useEffect(() => {
+    if (!id) {
+      return;
+    }
+
+    mount(id);
+
+    return () => unmount(id);
+  }, []);
+
+  const output = React.useMemo(() => ({
+    id,
+    active: activeId === id,
+
+    requestOpen: () => activate(id, true),
+    notifyClose: () => activate(id, false),
+  }), [activate, activeId, id]);
+
+  return output;
 };

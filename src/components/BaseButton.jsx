@@ -7,6 +7,7 @@ import cx from 'classnames';
 
 export const BaseButton = React.forwardRef(({
   className,
+  display = 'inline',
   tabIndex = 0,
   initScale = 1,
   activeScale,
@@ -15,6 +16,8 @@ export const BaseButton = React.forwardRef(({
   onPress,
   ...props
 }, forwardedRef) => {
+  const elementType = display === 'inline' ? 'button' : 'div';
+
   const ref = React.useRef(null);
 
   React.useImperativeHandle(
@@ -39,10 +42,12 @@ export const BaseButton = React.forwardRef(({
     enabled: !disabled,
   });
 
+  const Component = animated[elementType];
+
   const handleClick = (!disabled && onPress) || null;
 
   return (
-    <animated.button
+    <Component
       ref={ref}
       {...props}
       tabIndex={disabled ? -1 : tabIndex}
@@ -51,11 +56,16 @@ export const BaseButton = React.forwardRef(({
         disabled && 'basebutton-disabled',
         className,
       )}
-      disabled={disabled}
+      {...(elementType === 'button' ? {
+        ...(typeof disabled === 'boolean' && { disabled }),
+      } : {
+        role: 'button',
+        ...(typeof disabled === 'boolean' && { 'aria-disabled': disabled }),
+      })}
       style={{ scale }}
       {...(typeof handleClick === 'function' && { onClick: handleClick })}
     >
       {children}
-    </animated.button>
+    </Component>
   );
 });
